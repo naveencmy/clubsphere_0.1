@@ -194,7 +194,7 @@ export default function Expenses() {
                     ['Budget', data.budgetCatalog.find((b) => b.id === e.budgetId)?.title],
                     [
                       'Approval policy',
-                      e.amount >= 250000 ? 'Treasurer + President' : 'Treasurer final approval',
+                      e.amount >= 250000 ? 'Treasurer + Association In-charge' : 'Treasurer final approval',
                     ],
                   ]}
                 />
@@ -209,12 +209,12 @@ export default function Expenses() {
                     Correct & resubmit
                   </Button>
                 )}
-                {e.userId === data.user.id && ['TREASURER', 'PRESIDENT'].includes(data.role) && (
+                {e.userId === data.user.id && ['TREASURER', 'ASSOCIATION_INCHARGE'].includes(data.role) && (
                   <Notice tone="warning">
                     You cannot approve your own claim. Ask an independent officer to review.
                   </Notice>
                 )}
-                {['TREASURER', 'PRESIDENT'].includes(data.role) && e.userId !== data.user.id && (
+                {['TREASURER', 'ASSOCIATION_INCHARGE'].includes(data.role) && e.userId !== data.user.id && (
                   <div className="row">
                     {e.status === 'SUBMITTED' && (
                       <Button
@@ -247,16 +247,16 @@ export default function Expenses() {
                     )}
                     {e.status === 'TREASURER_APPROVED' &&
                       e.amount >= 250000 &&
-                      data.role === 'PRESIDENT' && (
+                      data.role === 'ASSOCIATION_INCHARGE' && (
                         <Button primary disabled={busy} onClick={() => setDecision('president')}>
-                          President final approval
+                          Association In-charge final approval
                         </Button>
                       )}
-                    {(e.status === 'PRESIDENT_APPROVED' ||
+                    {(['INCHARGE_APPROVED', 'PRESIDENT_APPROVED'].includes(e.status) ||
                       (e.status === 'TREASURER_APPROVED' && e.amount < 250000)) &&
                       data.role === 'TREASURER' && (
                         <Button primary disabled={busy} onClick={() => setDecision('disburse')}>
-                          Record demo disbursement
+                          Record disbursement
                         </Button>
                       )}
                   </div>
@@ -292,8 +292,8 @@ export default function Expenses() {
           </Card>
           <Notice>
             {e.status === 'TREASURER_APPROVED' && e.amount >= 250000
-              ? 'Treasurer verification is recorded. No expense accrual or payable is posted until President approval.'
-              : ['PRESIDENT_APPROVED', 'TREASURER_APPROVED'].includes(e.status)
+              ? 'Treasurer verification is recorded. No expense accrual or payable is posted until Association In-charge approval.'
+              : ['INCHARGE_APPROVED', 'TREASURER_APPROVED'].includes(e.status)
                 ? 'Final approval posted the expense and payable. Cash remains unchanged until disbursement.'
                 : e.status === 'DISBURSED'
                   ? 'Disbursement cleared the payable and reduced operating cash.'
@@ -322,7 +322,7 @@ export default function Expenses() {
                 'UNDER_REVIEW',
                 'NEEDS_CORRECTION',
                 'TREASURER_APPROVED',
-                'PRESIDENT_APPROVED',
+                'INCHARGE_APPROVED',
                 'REJECTED',
                 'DISBURSED',
               ].map((v) => (
@@ -421,15 +421,15 @@ export default function Expenses() {
               },
               ...(decision === 'president'
                 ? [
-                    {
-                      name: 'override',
-                      label: 'Budget override',
-                      options: [
-                        { value: 'false', label: 'Enforce allocated budget' },
-                        { value: 'true', label: 'President override · reason required' },
-                      ],
-                    },
-                  ]
+                  {
+                    name: 'override',
+                    label: 'Budget override',
+                    options: [
+                      { value: 'false', label: 'Enforce allocated budget' },
+                      { value: 'true', label: 'Association In-charge override · reason required' },
+                    ],
+                  },
+                ]
                 : []),
             ]}
             onCancel={() => setDecision(null)}

@@ -8,13 +8,20 @@ export const reserveTicketSchema = z.object({
 
 export const confirmTicketPaymentSchema = z.object({
   stripePaymentIntentId: z.string().optional(),
+  razorpayPaymentId: z.string().optional(),
+  paymentId: z.string().optional(),
+  orderId: z.string().optional(),
 });
 
 export const checkInSchema = z.object({
-  ticketCode: z.string().min(1, 'Ticket code is required'),
+  ticketCode: z.string().optional(),
+  rawQrString: z.string().optional(),
+  station: z.string().optional(),
   timestamp: z.coerce.number().optional(),
   nonce: z.string().optional(),
   signature: z.string().optional(),
+}).refine(data => data.ticketCode || data.rawQrString, {
+  message: 'Either ticketCode or rawQrString must be provided',
 });
 
 export class EventController {
@@ -68,12 +75,38 @@ export class EventController {
   static async checkIn(req, res, next) {
     const startTime = Date.now();
     try {
+      let ticketCode = req.body.ticketCode;
+      let timestamp = req.body.timestamp;
+      let nonce = req.body.nonce;
+      let signature = req.body.signature;
+
+      if (!ticketCode && req.body.rawQrString) {
+        const raw = req.body.rawQrString;
+        if (raw.startsWith('CS1:')) {
+          const parts = raw.split(':');
+          if (parts.length >= 3) {
+            ticketCode = parts[2];
+            if (parts.length >= 4) signature = parts[3];
+          }
+        } else {
+          try {
+            const parsed = JSON.parse(raw);
+            ticketCode = parsed.ticketCode || parsed.code;
+            timestamp = parsed.timestamp;
+            nonce = parsed.nonce;
+            signature = parsed.signature;
+          } catch {
+            ticketCode = raw;
+          }
+        }
+      }
+
       const result = await EventService.rapidDoorCheckIn({
         eventId: req.params.eventId,
-        ticketCode: req.body.ticketCode,
-        timestamp: req.body.timestamp,
-        nonce: req.body.nonce,
-        signature: req.body.signature,
+        ticketCode,
+        timestamp,
+        nonce,
+        signature,
         scannedByUserId: req.user.id,
       });
 

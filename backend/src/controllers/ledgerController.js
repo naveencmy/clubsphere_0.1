@@ -177,10 +177,14 @@ export class LedgerController {
   static async approveByPresident(req, res, next) {
     try {
       const expense = await LedgerService.approveByPresident(req.params.id, req.user.id);
-      return sendSuccess(res, expense, 'President dual sign-off recorded and Stage 1 Accrual posted');
+      return sendSuccess(res, expense, 'Association In-charge dual sign-off recorded and Stage 1 Accrual posted');
     } catch (err) {
       next(err);
     }
+  }
+
+  static async approveByIncharge(req, res, next) {
+    return LedgerController.approveByPresident(req, res, next);
   }
 
   static async disburseExpense(req, res, next) {

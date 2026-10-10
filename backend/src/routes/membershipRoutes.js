@@ -10,7 +10,7 @@ router.use(requireClubTenant);
 
 router.post('/register', authenticate, validate({ body: registerMembershipSchema }), MembershipController.register);
 router.get('/pass', authenticate, MembershipController.getRotatingPass);
-router.post('/verify-pass', authenticate, authorizeRole(['OFFICER', 'TREASURER', 'PRESIDENT', 'ADMIN']), validate({ body: verifyPassSchema }), MembershipController.verifyPass);
+router.post('/verify-pass', authenticate, authorizeRole(['VOLUNTEER', 'COMMITTEE_LEAD', 'TREASURER', 'ASSOCIATION_COORDINATOR', 'ASSOCIATION_INCHARGE', 'ADMIN']), validate({ body: verifyPassSchema }), MembershipController.verifyPass);
 router.post('/cron/check-expirations', authenticate, authorizeRole(['ADMIN']), MembershipController.runExpirationJob);
 
 export default router;

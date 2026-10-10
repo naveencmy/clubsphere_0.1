@@ -122,7 +122,7 @@ export default function Announcements() {
               {management && (
                 <>
                   <Button onClick={() => setEdit(a)}>Edit</Button>
-                  {a.status === 'DRAFT' && ['TREASURER', 'PRESIDENT'].includes(data.role) && (
+                  {a.status === 'DRAFT' && ['TREASURER', 'ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(data.role) && (
                     <Button
                       disabled={busy}
                       onClick={() => run(() => broadcastService.review(a.id), 'Draft reviewed')}
@@ -130,7 +130,7 @@ export default function Announcements() {
                       Review draft
                     </Button>
                   )}
-                  {a.status !== 'PUBLISHED' && data.role === 'PRESIDENT' && (
+                  {a.status !== 'PUBLISHED' && ['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(data.role) && (
                     <Button
                       primary
                       disabled={busy}
@@ -144,7 +144,7 @@ export default function Announcements() {
                       Publish announcement
                     </Button>
                   )}
-                  {data.role === 'PRESIDENT' && (
+                  {['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(data.role) && (
                     <Button
                       disabled={busy}
                       onClick={() => run(() => broadcastService.pin(a.id), 'Pin updated')}
@@ -200,7 +200,7 @@ export default function Announcements() {
               Email dispatch is simulated. Reading an announcement is tracked separately from
               delivery.
             </Notice>
-            {['TREASURER', 'PRESIDENT'].includes(data.role) && (
+            {['TREASURER', 'ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(data.role) && (
               <Button
                 primary
                 disabled={busy}

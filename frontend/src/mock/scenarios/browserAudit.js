@@ -5,7 +5,7 @@ export function createBrowserAuditSeed(role = 'visitor') {
   s.session.userId = role;
   s.orders.push({
     id: 'ORD-AUDIT',
-    clubId: 'skyline',
+    clubId: 'nec-cse',
     userId: 'member',
     status: 'PENDING',
     amount: 79900,

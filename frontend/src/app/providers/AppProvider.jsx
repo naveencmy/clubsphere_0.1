@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { snapshot } from '../../services/serviceFactory.js';
 import { subscribe } from '../../services/subscription.js';
+import { syncFromBackend } from '../../services/apiBridge.js';
 const Context = createContext(null);
 export function AppProvider({ children }) {
   const [data, setData] = useState(snapshot),
@@ -9,6 +10,7 @@ export function AppProvider({ children }) {
     [cart, setCart] = useState([]);
   useEffect(() => {
     const unsubscribe = subscribe(() => setData(snapshot()));
+    syncFromBackend(data.session.clubId);
     const timer = setTimeout(() => setLoading(false), 180);
     return () => {
       unsubscribe();

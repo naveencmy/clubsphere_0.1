@@ -91,7 +91,7 @@ export default function Finance({ dashboard = false }) {
   if (!f)
     return (
       <Notice tone="error">
-        Financial reporting is restricted to the Treasurer, President and read-only Auditor.
+        Financial reporting is restricted to the Treasurer, Association In-charge and read-only Auditor.
       </Notice>
     );
   const rows = data.journal
@@ -567,7 +567,7 @@ export function Budgets() {
   const { data, toast } = useApp();
   const [edit, setEdit] = useState(null),
     [year, setYear] = useState(data.club.fiscalYear);
-  const writable = ['TREASURER', 'PRESIDENT'].includes(data.role);
+  const writable = ['TREASURER', 'ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(data.role);
   return (
     <div className="stack">
       <PageHeader
@@ -591,7 +591,7 @@ export function Budgets() {
       </div>
       <Notice>
         Budget remaining is an allocation, not available cash. Expenses commit only at final
-        approval. Overspending requires a recorded President override or an increased envelope.
+        approval. Overspending requires a recorded Association In-charge override or an increased envelope.
       </Notice>
       <div className="grid three">
         {data.budgets

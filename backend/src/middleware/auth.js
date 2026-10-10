@@ -22,19 +22,32 @@ export async function authenticate(req, res, next) {
       throw new UnauthorizedError('Authentication required. Missing Bearer token.');
     }
 
-    let decoded;
+    let userId = null;
+    let decoded = null;
     try {
       decoded = jwt.verify(token, config.JWT_SECRET);
+      userId = decoded.userId || decoded.id;
     } catch (err) {
-      throw new UnauthorizedError('Invalid or expired authentication token.');
+      // Check Better Auth database sessions table
+      const sessionRes = await query(
+        `SELECT user_id FROM sessions WHERE token = $1 AND expires_at > NOW() LIMIT 1;`,
+        [token]
+      );
+      if (sessionRes.rowCount > 0) {
+        userId = sessionRes.rows[0].user_id;
+      } else {
+        throw new UnauthorizedError('Invalid or expired authentication token.');
+      }
     }
 
-    // Retrieve active user record
+    // Retrieve active user record with full profile
     const userRes = await query(
-      `SELECT id, email, full_name, student_id, role, avatar_url, created_at 
-       FROM users 
-       WHERE id = $1 LIMIT 1;`,
-      [decoded.userId || decoded.id]
+      `SELECT u.id, u.name, u.name as full_name, u.email, u.system_role as role, u.image as avatar_url,
+              up.student_id_number as student_id, u.created_at, u.updated_at 
+       FROM users u
+       LEFT JOIN user_profiles up ON u.id = up.user_id
+       WHERE u.id = $1 LIMIT 1;`,
+      [userId]
     );
 
     if (userRes.rowCount === 0) {
@@ -54,22 +67,41 @@ export async function authenticate(req, res, next) {
  */
 export async function optionalAuth(req, res, next) {
   try {
+    let token = null;
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
+      token = authHeader.split(' ')[1];
+    } else if (req.headers['x-session-token']) {
+      token = req.headers['x-session-token'];
+    }
+
+    if (token) {
+      let userId = null;
       try {
         const decoded = jwt.verify(token, config.JWT_SECRET);
+        userId = decoded.userId || decoded.id;
+      } catch (e) {
+        const sessionRes = await query(
+          `SELECT user_id FROM sessions WHERE token = $1 AND expires_at > NOW() LIMIT 1;`,
+          [token]
+        );
+        if (sessionRes.rowCount > 0) {
+          userId = sessionRes.rows[0].user_id;
+        }
+      }
+
+      if (userId) {
         const userRes = await query(
-          `SELECT id, email, full_name, student_id, role, avatar_url 
-           FROM users 
-           WHERE id = $1 LIMIT 1;`,
-          [decoded.userId || decoded.id]
+          `SELECT u.id, u.name, u.name as full_name, u.email, u.system_role as role, u.image as avatar_url,
+                  up.student_id_number as student_id, u.created_at, u.updated_at 
+           FROM users u
+           LEFT JOIN user_profiles up ON u.id = up.user_id
+           WHERE u.id = $1 LIMIT 1;`,
+          [userId]
         );
         if (userRes.rowCount > 0) {
           req.user = userRes.rows[0];
         }
-      } catch (e) {
-        // Token invalid, proceed anonymously
       }
     }
     next();

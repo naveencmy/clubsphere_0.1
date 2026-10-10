@@ -61,7 +61,7 @@ export default function ReportCharts({ data }) {
         .filter(
           (c) =>
             c.eventId === e.id &&
-            (['PRESIDENT_APPROVED', 'DISBURSED'].includes(c.status) ||
+            (['INCHARGE_APPROVED', 'DISBURSED'].includes(c.status) ||
               (c.status === 'TREASURER_APPROVED' && c.amount < 250000)),
         )
         .reduce((a, c) => a + c.amount, 0),

@@ -1,6 +1,6 @@
-export const staffRoles = ['VOLUNTEER', 'COMMITTEE_LEAD', 'TREASURER', 'PRESIDENT'];
-export const managerRoles = ['COMMITTEE_LEAD', 'TREASURER', 'PRESIDENT'];
-export const financeRoles = ['TREASURER', 'PRESIDENT', 'AUDITOR'];
+export const staffRoles = ['VOLUNTEER', 'COMMITTEE_LEAD', 'TREASURER', 'ASSOCIATION_COORDINATOR', 'ASSOCIATION_INCHARGE', 'PRESIDENT'];
+export const managerRoles = ['COMMITTEE_LEAD', 'TREASURER', 'ASSOCIATION_COORDINATOR', 'ASSOCIATION_INCHARGE', 'PRESIDENT'];
+export const financeRoles = ['TREASURER', 'ASSOCIATION_COORDINATOR', 'ASSOCIATION_INCHARGE', 'AUDITOR', 'PRESIDENT'];
 export const taskStatuses = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE'];
 export function roleFor(state) {
   const user = state.users.find((u) => u.id === state.session.userId);
@@ -23,8 +23,8 @@ export const permissions = {
   finance: financeRoles,
   scanner: staffRoles,
   expense: staffRoles,
-  publish: ['PRESIDENT'],
-  reviewBroadcast: ['TREASURER', 'PRESIDENT'],
-  settings: ['PRESIDENT'],
+  publish: ['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR', 'PRESIDENT'],
+  reviewBroadcast: ['TREASURER', 'ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR', 'PRESIDENT'],
+  settings: ['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR', 'PRESIDENT'],
   inventory: managerRoles,
 };

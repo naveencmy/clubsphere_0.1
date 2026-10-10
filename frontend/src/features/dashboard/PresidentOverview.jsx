@@ -33,7 +33,7 @@ export default function PresidentOverview() {
       </div>
       <div className="grid two">
         <Card
-          title="President approval desk"
+          title="Association In-charge approval desk"
           action={<LinkButton to={`${root}/approvals`}>Review approvals</LinkButton>}
         >
           <div className="card-body stack small">

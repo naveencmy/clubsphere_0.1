@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClubSphere | Razorpay Standard Web Checkout</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Razorpay Standard Checkout SDK -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <style>
+    :root {
+      --bg-primary: #0a0e17;
+      --bg-card: rgba(18, 24, 38, 0.85);
+      --border-color: rgba(255, 255, 255, 0.1);
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --accent-glow: rgba(99, 102, 241, 0.35);
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.3);
+      --error: #ef4444;
+      --error-glow: rgba(239, 68, 68, 0.3);
+      --warning: #f59e0b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, var(--bg-primary) 70%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .logo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #a5b4fc;
+      margin-bottom: 12px;
+    }
+
+    .logo-badge span {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #6366f1;
+      box-shadow: 0 0 10px #6366f1;
+    }
+
+    h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+      background: linear-gradient(135deg, #ffffff 30%, #a5b4fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .currency-symbol {
+      position: absolute;
+      left: 14px;
+      color: #94a3b8;
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    input, select {
+      width: 100%;
+      background: rgba(10, 14, 23, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: #fff;
+      font-size: 15px;
+      font-family: inherit;
+      transition: all 0.2s ease;
+    }
+
+    .currency-input {
+      padding-left: 32px;
+      font-weight: 600;
+      font-size: 17px;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .preset-chips {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .preset-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 8px;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .preset-btn:hover, .preset-btn.active {
+      background: rgba(99, 102, 241, 0.15);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .btn-pay {
+      width: 100%;
+      background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 15px;
+      font-size: 16px;
+      font-weight: 600;
+      font-family: 'Outfit', sans-serif;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 8px 24px var(--accent-glow);
+      margin-top: 8px;
+    }
+
+    .btn-pay:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(99, 102, 241, 0.5);
+    }
+
+    .btn-pay:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Status Notifications */
+    .status-panel {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .status-panel.success {
+      display: block;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+      box-shadow: 0 4px 20px var(--success-glow);
+    }
+
+    .status-panel.error {
+      display: block;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+      box-shadow: 0 4px 20px var(--error-glow);
+    }
+
+    .status-panel.warning {
+      display: block;
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #fbbf24;
+    }
+
+    .status-details {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+      word-break: break-all;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 10px;
+      border-radius: 8px;
+      font-family: monospace;
+    }
+
+    .footer-note {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .footer-note a {
+      color: #818cf8;
+      text-decoration: none;
+    }
+
+    .test-helper-box {
+      background: rgba(99, 102, 241, 0.08);
+      border: 1px dashed rgba(99, 102, 241, 0.35);
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+      font-size: 13px;
+    }
+    .test-helper-title {
+      font-weight: 600;
+      color: #a5b4fc;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .test-creds-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      color: #cbd5e1;
+    }
+    .test-creds-row code {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #38bdf8;
+      font-family: monospace;
+      font-size: 13px;
+    }
+    .btn-copy {
+      background: rgba(99, 102, 241, 0.2);
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      color: #c7d2fe;
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-copy:hover {
+      background: rgba(99, 102, 241, 0.4);
+      color: #fff;
+    }
+    .test-helper-note {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="logo-badge">
+      <span></span> ClubSphere Gateway
+    </div>
+    <h1>Razorpay Standard Checkout</h1>
+    <p class="subtitle">Secure Collegiate Payment & Transaction Settlement</p>
+  </div>
+
+  <div class="card">
+    <div class="test-helper-box">
+      <div class="test-helper-title">🧪 Razorpay Test Mode Active</div>
+      <div class="test-creds-row">
+        <span><strong>Card:</strong> <code>4100 2800 0000 1007</code></span>
+        <button type="button" class="btn-copy" onclick="copyCard()">Copy Card</button>
+      </div>
+      <div class="test-creds-row">
+        <span><strong>Expiry:</strong> <code>12/26</code> &nbsp;|&nbsp; <strong>CVV:</strong> <code>123</code></span>
+        <span><strong>UPI:</strong> <code>test@razorpay</code></span>
+      </div>
+      <div class="test-helper-note">
+        💡 <em>Select <strong>"Cards"</strong> in the modal for instant 1-click test approval without opening external bank tabs.</em>
+      </div>
+    </div>
+
+    <form id="checkoutForm" onsubmit="event.preventDefault(); handleCheckout(event); return false;">
+      <div class="form-group">
+        <label for="paymentPurpose">Payment Purpose</label>
+        <select id="paymentPurpose">
+          <option value="Annual Club Membership Dues">Annual Club Membership Dues (₹500.00)</option>
+          <option value="Annual Executive Pass">Annual Executive Pass (₹1,000.00)</option>
+          <option value="Official Hoodie & Merch Drop">Official Hoodie & Merch Drop (₹750.00)</option>
+          <option value="Custom Collegiate Contribution">Custom Collegiate Contribution</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="amountRupees">Amount (INR)</label>
+        <div class="input-wrapper">
+          <span class="currency-symbol">₹</span>
+          <input 
+            type="number" 
+            id="amountRupees" 
+            class="currency-input" 
+            value="500" 
+            min="1" 
+            step="0.01" 
+            required
+          >
+        </div>
+        <div class="preset-chips">
+          <button type="button" class="preset-btn active" onclick="setAmount(500, this)">₹500</button>
+          <button type="button" class="preset-btn" onclick="setAmount(1000, this)">₹1,000</button>
+          <button type="button" class="preset-btn" onclick="setAmount(2500, this)">₹2,500</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="userName">Student Name</label>
+        <input type="text" id="userName" value="Arjun Sharma" required placeholder="Enter student name">
+      </div>
+
+      <div class="form-group">
+        <label for="userEmail">Email Address</label>
+        <input type="email" id="userEmail" value="arjun@university.edu" required placeholder="name@university.edu">
+      </div>
+
+      <div class="form-group">
+        <label for="userContact">Mobile Number</label>
+        <input type="tel" id="userContact" value="9876543210" required placeholder="10-digit mobile number">
+      </div>
+
+      <button type="button" id="payButton" class="btn-pay" onclick="handleCheckout(event)">
+        <span class="spinner" id="btnSpinner"></span>
+        <span id="btnText">Pay Securely with Razorpay</span>
+      </button>
+    </form>
+
+    <!-- Dynamic Status Banner -->
+    <div id="statusPanel" class="status-panel"></div>
+  </div>
+
+  <div class="footer-note">
+    🔒 256-bit SSL Encrypted • Powered by Razorpay Standard Checkout & ClubSphere N-Layer Engine
+  </div>
+</div>
+
+<script>
+  let razorpayKeyId = null;
+
+  function copyCard() {
+    navigator.clipboard.writeText('4100280000001007').then(() => {
+      showStatus('warning', 'Card Copied!', 'Test card 4100 2800 0000 1007 copied to clipboard.');
+    }).catch(() => {
+      alert('Test Card: 4100280000001007');
+    });
+  }
+
+  // Preset button selection
+  function setAmount(val, btn) {
+    document.getElementById('amountRupees').value = val;
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+  }
+
+  // Update amount when purpose dropdown changes
+  document.getElementById('paymentPurpose').addEventListener('change', (e) => {
+    if (e.target.value.includes('₹500')) setAmount(500);
+    else if (e.target.value.includes('₹1,000')) setAmount(1000);
+    else if (e.target.value.includes('₹750')) setAmount(750);
+  });
+
+  // UI state management
+  function setUiLoading(isLoading) {
+    const btn = document.getElementById('payButton');
+    const spinner = document.getElementById('btnSpinner');
+    const text = document.getElementById('btnText');
+    btn.disabled = isLoading;
+    spinner.style.display = isLoading ? 'inline-block' : 'none';
+    text.textContent = isLoading ? 'Initiating Gateway...' : 'Pay Securely with Razorpay';
+  }
+
+  function showStatus(type, title, detailsHtml = '') {
+    const panel = document.getElementById('statusPanel');
+    panel.className = `status-panel ${type}`;
+    panel.innerHTML = `
+      <strong>${title}</strong>
+      ${detailsHtml ? `<div class="status-details">${detailsHtml}</div>` : ''}
+    `;
+    panel.style.display = 'block';
+  }
+
+  // Fetch Public Razorpay Configuration (KEY_ID only)
+  async function fetchGatewayConfig() {
+    try {
+      const res = await fetch('/api/payment/config');
+      const data = await res.json();
+      if (data.success && data.data.key_id) {
+        razorpayKeyId = data.data.key_id;
+      }
+    } catch (err) {
+      console.warn('Config fetch warning:', err);
+    }
+  }
+
+  // Dynamic Razorpay SDK loader
+  function loadRazorpaySdk() {
+    return new Promise((resolve) => {
+      if (typeof window.Razorpay !== 'undefined') {
+        return resolve(true);
+      }
+      const existing = document.querySelector('script[src*="checkout.razorpay.com"]');
+      if (existing) {
+        existing.addEventListener('load', () => resolve(true));
+        existing.addEventListener('error', () => resolve(false));
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      script.onload = () => resolve(true);
+      script.onerror = () => {
+        console.error('Failed to load Razorpay SDK from checkout.razorpay.com');
+        resolve(false);
+      };
+      document.head.appendChild(script);
+      setTimeout(() => resolve(typeof window.Razorpay !== 'undefined'), 3000);
+    });
+  }
+
+  // Initialize config on load
+  fetchGatewayConfig();
+
+  // STEP 2: Frontend Checkout Execution Flow
+  async function handleCheckout(event) {
+    if (event && event.preventDefault) {
+      event.preventDefault();
+    }
+    setUiLoading(true);
+    showStatus('warning', 'Connecting to ClubSphere Payment Gateway...');
+
+    const amountRupees = parseFloat(document.getElementById('amountRupees').value);
+    const amountPaise = Math.round(amountRupees * 100);
+    const purpose = document.getElementById('paymentPurpose').value;
+    const name = document.getElementById('userName').value;
+    const email = document.getElementById('userEmail').value;
+    const contact = document.getElementById('userContact').value;
+
+    if (amountPaise < 100) {
+      setUiLoading(false);
+      showStatus('error', 'Amount too low', 'Minimum transaction amount is ₹1.00 (100 paise).');
+      return;
+    }
+
+    // Verify SDK availability
+    if (typeof window.Razorpay === 'undefined') {
+      const ready = await loadRazorpaySdk();
+      if (!ready || typeof window.Razorpay === 'undefined') {
+        setUiLoading(false);
+        showStatus(
+          'error',
+          'Razorpay Checkout Script Blocked',
+          'Could not load checkout.razorpay.com. Please disable any Ad-Blocker (like Brave Shields, uBlock Origin) or check internet connectivity.'
+        );
+        return;
+      }
+    }
+
+    try {
+      console.log('Initiating /api/create-order with amount:', amountPaise);
+      // 1. BACKEND - Create Order (POST /api/create-order)
+      const orderRes = await fetch('/api/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: amountPaise,
+          currency: 'INR',
+          notes: {
+            purpose: purpose,
+            customerName: name,
+            customerEmail: email,
+          }
+        }),
+      });
+
+      const orderData = await orderRes.json();
+      console.log('Order creation result:', orderData);
+
+      if (!orderRes.ok || !orderData.success) {
+        throw new Error(orderData.error?.message || orderData.message || 'Failed to create Razorpay Order.');
+      }
+
+      const { order_id, amount, currency } = orderData.data;
+
+      // 2. FRONTEND - Launch Razorpay Standard Checkout Modal
+      const options = {
+        key: razorpayKeyId || 'rzp_test_TmAPu7Flpk7sJ4',
+        amount: amount,
+        currency: currency || 'INR',
+        name: 'ClubSphere Collegiate Org',
+        description: purpose,
+        order_id: order_id,
+        prefill: {
+          name: name,
+          email: email,
+          contact: contact,
+        },
+        theme: {
+          color: '#6366f1',
+        },
+        // Modal Dismissal Handler (User Cancelled)
+        modal: {
+          ondismiss: function () {
+            setUiLoading(false);
+            showStatus('warning', 'Payment Cancelled', 'Checkout modal was dismissed by the user.');
+          },
+        },
+        // Success Handler: Receive razorpay_payment_id, razorpay_order_id, razorpay_signature
+        handler: async function (response) {
+          setUiLoading(true);
+          showStatus('warning', 'Verifying cryptographic payment signature...');
+
+          try {
+            // 3. BACKEND - Verify Payment Signature (POST /api/verify-payment)
+            const verifyRes = await fetch('/api/verify-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+
+            const verifyData = await verifyRes.json();
+
+            if (verifyRes.ok && verifyData.success) {
+              setUiLoading(false);
+              showStatus(
+                'success',
+                '🎉 Payment Verified & Recorded Successfully!',
+                `Payment ID: ${response.razorpay_payment_id}<br>` +
+                `Order ID: ${response.razorpay_order_id}<br>` +
+                `Amount Settled: ₹${(amount / 100).toFixed(2)} ${currency}<br>` +
+                `Signature Status: Authenticated (HMAC-SHA256 Match)`
+              );
+            } else {
+              setUiLoading(false);
+              showStatus(
+                'error',
+                '❌ Payment Signature Verification Failed',
+                verifyData.error?.message || 'Signature mismatch. Untrusted transaction rejected.'
+              );
+            }
+          } catch (verifyErr) {
+            setUiLoading(false);
+            showStatus('error', 'Signature Verification Request Failed', verifyErr.message);
+          }
+        },
+      };
+
+      const rzp = new Razorpay(options);
+
+      // Listen for payment failure events
+      rzp.on('payment.failed', function (failResponse) {
+        setUiLoading(false);
+        const err = failResponse.error;
+        showStatus(
+          'error',
+          'Payment Gateway Failure',
+          `Code: ${err.code || 'UNKNOWN'}<br>` +
+          `Description: ${err.description || 'Payment was declined.'}<br>` +
+          `Source: ${err.source || 'Gateway'}<br>` +
+          `Payment ID: ${err.metadata?.payment_id || 'N/A'}`
+        );
+      });
+
+      rzp.open();
+      setUiLoading(false);
+    } catch (err) {
+      setUiLoading(false);
+      showStatus('error', 'Order Creation Failed', err.message);
+    }
+  }
+</script>
+
+</body>
+</html>

@@ -94,8 +94,8 @@ function promoteWaitlist(s, eventId, tierId) {
     !tier ||
     used.length + promotions.length >= event.capacity ||
     used.filter((t) => t.tierId === tierId).length +
-      promotions.filter((w) => w.tierId === tierId).length >=
-      tier.capacity
+    promotions.filter((w) => w.tierId === tierId).length >=
+    tier.capacity
   )
     return;
   const next = s.waitlist.find((w) => w.eventId === eventId && !w.promotedAt);
@@ -299,7 +299,7 @@ export function committed(s, budgetId) {
   return s.expenses
     .filter(
       (e) =>
-        (e.budgetId === budgetId && ['PRESIDENT_APPROVED', 'DISBURSED'].includes(e.status)) ||
+        (e.budgetId === budgetId && ['INCHARGE_APPROVED', 'PRESIDENT_APPROVED', 'DISBURSED'].includes(e.status)) ||
         (e.budgetId === budgetId && e.status === 'TREASURER_APPROVED' && e.amount < 250000),
     )
     .reduce((a, e) => a + e.amount, 0);
@@ -314,7 +314,7 @@ export function snapshot() {
     role,
     user: actor(s),
     membership: member(s),
-    club: s.clubs.find((c) => c.id === clubId),
+    club: s.clubs.find((c) => c.id === clubId || c.slug === clubId) || s.clubs[0],
     accounts: demoAccounts,
     demoControls: import.meta.env?.VITE_DEMO_CONTROLS !== 'false',
   };
@@ -387,18 +387,18 @@ export function snapshot() {
       0,
       Math.min(
         tier.capacity -
-          s.tickets.filter(
-            (t) => t.tierId === tier.id && ['RESERVED', 'ISSUED', 'CHECKED_IN'].includes(t.status),
-          ).length -
-          activePromotions(s, tier.eventId).filter(
-            (w) => w.tierId === tier.id && w.userId !== userId,
-          ).length,
+        s.tickets.filter(
+          (t) => t.tierId === tier.id && ['RESERVED', 'ISSUED', 'CHECKED_IN'].includes(t.status),
+        ).length -
+        activePromotions(s, tier.eventId).filter(
+          (w) => w.tierId === tier.id && w.userId !== userId,
+        ).length,
         result.events.find((e) => e.id === tier.eventId).capacity -
-          s.tickets.filter(
-            (t) =>
-              t.eventId === tier.eventId && ['RESERVED', 'ISSUED', 'CHECKED_IN'].includes(t.status),
-          ).length -
-          activePromotions(s, tier.eventId).filter((w) => w.userId !== userId).length,
+        s.tickets.filter(
+          (t) =>
+            t.eventId === tier.eventId && ['RESERVED', 'ISSUED', 'CHECKED_IN'].includes(t.status),
+        ).length -
+        activePromotions(s, tier.eventId).filter((w) => w.userId !== userId).length,
       ),
     );
   result.stock = {};
@@ -444,13 +444,13 @@ export function snapshot() {
     .map((b) => ({ id: b.id, title: b.title, category: b.category }));
   result.scannerSamples = staffRoles.includes(role)
     ? {
-        tickets: s.tickets
-          .filter((t) => t.clubId === clubId)
-          .map((t) => ({ code: t.code, status: t.status })),
-        members: s.memberships
-          .filter((m) => m.clubId === clubId)
-          .map((m) => ({ code: m.passCode, status: m.status })),
-      }
+      tickets: s.tickets
+        .filter((t) => t.clubId === clubId)
+        .map((t) => ({ code: t.code, status: t.status })),
+      members: s.memberships
+        .filter((m) => m.clubId === clubId)
+        .map((m) => ({ code: m.passCode, status: m.status })),
+    }
     : null;
   return result;
 }
@@ -476,7 +476,7 @@ async function transaction(action, fn, fast = false) {
     return value;
   };
   const result = queue.then(run, run);
-  queue = result.catch(() => {});
+  queue = result.catch(() => { });
   return result;
 }
 export const authService = {
@@ -507,11 +507,11 @@ export const authService = {
     transaction('auth.register', (s) => {
       check(
         input.name?.trim() &&
-          /^SKY-\d{4}-\d{3}$/.test(input.studentId) &&
-          /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(input.email) &&
-          input.major &&
-          input.emergency &&
-          /^\d{10}$/.test(input.phone),
+        /^(SKY|NEC)(-\d{4})?(-\w+)?-\d{3,}$/i.test(input.studentId) &&
+        /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(input.email) &&
+        input.major &&
+        input.emergency &&
+        /^\d{10}$/.test(input.phone),
         'INVALID_PROFILE',
         'Complete your name, campus ID, email, major and emergency contact.',
       );
@@ -537,9 +537,9 @@ export const authService = {
       signedIn(s);
       check(
         input.name?.trim() &&
-          /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(input.email) &&
-          /^SKY-\d{4}-\d{3}$/.test(input.studentId) &&
-          /^\d{10}$/.test(input.phone),
+        /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(input.email) &&
+        /^(SKY|NEC)(-\d{4})?(-\w+)?-\d{3,}$/i.test(input.studentId) &&
+        /^\d{10}$/.test(input.phone),
         'INVALID_PROFILE',
         'Enter a valid name, campus email, student ID and ten-digit phone.',
       );
@@ -595,7 +595,7 @@ export const membershipService = {
         let parsed;
         try {
           parsed = JSON.parse(code);
-        } catch {}
+        } catch { }
         if (parsed)
           check(
             Math.abs(s.clock - parsed.timestamp) < 60000,
@@ -630,9 +630,9 @@ export const eventService = {
       const e = scoped(s, 'events', eventId);
       check(
         e.published &&
-          s.clock >=
-            new Date(e.salesOpen).getTime() - (eligible(member(s), s.clock) ? 48 * 3600000 : 0) &&
-          s.clock < new Date(e.salesClose).getTime(),
+        s.clock >=
+        new Date(e.salesOpen).getTime() - (eligible(member(s), s.clock) ? 48 * 3600000 : 0) &&
+        s.clock < new Date(e.salesClose).getTime(),
         'SALES_CLOSED',
         'Ticket sales are closed for this event.',
       );
@@ -651,15 +651,15 @@ export const eventService = {
       const others = promotions.filter((w) => w !== mine);
       check(
         issued.length + others.length < e.capacity &&
-          issued.filter((r) => r.tierId === tierId).length +
-            others.filter((w) => w.tierId === tierId).length <
-            t.capacity,
+        issued.filter((r) => r.tierId === tierId).length +
+        others.filter((w) => w.tierId === tierId).length <
+        t.capacity,
         'WAITLIST_PRIORITY',
         'The released seat is reserved for the next waitlisted student during their four-hour window.',
       );
       const ticket = {
         id: id(s, 'TCK'),
-        code: id(s, 'TCK-SKY'),
+        code: id(s, 'TCK-MATRIX'),
         clubId: s.session.clubId,
         userId: s.session.userId,
         eventId: e.id,
@@ -708,15 +708,24 @@ export const eventService = {
         let parsed;
         try {
           parsed = JSON.parse(code);
-        } catch {}
+        } catch { }
         if (parsed)
           check(
             Math.abs(s.clock - parsed.timestamp) < 60000,
             'EXPIRED_PASS',
             'The rotating ticket pass is stale. Refresh it.',
           );
+        let targetCode = parsed?.code || code;
+        if (typeof targetCode === 'string' && targetCode.startsWith('CS1:')) {
+          const parts = targetCode.split(':');
+          if (parts.length >= 3) {
+            targetCode = parts[2];
+          }
+        }
         const ticket = s.tickets.find(
-          (t) => t.code === (parsed?.code || code) && t.clubId === s.session.clubId,
+          (t) =>
+            (t.code === targetCode || t.code === (parsed?.code || code) || t.id === targetCode) &&
+            t.clubId === s.session.clubId,
         );
         check(ticket, 'INVALID_TICKET', 'Ticket code was not found.');
         check(ticket.eventId === eventId, 'WRONG_EVENT', 'This ticket belongs to another event.');
@@ -778,12 +787,12 @@ export const eventService = {
       allow(s, 'manage');
       check(
         input.title?.trim() &&
-          input.venue &&
-          new Date(input.endsAt) > new Date(input.startsAt) &&
-          new Date(input.salesClose) > new Date(input.salesOpen) &&
-          new Date(input.salesClose) <= new Date(input.startsAt) &&
-          Number.isInteger(input.capacity) &&
-          input.capacity > 0,
+        input.venue &&
+        new Date(input.endsAt) > new Date(input.startsAt) &&
+        new Date(input.salesClose) > new Date(input.salesOpen) &&
+        new Date(input.salesClose) <= new Date(input.startsAt) &&
+        Number.isInteger(input.capacity) &&
+        input.capacity > 0,
         'INVALID_EVENT',
         'Complete the title, venue, valid times and capacity.',
       );
@@ -830,9 +839,9 @@ export const eventService = {
       scoped(s, 'events', input.eventId);
       check(
         Number.isInteger(input.capacity) &&
-          input.capacity > 0 &&
-          input.memberPrice >= 0 &&
-          input.publicPrice >= input.memberPrice,
+        input.capacity > 0 &&
+        input.memberPrice >= 0 &&
+        input.publicPrice >= input.memberPrice,
         'INVALID_TIER',
         'Tier capacity and prices are invalid.',
       );
@@ -949,8 +958,8 @@ export const commerceService = {
       const o = scoped(s, 'orders', orderId);
       check(
         o.status === 'FULFILLED' &&
-          o.returnRequested &&
-          ['SELLABLE', 'DAMAGED'].includes(condition),
+        o.returnRequested &&
+        ['SELLABLE', 'DAMAGED'].includes(condition),
         'INVALID_TRANSITION',
         'Inspect a requested return and select its condition.',
       );
@@ -1018,12 +1027,12 @@ export const commerceService = {
       scoped(s, 'products', input.productId);
       check(
         input.sku &&
-          input.size &&
-          Number.isInteger(input.stock) &&
-          input.stock >= 0 &&
-          Number.isInteger(input.memberPrice) &&
-          input.memberPrice >= 0 &&
-          input.publicPrice >= input.memberPrice,
+        input.size &&
+        Number.isInteger(input.stock) &&
+        input.stock >= 0 &&
+        Number.isInteger(input.memberPrice) &&
+        input.memberPrice >= 0 &&
+        input.publicPrice >= input.memberPrice,
         'INVALID_VARIANT',
         'Complete the SKU, size, stock and valid prices.',
       );
@@ -1169,8 +1178,8 @@ export const taskService = {
       allow(s, 'manage');
       check(
         input.title?.trim() &&
-          taskStatuses.includes(input.status) &&
-          !isNaN(new Date(input.due).getTime()),
+        taskStatuses.includes(input.status) &&
+        !isNaN(new Date(input.due).getTime()),
         'INVALID_TASK',
         'Complete the title, status and due date.',
       );
@@ -1195,7 +1204,7 @@ export const taskService = {
       const t = scoped(s, 'tasks', taskId);
       check(
         managerRoles.includes(roleFor(s)) ||
-          (roleFor(s) === 'VOLUNTEER' && t.assignee === s.session.userId),
+        (roleFor(s) === 'VOLUNTEER' && t.assignee === s.session.userId),
         'FORBIDDEN',
         'Volunteers can update only their assigned tasks.',
       );
@@ -1327,17 +1336,17 @@ export const broadcastService = {
       allow(s, 'manage');
       check(
         input.title?.trim() &&
-          input.content?.trim() &&
-          ['PUBLIC', 'ALL_MEMBERS', 'COMMITTEE_ONLY'].includes(input.audience),
+        input.content?.trim() &&
+        ['PUBLIC', 'ALL_MEMBERS', 'COMMITTEE_ONLY'].includes(input.audience),
         'INVALID_ANNOUNCEMENT',
         'Complete the title, content and audience.',
       );
       let a = input.id ? scoped(s, 'announcements', input.id) : null;
       if (a?.status === 'PUBLISHED')
         check(
-          roleFor(s) === 'PRESIDENT',
+          ['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR', 'PRESIDENT'].includes(roleFor(s)),
           'FORBIDDEN',
-          'Only the President can revise published announcements.',
+          'Only the Association In-charge or President can revise published announcements.',
         );
       if (!a) {
         a = {
@@ -1445,10 +1454,10 @@ export const expenseService = {
       money(input.amount);
       check(
         input.title?.trim() &&
-          input.merchant?.trim() &&
-          input.purpose?.trim() &&
-          input.purchaseDate &&
-          input.category,
+        input.merchant?.trim() &&
+        input.purpose?.trim() &&
+        input.purchaseDate &&
+        input.category,
         'INVALID_EXPENSE',
         'Complete all required expense fields.',
       );
@@ -1485,9 +1494,9 @@ export const expenseService = {
       const e = scoped(s, 'expenses', expenseId),
         role = roleFor(s);
       check(
-        ['TREASURER', 'PRESIDENT'].includes(role),
+        ['TREASURER', 'ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR', 'PRESIDENT'].includes(role),
         'FORBIDDEN',
-        'Only the independent Treasurer or President can review expenses.',
+        'Only the independent Treasurer, Association In-charge or President can review expenses.',
       );
       check(
         e.userId !== s.session.userId,
@@ -1495,12 +1504,12 @@ export const expenseService = {
         'You cannot review, approve or pay your own expense claim.',
       );
       const budget = e.budgetId ? s.budgets.find((b) => b.id === e.budgetId) : null;
-      const final = decision === 'president' || (decision === 'treasurer' && e.amount < 250000);
+      const final = ['incharge', 'president'].includes(decision) || (decision === 'treasurer' && e.amount < 250000);
       if (final && budget && committed(s, budget.id) + e.amount > budget.allocated) {
         check(
-          override && role === 'PRESIDENT' && reason?.trim(),
+          override && ['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR', 'PRESIDENT'].includes(role) && reason?.trim(),
           'BUDGET_EXCEEDED',
-          'Approval exceeds this budget. Increase the envelope or record a President override with a reason.',
+          'Approval exceeds this budget. Increase the envelope or record an override with a reason.',
         );
         audit(
           s,
@@ -1545,19 +1554,20 @@ export const expenseService = {
             'EXPENSE_ACCRUAL',
             e.id,
           );
-      } else if (decision === 'president') {
+      } else if (['incharge', 'president'].includes(decision)) {
         check(
-          role === 'PRESIDENT' && e.status === 'TREASURER_APPROVED' && e.amount >= 250000,
+          ['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR', 'PRESIDENT'].includes(role) && e.status === 'TREASURER_APPROVED' && e.amount >= 250000,
           'INVALID_TRANSITION',
-          'President approval follows Treasurer verification for claims of ₹2,500 or more.',
+          'Approval follows Treasurer verification for claims of ₹2,500 or more.',
         );
         check(
           e.treasurerId !== s.session.userId,
           'SELF_APPROVAL',
           'Two independent officers must approve this claim.',
         );
+        e.inchargeId = s.session.userId;
         e.presidentId = s.session.userId;
-        history(s, e, 'PRESIDENT_APPROVED');
+        history(s, e, role === 'PRESIDENT' ? 'PRESIDENT_APPROVED' : 'INCHARGE_APPROVED');
         post(
           s,
           e.title,
@@ -1570,8 +1580,8 @@ export const expenseService = {
       } else if (decision === 'disburse') {
         check(
           role === 'TREASURER' &&
-            (e.status === 'PRESIDENT_APPROVED' ||
-              (e.status === 'TREASURER_APPROVED' && e.amount < 250000)),
+          (['INCHARGE_APPROVED', 'PRESIDENT_APPROVED'].includes(e.status) ||
+            (e.status === 'TREASURER_APPROVED' && e.amount < 250000)),
           'INVALID_TRANSITION',
           'Disbursement requires final approval and the Treasurer role.',
         );
@@ -1595,9 +1605,9 @@ export const financeService = {
   saveBudget: (input) =>
     transaction('budget.save', (s) => {
       check(
-        ['TREASURER', 'PRESIDENT'].includes(roleFor(s)),
+        ['TREASURER', 'ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR', 'PRESIDENT'].includes(roleFor(s)),
         'FORBIDDEN',
-        'Budget changes require Treasurer or President access.',
+        'Budget changes require Treasurer or Association In-charge access.',
       );
       money(input.allocated);
       check(
@@ -1634,9 +1644,9 @@ export const financeService = {
       money(input.amount);
       check(
         input.description?.trim() &&
-          input.debit !== input.credit &&
-          /^\d{4}$/.test(input.debit) &&
-          /^\d{4}$/.test(input.credit),
+        input.debit !== input.credit &&
+        /^\d{4}$/.test(input.debit) &&
+        /^\d{4}$/.test(input.credit),
         'INVALID_JOURNAL',
         'Provide a description and two different four-digit account codes.',
       );
@@ -1688,11 +1698,11 @@ export const adminService = {
       check(
         m.userId !== s.session.userId,
         'SELF_ROLE_CHANGE',
-        'Ask the next President to change your role after handover.',
+        'Ask the next Association In-charge to change your role after handover.',
       );
       const previous = m.role;
       if (handover) {
-        check(role === 'PRESIDENT', 'INVALID_HANDOVER', 'Handover assigns the next President.');
+        check(['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR', 'PRESIDENT'].includes(role), 'INVALID_HANDOVER', 'Handover assigns the next leadership role.');
         const current = member(s);
         s.officerHistory.push({
           id: id(s, 'OFF'),

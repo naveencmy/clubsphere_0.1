@@ -1,5 +1,5 @@
 import { createSeed } from './data/seed.js';
-const KEY = 'clubsphere-demo-v1';
+const KEY = 'clubsphere-nec-cse-v1';
 let state;
 const listeners = new Set();
 function load() {

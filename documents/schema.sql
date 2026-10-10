@@ -34,8 +34,8 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'club_role') THEN
         CREATE TYPE club_role AS ENUM (
-            'PRESIDENT',
-            'VICE_PRESIDENT',
+            'ASSOCIATION_INCHARGE',
+            'ASSOCIATION_COORDINATOR',
             'TREASURER',
             'SECRETARY',
             'COMMITTEE_LEAD',
@@ -122,6 +122,7 @@ BEGIN
             'UNDER_REVIEW',
             'NEEDS_CORRECTION',
             'TREASURER_APPROVED',
+            'INCHARGE_APPROVED',
             'PRESIDENT_APPROVED',
             'REJECTED',
             'DISBURSED'

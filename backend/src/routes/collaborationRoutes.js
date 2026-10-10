@@ -20,14 +20,14 @@ router.get('/announcements', CollaborationController.getAnnouncements);
 router.post(
   '/announcements',
   authenticate,
-  authorizeRole(['OFFICER', 'TREASURER', 'PRESIDENT', 'ADMIN']),
+  authorizeRole(['COMMITTEE_LEAD', 'TREASURER', 'ASSOCIATION_COORDINATOR', 'ASSOCIATION_INCHARGE', 'ADMIN']),
   validate({ body: createAnnouncementSchema }),
   CollaborationController.publishAnnouncement
 );
 router.put(
   '/announcements/:id',
   authenticate,
-  authorizeRole(['OFFICER', 'TREASURER', 'PRESIDENT', 'ADMIN']),
+  authorizeRole(['COMMITTEE_LEAD', 'TREASURER', 'ASSOCIATION_COORDINATOR', 'ASSOCIATION_INCHARGE', 'ADMIN']),
   validate({ body: editAnnouncementSchema }),
   CollaborationController.editAnnouncement
 );
@@ -39,7 +39,7 @@ router.get('/fundraisers', CollaborationController.getFundraisers);
 router.post(
   '/fundraisers',
   authenticate,
-  authorizeRole(['OFFICER', 'TREASURER', 'PRESIDENT', 'ADMIN']),
+  authorizeRole(['COMMITTEE_LEAD', 'TREASURER', 'ASSOCIATION_COORDINATOR', 'ASSOCIATION_INCHARGE', 'ADMIN']),
   validate({ body: createFundraiserSchema }),
   CollaborationController.createFundraiser
 );
@@ -49,7 +49,7 @@ router.get('/tasks', CollaborationController.getTasks);
 router.post(
   '/tasks',
   authenticate,
-  authorizeRole(['VOLUNTEER', 'OFFICER', 'TREASURER', 'PRESIDENT', 'ADMIN']),
+  authorizeRole(['VOLUNTEER', 'COMMITTEE_LEAD', 'TREASURER', 'ASSOCIATION_COORDINATOR', 'ASSOCIATION_INCHARGE', 'ADMIN']),
   validate({ body: createTaskSchema }),
   CollaborationController.createTask
 );

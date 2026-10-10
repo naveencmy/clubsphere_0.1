@@ -999,6 +999,42 @@
           ]
         }
       ]
+    },
+    {
+      "name": "10. Razorpay Standard Checkout & Signature Verification",
+      "item": [
+        {
+          "name": "GET /api/payment/config - Public Key ID Configuration",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/payment/config", "host": ["{{baseUrl}}"], "path": ["api", "payment", "config"] }
+          }
+        },
+        {
+          "name": "POST /api/create-order - Create Razorpay Payment Order (Paise)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 50000,\n  \"currency\": \"INR\",\n  \"notes\": {\n    \"purpose\": \"Annual Membership Dues\",\n    \"studentEmail\": \"student@university.edu\"\n  }\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/create-order", "host": ["{{baseUrl}}"], "path": ["api", "create-order"] }
+          }
+        },
+        {
+          "name": "POST /api/verify-payment - Verify Payment HMAC-SHA256 Signature",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"order_test_123\",\n  \"razorpay_payment_id\": \"pay_test_456\",\n  \"razorpay_signature\": \"tampered_or_valid_signature\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/verify-payment", "host": ["{{baseUrl}}"], "path": ["api", "verify-payment"] }
+          }
+        }
+      ]
     }
   ]
 }

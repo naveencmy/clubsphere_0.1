@@ -523,7 +523,8 @@ export function EventOperations() {
     .filter(
       (x) =>
         x.eventId === eventId &&
-        (x.status === 'PRESIDENT_APPROVED' ||
+        (x.status === 'INCHARGE_APPROVED' ||
+          x.status === 'PRESIDENT_APPROVED' ||
           x.status === 'DISBURSED' ||
           (x.status === 'TREASURER_APPROVED' && x.amount < 250000)),
     )

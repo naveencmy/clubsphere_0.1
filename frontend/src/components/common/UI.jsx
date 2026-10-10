@@ -29,7 +29,7 @@ export function Badge({ value, children, tone }) {
     'DONE',
     'DELIVERED',
     'DISBURSED',
-    'PRESIDENT_APPROVED',
+    'INCHARGE_APPROVED',
     'SUCCEEDED',
   ];
   const danger = [

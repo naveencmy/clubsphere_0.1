@@ -17,7 +17,7 @@ router.use(requireClubTenant);
 
 // General Ledger & Accounts
 router.get('/accounts', authenticate, LedgerController.getAccounts);
-router.get('/journal-entries', authenticate, authorizeRole(['TREASURER', 'PRESIDENT', 'ADMIN']), LedgerController.getJournalEntries);
+router.get('/journal-entries', authenticate, authorizeRole(['TREASURER', 'ASSOCIATION_INCHARGE', 'ADMIN']), LedgerController.getJournalEntries);
 router.post(
   '/journal-entries',
   authenticate,
@@ -28,7 +28,7 @@ router.post(
 
 // Budgets & Treasurer Reporting
 router.get('/budgets', authenticate, LedgerController.getBudgets);
-router.get('/treasurer/summary', authenticate, authorizeRole(['TREASURER', 'PRESIDENT', 'ADMIN']), LedgerController.getTreasurerSummary);
+router.get('/treasurer/summary', authenticate, authorizeRole(['TREASURER', 'ASSOCIATION_INCHARGE', 'ADMIN']), LedgerController.getTreasurerSummary);
 
 // Expense Reimbursement Workflow
 router.get('/expenses', authenticate, LedgerController.getExpenses);
@@ -42,13 +42,13 @@ router.post(
 router.post(
   '/expenses/:id/review',
   authenticate,
-  authorizeRole(['TREASURER', 'PRESIDENT', 'ADMIN']),
+  authorizeRole(['TREASURER', 'ASSOCIATION_INCHARGE', 'ADMIN']),
   LedgerController.reviewExpense
 );
 router.post(
   '/expenses/:id/request-correction',
   authenticate,
-  authorizeRole(['TREASURER', 'PRESIDENT', 'ADMIN']),
+  authorizeRole(['TREASURER', 'ASSOCIATION_INCHARGE', 'ADMIN']),
   validate({ body: requestCorrectionSchema }),
   LedgerController.requestCorrection
 );
@@ -61,7 +61,7 @@ router.put(
 router.post(
   '/expenses/:id/reject',
   authenticate,
-  authorizeRole(['TREASURER', 'PRESIDENT', 'ADMIN']),
+  authorizeRole(['TREASURER', 'ASSOCIATION_INCHARGE', 'ADMIN']),
   validate({ body: rejectExpenseSchema }),
   LedgerController.rejectExpense
 );
@@ -72,9 +72,9 @@ router.post(
   LedgerController.approveByTreasurer
 );
 router.post(
-  '/expenses/:id/approve-president',
+  ['/expenses/:id/approve-incharge', '/expenses/:id/approve-president'],
   authenticate,
-  authorizeRole(['PRESIDENT', 'ADMIN']),
+  authorizeRole(['ASSOCIATION_INCHARGE', 'ADMIN']),
   LedgerController.approveByPresident
 );
 router.post(

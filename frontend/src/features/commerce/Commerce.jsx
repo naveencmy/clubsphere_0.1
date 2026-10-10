@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ShoppingBag, Plus } from 'lucide-react';
 import { useApp } from '../../app/providers/AppProvider.jsx';
@@ -21,12 +21,30 @@ import {
 } from '../../components/common/UI.jsx';
 import ProductArt from '../../components/common/ProductArt.jsx';
 import { date } from '../../utils/format.js';
+
 export default function Commerce() {
   const { data, cart, setCart, toast } = useApp(),
     { id } = useParams(),
     navigate = useNavigate();
   const [search, setSearch] = useState(''),
     [sizes, setSizes] = useState({});
+
+  useEffect(() => {
+    // Ensure body scroll is unlocked and any stale payment overlays are removed
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.documentElement.style.overflow = '';
+    const stuckOverlays = document.querySelectorAll(
+      '.razorpay-container, .razorpay-backdrop, iframe[name^="rzp"], div[id*="razorpay"]'
+    );
+    stuckOverlays.forEach((el) => {
+      try {
+        el.remove();
+      } catch {
+        /* ignore */
+      }
+    });
+  }, []);
   const valid = eligible(data.membership, data.clock),
     product = id ? data.products.find((p) => p.id === id) : null;
   const list = product

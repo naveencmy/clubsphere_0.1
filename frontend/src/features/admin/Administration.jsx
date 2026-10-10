@@ -24,7 +24,15 @@ export default function Administration() {
     [search, setSearch] = useState('');
   const roles = location.pathname.endsWith('/roles'),
     audit = location.pathname.endsWith('/audit');
-  const roleOptions = ['MEMBER', 'VOLUNTEER', 'COMMITTEE_LEAD', 'TREASURER', 'PRESIDENT'];
+  const roleOptions = [
+    'MEMBER',
+    'VOLUNTEER',
+    'COMMITTEE_LEAD',
+    'SECRETARY',
+    'TREASURER',
+    'ASSOCIATION_COORDINATOR',
+    'ASSOCIATION_INCHARGE',
+  ];
   return (
     <div className="stack">
       <PageHeader
@@ -88,8 +96,8 @@ export default function Administration() {
       ) : roles ? (
         <>
           <Notice>
-            Demo permissions apply within the selected club. Leadership handover preserves officer
-            history and changes the outgoing President to Member.
+            Leadership handover preserves officer
+            history and changes the outgoing Association In-charge to Member.
           </Notice>
           <Table
             rows={data.memberships}
@@ -217,10 +225,10 @@ export default function Administration() {
               { name: 'role', label: 'New club role', required: true, options: roleOptions },
               {
                 name: 'handover',
-                label: 'Presidential handover',
+                label: 'Leadership handover',
                 options: [
                   { value: 'false', label: 'Assign role only' },
-                  { value: 'true', label: 'Confirm handover from current President' },
+                  { value: 'true', label: 'Confirm handover from current Association In-charge' },
                 ],
               },
             ]}

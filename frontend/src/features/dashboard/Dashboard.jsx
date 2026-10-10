@@ -51,7 +51,7 @@ export default function Dashboard() {
           {manage ? 'Create an event' : 'Explore events'}
         </LinkButton>
       </PageHeader>
-      {data.role === 'PRESIDENT' && <PresidentOverview />}
+      {['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(data.role) && <PresidentOverview />}
       <section className="welcome">
         <div className="stack small">
           <span className="eyebrow">{data.club.fiscalYear} · YOUR COMMUNITY</span>

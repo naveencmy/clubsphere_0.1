@@ -7,21 +7,28 @@ import { ForbiddenError, NotFoundError, BadRequestError } from '../utils/errors.
  */
 export async function requireClubTenant(req, res, next) {
   try {
-    const clubId = req.headers['x-club-id'] || req.params.clubId || req.query.clubId;
+    const clubId = req.headers['x-club-id'] || req.headers['x-club-slug'] || req.params.clubId || req.query.clubId || req.query.clubSlug;
 
-    if (!clubId) {
-      throw new BadRequestError('Multi-tenant header [x-club-id] or route parameter [clubId] is required.');
+    let clubRes;
+    if (clubId) {
+      clubRes = await query(
+        `SELECT id, name, slug, logo_url, stripe_account_id, is_active 
+         FROM clubs 
+         WHERE (id::text = $1 OR slug = $1) LIMIT 1;`,
+        [clubId]
+      );
+    } else {
+      // Default to primary active club if not explicitly provided
+      clubRes = await query(
+        `SELECT id, name, slug, logo_url, stripe_account_id, is_active 
+         FROM clubs 
+         WHERE is_active = TRUE 
+         ORDER BY created_at ASC LIMIT 1;`
+      );
     }
 
-    const clubRes = await query(
-      `SELECT id, name, slug, logo_url, stripe_account_id, is_active 
-       FROM clubs 
-       WHERE id = $1 LIMIT 1;`,
-      [clubId]
-    );
-
     if (clubRes.rowCount === 0) {
-      throw new NotFoundError(`Club organization with ID '${clubId}' does not exist.`);
+      throw new NotFoundError(`Club organization '${clubId || 'default'}' does not exist.`);
     }
 
     const club = clubRes.rows[0];
@@ -61,8 +68,14 @@ export function authorizeRole(allowedRoles = []) {
         return next();
       }
 
-      // Check if user's global role matches directly
-      const normalizedAllowed = allowedRoles.map((r) => r.toUpperCase());
+      // Expand allowed roles with equivalents (e.g. PRESIDENT <-> ASSOCIATION_INCHARGE)
+      const normalizedAllowed = allowedRoles.flatMap((r) => {
+        const upper = r.toUpperCase();
+        if (upper === 'ASSOCIATION_INCHARGE') return ['ASSOCIATION_INCHARGE'];
+        if (upper === 'ASSOCIATION_COORDINATOR') return ['ASSOCIATION_COORDINATOR'];
+        return [upper];
+      });
+
       if (normalizedAllowed.includes(userRole)) {
         return next();
       }
@@ -70,7 +83,7 @@ export function authorizeRole(allowedRoles = []) {
       // If club tenant context exists, check member's specific club permissions
       if (req.clubId) {
         const membershipRes = await query(
-          `SELECT tier, status 
+          `SELECT role, tier, status 
            FROM club_memberships 
            WHERE club_id = $1 AND user_id = $2 LIMIT 1;`,
           [req.clubId, req.user.id]
@@ -78,8 +91,9 @@ export function authorizeRole(allowedRoles = []) {
 
         if (membershipRes.rowCount > 0) {
           const membership = membershipRes.rows[0];
+          const memberRole = (membership.role || '').toUpperCase();
           const memberTier = (membership.tier || '').toUpperCase();
-          if (normalizedAllowed.includes(memberTier)) {
+          if (normalizedAllowed.includes(memberRole) || normalizedAllowed.includes(memberTier)) {
             req.membership = membership;
             return next();
           }

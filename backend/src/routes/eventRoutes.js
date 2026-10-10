@@ -20,14 +20,14 @@ router.post('/tickets/:ticketId/confirm', validate({ body: confirmTicketPaymentS
 router.post(
   '/:eventId/check-in',
   authenticate,
-  authorizeRole(['VOLUNTEER', 'OFFICER', 'TREASURER', 'PRESIDENT', 'ADMIN']),
+  authorizeRole(['VOLUNTEER', 'COMMITTEE_LEAD', 'TREASURER', 'ASSOCIATION_COORDINATOR', 'ASSOCIATION_INCHARGE', 'ADMIN']),
   validate({ body: checkInSchema }),
   EventController.checkIn
 );
 router.get(
   '/:eventId/reconciliation',
   authenticate,
-  authorizeRole(['TREASURER', 'PRESIDENT', 'ADMIN']),
+  authorizeRole(['TREASURER', 'ASSOCIATION_COORDINATOR', 'ASSOCIATION_INCHARGE', 'ADMIN']),
   EventController.getReconciliation
 );
 

@@ -7,7 +7,7 @@ export const registerSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
   fullName: z.string().min(2, 'Full name is required'),
   studentId: z.string().optional(),
-  role: z.enum(['STUDENT', 'OFFICER', 'TREASURER', 'PRESIDENT', 'ADMIN']).default('STUDENT'),
+  role: z.enum(['STUDENT', 'VOLUNTEER', 'COMMITTEE_LEAD', 'TREASURER', 'ASSOCIATION_COORDINATOR', 'ASSOCIATION_INCHARGE', 'ADMIN']).default('STUDENT'),
 });
 
 export const loginSchema = z.object({

@@ -269,22 +269,28 @@ export class LedgerService {
       }
 
       return LedgerRepository.updateExpenseStatus(expenseId, {
-        status: 'PRESIDENT_APPROVED',
+        status: 'INCHARGE_APPROVED',
         presidentApproverId: presidentUserId,
       }, client);
     }, expense.club_id);
   }
 
+  static async approveByIncharge(expenseId, inchargeUserId) {
+    return this.approveByPresident(expenseId, inchargeUserId);
+  }
+
   /**
    * Stage 2 Cash Settlement: Payout disbursed by Treasurer.
-   * Debits Accounts Payable 2010 (cleared to 0) and Credits Cash Clearing 1010.
+   * Debits Accounts Payable 2010 (cleared to 0) and Credits Cash Clearing 1010 or Bank 1020.
    */
   static async disburseExpense(expenseId, officerUserId) {
     const expense = await LedgerRepository.findExpenseById(expenseId);
     if (!expense) throw new NotFoundError(`Expense claim '${expenseId}' not found.`);
 
     const isSmall = expense.amount_cents < DUAL_APPROVAL_THRESHOLD_CENTS;
-    const isReady = (isSmall && expense.status === 'TREASURER_APPROVED') || expense.status === 'PRESIDENT_APPROVED';
+    const isReady = (isSmall && expense.status === 'TREASURER_APPROVED') || 
+                    expense.status === 'INCHARGE_APPROVED' || 
+                    expense.status === 'PRESIDENT_APPROVED';
 
     if (!isReady) {
       throw new ConflictError(

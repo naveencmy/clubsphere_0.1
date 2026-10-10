@@ -21,7 +21,9 @@
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.12.1",
     "node-cron": "^4.6.0",
+    "nodemon": "^1.14.10",
     "pg": "^8.23.1",
+    "razorpay": "^2.9.8",
     "zod": "^4.6.5"
   }
 }

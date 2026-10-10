@@ -1,6 +1,30 @@
-import { Component } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useParams, Outlet } from 'react-router-dom';
+import { Component, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useParams, Outlet, useLocation } from 'react-router-dom';
 import { AppProvider, useApp } from './providers/AppProvider.jsx';
+
+function ScrollManager() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    // Ensure scrolling is always enabled across page navigations
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.documentElement.style.overflow = '';
+    const stuck = document.querySelectorAll(
+      '.razorpay-container, .razorpay-backdrop, iframe[name^="rzp"], div[id*="razorpay"]'
+    );
+    stuck.forEach((el) => {
+      try {
+        el.remove();
+      } catch {
+        /* ignore */
+      }
+    });
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
 import { PublicShell, PortalShell } from '../components/layout/Shells.jsx';
 import { Home, Clubs } from '../features/public/PublicPages.jsx';
 import { Login, Register, Profile } from '../features/auth/AuthPages.jsx';
@@ -65,6 +89,7 @@ export default function App() {
     <ErrorBoundary>
       <AppProvider>
         <BrowserRouter>
+          <ScrollManager />
           <Routes>
             <Route element={<PublicShell />}>
               <Route index element={<Home />} />
@@ -142,7 +167,7 @@ export default function App() {
                     <Route path="reports" element={<Finance />} />
                     <Route path="audit" element={<Administration />} />
                   </Route>
-                  <Route element={<Guard roles={['PRESIDENT']} />}>
+                  <Route element={<Guard roles={['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR']} />}>
                     <Route path="settings" element={<Administration />} />
                     <Route path="roles" element={<Administration />} />
                     <Route path="plans" element={<MemberAdmin />} />

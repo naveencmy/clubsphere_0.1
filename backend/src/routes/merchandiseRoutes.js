@@ -20,7 +20,7 @@ router.post('/orders/:orderId/cancel', authenticate, MerchandiseController.cance
 router.post(
   '/orders/:orderId/return',
   authenticate,
-  authorizeRole(['OFFICER', 'TREASURER', 'PRESIDENT', 'ADMIN']),
+  authorizeRole(['COMMITTEE_LEAD', 'TREASURER', 'ASSOCIATION_COORDINATOR', 'ASSOCIATION_INCHARGE', 'ADMIN']),
   validate({ body: returnInspectionSchema }),
   MerchandiseController.returnOrder
 );

@@ -196,7 +196,7 @@ export function PortalShell() {
           },
         ]
       : []),
-    ...(data.role === 'PRESIDENT'
+    ...(['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(data.role)
       ? [
           {
             name: 'Administration',
