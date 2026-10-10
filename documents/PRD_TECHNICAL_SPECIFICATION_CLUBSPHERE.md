@@ -206,10 +206,10 @@ stateDiagram-v2
    * Every variant maintains dual pricing:
      * `non_member_price_cents` (e.g., $45.00)
      * `member_price_cents` (e.g., $32.00)
-   * **Real-Time Client & Server Price Resolution:** The checkout session inspects the active session's membership status. If `ACTIVE`, the lower tier price is applied automatically with no coupon codes required:
-     $$\text{applied\_price} = \begin{cases} \text{member\_price\_cents}, & \text{if user.membership.status} = \text{'ACTIVE'} \\ \text{non\_member\_price\_cents}, & \text{otherwise} \end{cases}$$
+   * **Unified Member Benefit Eligibility Policy:** Member discounts are granted to any user whose membership status is either `ACTIVE` or `GRACE_PERIOD` (the 14-day transition period). Both ticketing and merchandise honor this identical rule:
+     $$\text{applied\_price} = \begin{cases} \text{member\_price\_cents}, & \text{if user.membership.status} \in \{\text{'ACTIVE'}, \text{'GRACE\_PERIOD'}\} \\ \text{non\_member\_price\_cents}, & \text{otherwise} \end{cases}$$
    * **Storefront Dynamic Badging:**
-     * Active Members see: `"Member Exclusive: $32.00 (You save $13.00)"` with a green discount badge.
+     * Active & Grace Period Members see: `"Member Exclusive: $32.00 (You save $13.00)"` with a green discount badge (or amber advisory in grace period: *"Grace period active - renew within X days"*).
      * Non-Members see: `"$45.00"` alongside an interactive prompt: `"Members pay $32.00"`.
    * **Non-Member Cart Upsell Modal:** When a non-member adds apparel to their cart, the checkout drawer presents a high-conversion 1-click upsell:
      > *"Add Annual Skyline Association Membership to your cart for $20.00 and immediately save $13.00 on this hoodie today!"*
@@ -234,6 +234,30 @@ To eliminate overselling during high-demand apparel drops, the system employs da
    WHERE id = $1;
    ```
 4. **Abandonment Release:** If the TTL expires without payment, a scheduled Express/Node.js worker rolls back `reserved_stock = reserved_stock - 1`.
+
+#### 3.2.3 Full Merchandise Order Lifecycle & Post-Purchase Operations
+Orders move through explicit, well-defined transactional states backed by ENUM `order_status`:
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING: Student Enters Checkout (10m Stock Hold)
+    PENDING --> PAID: Stripe Webhook Confirms Payment
+    PENDING --> CANCELLED: Payment Abandoned / 10m TTL Expires (Stock Released)
+    
+    PAID --> PROCESSING: Order Sent to Merchandise Lead / Packing
+    PROCESSING --> FULFILLED: Apparel Handed to Student at Pickup Table
+    
+    PAID --> REFUNDED: Refund Initiated (Stock Restored)
+    PROCESSING --> REFUNDED: Damaged / Out-of-Stock Refund
+```
+
+* **Order Progression Workflow:**
+  1. `PENDING`: Order created with line items; stock reserved for 10 minutes.
+  2. `PAID`: Stripe webhook (`checkout.session.completed`) confirms payment. Deducts permanent stock, clears temporary reservation, posts journal entry (Debit `1020 Stripe Merchant`, Credit `4030 Merchandise Revenue`), and dispatches order confirmation email with pick-up QR code.
+  3. `PROCESSING`: Club merchandise team tags the order as packed/ready for pickup at the student union desk.
+  4. `FULFILLED`: Volunteer scans pick-up QR code or checks off student ID at the table booth; transitions state to `FULFILLED`.
+  5. `CANCELLED`: Unpaid hold expires; inventory automatically rolled back into available stock.
+  6. `REFUNDED`: Executive-approved return or sizing mismatch; dispatches Stripe refund API call, posts reversing journal entry (Debit `4030 Merchandise Revenue`, Credit `1020 Stripe Merchant`), and restores `available_stock = available_stock + 1`.
 
 ---
 
@@ -301,6 +325,43 @@ Immediately upon event conclusion (e.g., following the Spring Gala), organizers 
   4. **Net Event Profit & Margin:** Gross Ticket Revenue minus Direct Expenses.
   5. **1-Click Executive PDF Export:** Clean post-event debrief report exportable directly for executive meetings and faculty advisors.
 
+#### 3.3.4 Full Event Ticket Purchase Lifecycle & Post-Purchase Operations
+Ticket transactions follow an end-to-end state progression to prevent overselling, race conditions, and duplicate ticket generation:
+
+```mermaid
+stateDiagram-v2
+    [*] --> RESERVED: Student Selects Tier (10m Capacity Hold)
+    RESERVED --> ISSUED: Stripe Webhook Confirms Payment
+    RESERVED --> CANCELLED: Payment Abandoned / 10m TTL Expires (Capacity Released)
+    
+    ISSUED --> CHECKED_IN: Scanned at Door via Scanner PWA (Sub-200ms)
+    ISSUED --> TRANSFERRED: Transferred to Another Verified Student
+    ISSUED --> REFUNDED: Executive-Approved Cancellation / Refund
+    
+    REFUNDED --> [*]: Capacity Released / Waitlist Auto-Promoted
+```
+
+* **Detailed Ticket Lifecycle Stages:**
+  1. **Capacity Hold (`RESERVED`):** Student selects a tier (e.g., Gala Early Bird). The backend atomically reserves seat capacity:
+     ```sql
+     UPDATE event_ticket_tiers
+     SET reserved_count = reserved_count + 1
+     WHERE id = $1 AND (allocation_limit - (issued_count + reserved_count)) >= 1
+     RETURNING id;
+     ```
+     A 10-minute TTL key `ticket:hold:{user_id}:{tier_id}` is set in Redis.
+  2. **Payment Confirmation & Issuance (`ISSUED`):**
+     * Stripe webhook (`checkout.session.completed`) triggers the fulfillment transaction.
+     * Webhook idempotency is guaranteed by storing the Stripe event ID in an idempotent dispatch table.
+     * Increments `issued_count`, decrements `reserved_count`, provisions a cryptographically signed ticket with HMAC-SHA256 QR code, and inserts record into `tickets` with `status = 'ISSUED'`.
+     * Automatically posts journal entry: Debit `1020 Stripe Clearing`, Credit `4020 Event Ticket Revenue`.
+     * Dispatches transactional email with calendar `.ics` invite and digital pass attachment.
+  3. **Capacity Release on Expiry / Failure:** If the student abandons checkout or payment fails, an Express/Redis worker automatically rolls back `reserved_count = reserved_count - 1`.
+  4. **Door Ingress (`CHECKED_IN`):** Scanned at the event door using the PWA Scanner; atomic update sets `status = 'CHECKED_IN'`, `checked_in_at = NOW()`.
+  5. **Refunds & Waitlist Auto-Promotion (`REFUNDED`):**
+     * If an attendee requests a refund before sales close, the ticket transitions to `status = 'REFUNDED'`, decrements `issued_count = issued_count - 1`, and posts a reversing journal entry (Debit `4020`, Credit `1020`).
+     * The waitlist engine immediately detects available capacity and sends an exclusive 4-hour reservation window link to the top student on the waitlist.
+
 ---
 
 ### 3.4 Centralized Broadcast & Archival System
@@ -318,7 +379,7 @@ Immediately upon event conclusion (e.g., following the Spring Gala), organizers 
 
 ### 3.5 Collaborative Task, Fundraiser & Volunteer Shift Board
 #### 3.5.1 Kanban Pipeline Management
-* **Workflow Columns:** `BACKLOG` → `READY_TO_DO` → `IN_PROGRESS` → `BLOCKED` → `COMPLETED`.
+* **Workflow Columns (Harmonized):** `BACKLOG` → `TODO` → `IN_PROGRESS` → `BLOCKED` → `DONE` (strictly matching database ENUM `task_status`).
 * **Field Schema:** Title, Detailed Markdown Checklist, Assigned Volunteer(s), Target Due Date, Resource Requirements.
 * **Automated Escalation:** If a task in `IN_PROGRESS` has an approaching due date (< 24 hours) without updates, the system sends an automatic notification to the assignee and committee head.
 
@@ -338,10 +399,16 @@ Specifically addressing the Skyline Bake Sale scenario:
    * `HEALTHY` (Green): $\ge 90\%$ volunteer shifts staffed, all prep tasks on schedule.
    * `AT_RISK` (Amber): Unassigned table shifts or pending supplies within 48 hours of launch.
    * `CRITICAL` (Red): Overdue critical path tasks. Triggers instant high-priority alerts to the Club President and Event Lead.
+4. **Fundraiser Revenue & Double-Entry Financial Integration (Zero Double-Counting Guarantee):**
+   * Every direct donation or fundraiser-linked merchandise/food order explicitly records the associated `fundraiser_id`.
+   * When payment confirms (`status = 'PAID'`), the backend executes a single atomic transaction:
+     1. Posts General Ledger Journal Entry: Debit `1010 Cash Clearing`, Credit `4040 Fundraiser Donations & Bake Sale Proceeds` with `reference_type = 'FUNDRAISER'` and `reference_id = fundraiser_id`.
+     2. Increments `fundraisers.raised_amount_cents = raised_amount_cents + amount`.
+   * The Treasurer Dashboard aggregates total income across Ledger Account `4040`, while the Fundraiser progress widget displays `fundraisers.raised_amount_cents`. There is exactly **one** transactional record, ensuring zero discrepancy and 0% double-counting.
 
 ---
 
-### 3.6 Automated Dual-Entry Financial Ledger & Unified Treasurer Dashboard
+### 3.6 Automated Dual-Entry Financial Ledger & Expense Reimbursements
 To replace handwritten notebooks and shoeboxes of receipts, ClubSphere enforces **dual-entry bookkeeping** paired with an intuitive **Executive Treasurer Dashboard**.
 
 #### 3.6.1 Standard Chart of Accounts
@@ -359,19 +426,35 @@ To replace handwritten notebooks and shoeboxes of receipts, ClubSphere enforces 
 * `5030 - Food & Catering Expenses` (Expense)
 * `5040 - Operating & Administrative Supplies` (Expense)
 
-#### 3.6.2 Automated Transaction Mapping
-* **Scenario A: Member pays $25 dues online via Stripe:**
-  * Debit: `1020 - Stripe Merchant Account` ($25.00)
-  * Credit: `4010 - Membership Dues Revenue` ($25.00)
-* **Scenario B: Volunteer buys $45 baking supplies for Fundraiser:**
-  * Volunteer submits receipt photo via mobile app.
-  * Status: `SUBMITTED` → Treasurer verifies → President approves.
-  * System records:
-    * Debit: `5040 - Operating & Administrative Supplies` ($45.00)
-    * Credit: `2010 - Accounts Payable` ($45.00)
-  * Upon disbursement confirmation (Direct transfer / University check):
-    * Debit: `2010 - Accounts Payable` ($45.00)
-    * Credit: `1010 - Cash & Bank Clearing` ($45.00)
+#### 3.6.2 Simplified Volunteer Expense Ingestion & Anti-Fraud Decision Workflow
+Rather than relying on fragile OCR scanning, ClubSphere provides a simple, structured form combined with mandatory receipt proof and an officer review lightbox:
+
+* **User Form Intake (Claimant Side):**
+  * Claimant fills: Title, Category (`EVENT_PRODUCTION`, `SUPPLIES`, `FOOD_CATERING`, `MARKETING`, `TRAVEL`, `OTHER`), Merchant Name, Date of Purchase, Amount ($ USD), Detailed Description/Purpose, and optional Event/Fundraiser link.
+  * **Mandatory Receipt Proof:** Claimant must upload a photo or PDF file of the original paper/digital receipt to Cloudflare R2 / S3 storage (`receipt_image_url`). Claims cannot be submitted without receipt proof.
+* **Reviewer Interface (Officer Side):**
+  * Officer review desk displays all claim details side-by-side with a high-resolution receipt image lightbox for quick visual cross-verification.
+* **Complete State Transition Workflow:**
+  ```mermaid
+  stateDiagram-v2
+      [*] --> DRAFT: Claimant Creates Claim
+      DRAFT --> SUBMITTED: Claimant Uploads Receipt & Submits
+      
+      SUBMITTED --> TREASURER_APPROVED: Treasurer Verifies Receipt (< $50)
+      SUBMITTED --> NEEDS_CORRECTION: Blurry Receipt / Details Mismatch
+      NEEDS_CORRECTION --> SUBMITTED: Claimant Adjusts & Resubmits
+      SUBMITTED --> REJECTED: Ineligible / Policy Violation (Reason Given)
+      
+      TREASURER_APPROVED --> PRESIDENT_APPROVED: Claim >= $50 (Secondary Sign-off)
+      TREASURER_APPROVED --> DISBURSED: Claim < $50 (Treasurer Payout)
+      PRESIDENT_APPROVED --> DISBURSED: Payout Executed via Bank Transfer/Check
+  ```
+* **Approval Authority & Anti-Fraud Separation of Duties:**
+  1. **Threshold Rule:** Claims $< \$50$ require only the Treasurer's single approval. Claims $\ge \$50$ strictly require dual sign-off (Treasurer verification $\rightarrow$ President secondary approval).
+  2. **Anti-Fraud Separation of Duties Rule:** Enforced by database constraint `chk_claimant_not_approver`. A claimant **cannot** approve their own expense claim (`claimant_user_id != approver_id`). If the Treasurer submits an expense reimbursement, the President or Vice President must review and approve it.
+  3. **Automated Ledger Posting:** Upon payout disbursement:
+     * Debit: `50XX - Expense Category Account` ($amount)
+     * Credit: `1010 - Cash & Bank Clearing` ($amount)
 
 #### 3.6.3 Unified Treasurer Executive Dashboard ("What Came In, What Went Out, How Much Is Left")
 Answering the Treasurer's core end-of-semester mandate in one visual console (backed by `view_treasurer_financial_summary`):
@@ -392,6 +475,27 @@ Answering the Treasurer's core end-of-semester mandate in one visual console (ba
    * Displayed as the primary executive financial health metric.
 4. **1-Click University Compliance Audit Export:**
    * Generates a GAAP-compliant end-of-semester financial audit report (PDF / CSV) formatted to university standards, complete with transaction IDs, receipt image references, and double-entry trial balance. Saves the Treasurer 35+ hours of manual notebook ledger work.
+
+---
+
+### 3.7 Budget Allocation & Variance Tracking Subsystem
+To transition from passive record-keeping to proactive financial governance, ClubSphere implements an active budgeting engine:
+
+#### 3.7.1 Budget Envelope Architecture
+* **Budget Entity (`budgets` table):**
+  * Associated with `club_id`, `fiscal_year` (e.g., "2025-2026"), and `category` (`EVENT_PRODUCTION`, `SUPPLIES`, `FOOD_CATERING`, `MARKETING`, `MERCHANDISE`).
+  * Can be tied to a specific flagship event via optional `event_id` (e.g., Spring Gala with a dedicated $5,000 budget cap).
+  * Unique constraint `uq_club_fiscal_category` prevents duplicate envelopes for the same category/event.
+
+#### 3.7.2 Real-Time Variance & Burn Rate Engine
+Driven by analytical database view `view_budget_variance`:
+$$\text{Remaining Balance} = \text{Allocated Amount} - \text{Actual Disbursed Expenses}$$
+$$\text{Percentage Consumed} = \left(\frac{\text{Actual Disbursed Expenses}}{\text{Allocated Amount}}\right) \times 100$$
+
+* **Automated Burn Rate Indicators:**
+  * **Green Zone ($< 80\%$ consumed):** Spending is on pace.
+  * **Amber Advisory ($80\% - 99\%$ consumed):** Automated warning notification dispatched to the Committee Lead and Treasurer.
+  * **Red Limit ($\ge 100\%$ consumed):** Envelope cap exceeded; prevents one-click officer approval on new expenses for that category unless an executive budget increase or variance override is logged.
 
 ---
 

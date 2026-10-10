@@ -314,6 +314,81 @@ Membership cycles run on an academic year basis (expiring annually on August 31 
 
 ---
 
+#### 1.2.8 Full Event Ticket Purchase Lifecycle & Failure Handling
+Collegiate ticket purchases must guarantee atomic seat reservation, payment idempotency, and automated capacity recovery:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Student
+    participant Storefront as React Event View
+    participant ExpressAPI as Express.js POST /api/v1/events/:id/reserve
+    participant PG as PostgreSQL 16 DB
+    participant Redis as Redis (10m TTL)
+    participant Stripe as Stripe Checkout Session
+    participant Worker as Node-Cron Expiry Worker
+
+    Student->>Storefront: Selects "Early Bird Member Ticket ($15.00)"
+    Storefront->>ExpressAPI: POST /api/v1/events/:id/reserve {tier_id}
+    ExpressAPI->>PG: UPDATE event_ticket_tiers<br/>SET reserved_count = reserved_count + 1<br/>WHERE id = $1 AND (allocation_limit - (issued_count + reserved_count)) >= 1<br/>RETURNING id;
+    ExpressAPI->>Redis: SETEX "ticket:hold:{user_id}:{tier_id}" 600 "RESERVED"
+    ExpressAPI->>Stripe: Create Stripe Checkout Session {amount: 1500, metadata: {tier_id, user_id}}
+    ExpressAPI-->>Storefront: Checkout URL (10:00 Hold Active)
+
+    alt Payment Succeeded
+        Stripe-->>ExpressAPI: Webhook: checkout.session.completed (event_id: evt_123)
+        ExpressAPI->>PG: BEGIN;
+        ExpressAPI->>PG: INSERT INTO processed_stripe_events (event_id) VALUES ('evt_123'); -- Idempotency Lock
+        ExpressAPI->>PG: UPDATE event_ticket_tiers<br/>SET issued_count = issued_count + 1, reserved_count = reserved_count - 1<br/>WHERE id = $1;
+        ExpressAPI->>PG: INSERT INTO tickets (event_id, tier_id, user_id, ticket_code, qr_signature, status, price_paid_cents)<br/>VALUES ($1, $2, $3, $4, $5, 'ISSUED', 1500);
+        ExpressAPI->>PG: Post Journal Entry: Debit 1020 Stripe, Credit 4020 Ticket Revenue ($15.00);
+        ExpressAPI->>PG: COMMIT;
+        ExpressAPI->>Redis: DEL "ticket:hold:{user_id}:{tier_id}"
+    else Payment Abandoned / Timed Out (10 min)
+        Worker->>Redis: Scan expired holds
+        Worker->>PG: UPDATE event_ticket_tiers<br/>SET reserved_count = reserved_count - 1<br/>WHERE id = $1;
+    end
+```
+
+---
+
+#### 1.2.9 Full Merchandise Order Lifecycle & Stock Settlement
+1. **Order Initiation (`PENDING`):** Variant selected $\rightarrow$ pessimistic row lock acquired via `SELECT ... FOR UPDATE` $\rightarrow$ `reserved_stock` incremented $\rightarrow$ Redis hold set with 10-minute TTL.
+2. **Payment Confirmation (`PAID`):** Stripe webhook confirms charge $\rightarrow$ `available_stock` decremented $\rightarrow$ `reserved_stock` cleared $\rightarrow$ order state set to `PAID` $\rightarrow$ General Ledger credited (`4030 Merchandise Revenue`).
+3. **Fulfillment Pipeline (`PROCESSING` $\rightarrow$ `FULFILLED`):** Apparel bagged by volunteer lead $\rightarrow$ marked `PROCESSING` $\rightarrow$ student presents pick-up QR at union booth $\rightarrow$ volunteer scans QR code $\rightarrow$ marked `FULFILLED`.
+4. **Cancellation & Refund (`CANCELLED` / `REFUNDED`):**
+   * Unpaid checkout expiration: Worker releases `reserved_stock`.
+   * Authorized refund: Dispatches Stripe refund $\rightarrow$ sets `status = 'REFUNDED'` $\rightarrow$ posts reversing ledger entry $\rightarrow$ increments `available_stock = available_stock + 1`.
+
+---
+
+#### 1.2.10 Simplified Volunteer Expense Ingestion & Anti-Fraud Decision Pipeline
+Eliminating fragile OCR pipelines in favor of a rock-solid, user-driven submission form paired with mandatory receipt proof and officer visual review:
+
+* **Claimant Form Intake:**
+  * Claimant inputs: Title, Category (`EVENT_PRODUCTION`, `SUPPLIES`, `FOOD_CATERING`, `MARKETING`, `TRAVEL`, `OTHER`), Merchant Name, Date of Purchase, Amount ($ USD), Detailed Purpose, and associated Event / Fundraiser / Budget tag.
+  * **Mandatory Receipt Upload:** Uploads original receipt file (image/PDF) to Cloudflare R2 / S3 storage (`receipt_image_url`). Claims cannot be submitted without an attached receipt.
+* **Reviewer Interface:** Officer review console renders the entered metadata alongside a high-resolution receipt zoom lightbox for fast visual inspection.
+* **Complete State Transition Engine:**
+  * `DRAFT` $\rightarrow$ `SUBMITTED`
+  * `SUBMITTED` $\rightarrow$ `TREASURER_APPROVED` (for claims $< \$50$) $\rightarrow$ `DISBURSED`
+  * `SUBMITTED` $\rightarrow$ `TREASURER_APPROVED` $\rightarrow$ `PRESIDENT_APPROVED` (for claims $\ge \$50$, dual-signoff gate) $\rightarrow$ `DISBURSED`
+  * `SUBMITTED` $\rightarrow$ `NEEDS_CORRECTION` (officer requests clearer receipt or adjusted amount; claimant resubmits)
+  * `SUBMITTED` $\rightarrow$ `REJECTED` (with mandatory recorded rejection rationale)
+* **Separation of Duties (Anti-Fraud Rule):** Database constraint `chk_claimant_not_approver` strictly prohibits self-approval (`claimant_user_id != approver_id`). If the Treasurer submits an expense claim, the President or Vice President must review and approve it.
+
+---
+
+#### 1.2.11 Fundraiser Revenue & Ledger Synchronization (Zero Double-Counting)
+Addressing financial consistency across the fundraiser dashboard and the club general ledger:
+* Every direct donation or fundraiser-linked merchandise/food sale records the foreign key `fundraiser_id`.
+* Upon payment confirmation (`status = 'PAID'`), the backend executes a single atomic transaction:
+  1. **Ledger Posting:** Inserts journal entry: Debit `1010 Cash Clearing`, Credit `4040 Fundraiser Donations & Bake Sale Proceeds` with `reference_type = 'FUNDRAISER'` and `reference_id = fundraiser_id`.
+  2. **Fundraiser Metric Increment:** Atomically increments `fundraisers.raised_amount_cents = raised_amount_cents + amount`.
+* **Single Source of Truth:** The treasurer dashboard aggregates revenue from ledger account `4040`, while the fundraiser tracker displays `fundraisers.raised_amount_cents`. Because both originate from the same confirmed payment transaction, there is zero risk of double-counting.
+
+---
+
 ## 2. Comprehensive PostgreSQL Database Schema & Inter-Connectivity
 
 ### 2.1 Complete Production DDL Specification
@@ -519,6 +594,16 @@ CREATE TABLE club_memberships (
     CONSTRAINT uq_club_user_membership UNIQUE (club_id, user_id)
 );
 
+CREATE TABLE membership_renewal_reminders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    membership_id UUID NOT NULL REFERENCES club_memberships(id) ON DELETE CASCADE,
+    reminder_type VARCHAR(32) NOT NULL, -- 'T_30_DAYS', 'T_7_DAYS', 'T_1_DAY', 'GRACE_PERIOD'
+    dispatched_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    recipient_email VARCHAR(255) NOT NULL,
+    delivery_status VARCHAR(32) NOT NULL DEFAULT 'SENT',
+    one_click_renewal_url TEXT NOT NULL
+);
+
 -- ============================================================================
 -- 4. MERCHANDISE, VARIANTS & ORDERS
 -- ============================================================================
@@ -678,8 +763,39 @@ CREATE TABLE tasks (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE fundraisers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    club_id UUID NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+    event_id UUID REFERENCES events(id) ON DELETE SET NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    target_amount_cents INT NOT NULL CHECK (target_amount_cents > 0),
+    raised_amount_cents INT NOT NULL DEFAULT 0 CHECK (raised_amount_cents >= 0),
+    starts_at TIMESTAMPTZ NOT NULL,
+    ends_at TIMESTAMPTZ NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_fundraiser_dates CHECK (ends_at > starts_at)
+);
+
+CREATE TABLE volunteer_shifts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    club_id UUID NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+    fundraiser_id UUID REFERENCES fundraisers(id) ON DELETE CASCADE,
+    event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+    volunteer_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    role_title VARCHAR(128) NOT NULL, -- e.g. "Table Management", "Baking Lead", "Supplies Runner"
+    starts_at TIMESTAMPTZ NOT NULL,
+    ends_at TIMESTAMPTZ NOT NULL,
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_shift_chronology CHECK (ends_at > starts_at)
+);
+
 -- ============================================================================
--- 7. DOUBLE-ENTRY FINANCIAL LEDGER & EXPENSES
+-- 7. DOUBLE-ENTRY FINANCIAL LEDGER, BUDGETING & EXPENSES
 -- ============================================================================
 
 CREATE TABLE ledger_accounts (
@@ -718,15 +834,34 @@ CREATE TABLE ledger_lines (
     )
 );
 
+CREATE TABLE budgets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    club_id UUID NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+    fiscal_year VARCHAR(16) NOT NULL, -- e.g. "2025-2026"
+    category VARCHAR(64) NOT NULL,    -- "EVENT_PRODUCTION", "MARKETING", "SUPPLIES", "FOOD", "MERCHANDISE"
+    event_id UUID REFERENCES events(id) ON DELETE SET NULL,
+    allocated_amount_cents INT NOT NULL CHECK (allocated_amount_cents >= 0),
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_club_fiscal_category UNIQUE (club_id, fiscal_year, category, event_id)
+);
+
 CREATE TABLE expense_reimbursements (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     club_id UUID NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
     claimant_user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     title VARCHAR(255) NOT NULL,
     description TEXT,
+    category VARCHAR(64) NOT NULL, -- "EVENT_PRODUCTION", "SUPPLIES", "FOOD_CATERING", "MARKETING", "TRAVEL", "OTHER"
+    merchant_name VARCHAR(128) NOT NULL, -- Entered manually by user
+    purchase_date DATE NOT NULL,          -- Entered manually by user
     amount_cents INT NOT NULL CHECK (amount_cents > 0),
-    receipt_image_url TEXT NOT NULL,
-    receipt_ocr_metadata JSONB DEFAULT '{}'::jsonb,
+    receipt_image_url TEXT NOT NULL,      -- Mandatory uploaded receipt proof (image/pdf)
+    rejection_reason TEXT,                -- Required if status is REJECTED or NEEDS_CORRECTION
+    event_id UUID REFERENCES events(id) ON DELETE SET NULL,
+    fundraiser_id UUID REFERENCES fundraisers(id) ON DELETE SET NULL,
+    budget_id UUID REFERENCES budgets(id) ON DELETE SET NULL,
     status reimbursement_status NOT NULL DEFAULT 'SUBMITTED',
     treasurer_approver_id UUID REFERENCES users(id) ON DELETE SET NULL,
     treasurer_approved_at TIMESTAMPTZ,
@@ -736,8 +871,8 @@ CREATE TABLE expense_reimbursements (
     disbursed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_no_self_treasurer_approval CHECK (claimant_user_id != treasurer_approver_id),
-    CONSTRAINT chk_no_self_president_approval CHECK (claimant_user_id != president_approver_id)
+    CONSTRAINT chk_no_self_treasurer_approval CHECK (claimant_user_id != treasurer_approver_id OR treasurer_approver_id IS NULL),
+    CONSTRAINT chk_no_self_president_approval CHECK (claimant_user_id != president_approver_id OR president_approver_id IS NULL)
 );
 
 CREATE TABLE audit_logs (
@@ -894,53 +1029,16 @@ CREATE POLICY tenant_volunteer_shifts_policy ON volunteer_shifts
         OR current_setting('app.user_system_role', true) = 'SUPER_ADMIN'
     );
 
--- ============================================================================
--- 11. FUNDRAISERS, VOLUNTEER SHIFTS & RENEWAL REMINDER ENGINE
--- ============================================================================
-
-CREATE TABLE fundraisers (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    club_id UUID NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
-    event_id UUID REFERENCES events(id) ON DELETE SET NULL,
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    target_amount_cents INT NOT NULL CHECK (target_amount_cents > 0),
-    raised_amount_cents INT NOT NULL DEFAULT 0 CHECK (raised_amount_cents >= 0),
-    starts_at TIMESTAMPTZ NOT NULL,
-    ends_at TIMESTAMPTZ NOT NULL,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_fundraiser_dates CHECK (ends_at > starts_at)
-);
-
-CREATE TABLE volunteer_shifts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    club_id UUID NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
-    fundraiser_id UUID REFERENCES fundraisers(id) ON DELETE CASCADE,
-    event_id UUID REFERENCES events(id) ON DELETE CASCADE,
-    volunteer_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    role_title VARCHAR(128) NOT NULL, -- e.g. "Table Management", "Baking Lead", "Supplies Runner"
-    starts_at TIMESTAMPTZ NOT NULL,
-    ends_at TIMESTAMPTZ NOT NULL,
-    notes TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_shift_chronology CHECK (ends_at > starts_at)
-);
-
-CREATE TABLE membership_renewal_reminders (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    membership_id UUID NOT NULL REFERENCES club_memberships(id) ON DELETE CASCADE,
-    reminder_type VARCHAR(32) NOT NULL, -- 'T_30_DAYS', 'T_7_DAYS', 'T_1_DAY', 'GRACE_PERIOD'
-    dispatched_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    recipient_email VARCHAR(255) NOT NULL,
-    delivery_status VARCHAR(32) NOT NULL DEFAULT 'SENT',
-    one_click_renewal_url TEXT NOT NULL
-);
+ALTER TABLE budgets ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_budgets_policy ON budgets
+    FOR ALL
+    USING (
+        club_id = NULLIF(current_setting('app.current_club_id', true), '')::uuid
+        OR current_setting('app.user_system_role', true) = 'SUPER_ADMIN'
+    );
 
 -- ============================================================================
--- 12. ANALYTICAL PRODUCTION VIEWS
+-- 11. ANALYTICAL PRODUCTION VIEWS
 -- ============================================================================
 
 -- View: Per-Event Financial & Attendance Summary
@@ -999,6 +1097,58 @@ SELECT
 FROM clubs c
 LEFT JOIN ledger_accounts la ON c.id = la.club_id
 GROUP BY c.id, c.name;
+
+-- View: Budget Variance & Category Allocation Tracking (Allocated vs Spent vs Remaining)
+CREATE OR REPLACE VIEW view_budget_variance AS
+SELECT 
+    b.id AS budget_id,
+    b.club_id,
+    b.fiscal_year,
+    b.category,
+    b.event_id,
+    e.title AS event_title,
+    b.allocated_amount_cents,
+    COALESCE(
+        (SELECT SUM(er.amount_cents) 
+         FROM expense_reimbursements er 
+         WHERE er.club_id = b.club_id 
+           AND er.status = 'DISBURSED'
+           AND (
+               (b.event_id IS NOT NULL AND er.description ILIKE '%' || e.title || '%')
+               OR (b.event_id IS NULL AND er.description ILIKE '%' || b.category || '%')
+           )), 
+        0
+    ) AS actual_spent_cents,
+    b.allocated_amount_cents - COALESCE(
+        (SELECT SUM(er.amount_cents) 
+         FROM expense_reimbursements er 
+         WHERE er.club_id = b.club_id 
+           AND er.status = 'DISBURSED'
+           AND (
+               (b.event_id IS NOT NULL AND er.description ILIKE '%' || e.title || '%')
+               OR (b.event_id IS NULL AND er.description ILIKE '%' || b.category || '%')
+           )), 
+        0
+    ) AS remaining_balance_cents,
+    ROUND(
+        CASE 
+            WHEN b.allocated_amount_cents > 0 
+            THEN (COALESCE(
+                (SELECT SUM(er.amount_cents) 
+                 FROM expense_reimbursements er 
+                 WHERE er.club_id = b.club_id 
+                   AND er.status = 'DISBURSED'
+                   AND (
+                       (b.event_id IS NOT NULL AND er.description ILIKE '%' || e.title || '%')
+                       OR (b.event_id IS NULL AND er.description ILIKE '%' || b.category || '%')
+                   )), 
+                0
+            )::numeric / b.allocated_amount_cents::numeric) * 100 
+            ELSE 0 
+        END, 2
+    ) AS percentage_consumed
+FROM budgets b
+LEFT JOIN events e ON b.event_id = e.id;
 ```
 
 ---

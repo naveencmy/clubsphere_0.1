@@ -55,6 +55,7 @@ CREATE TYPE order_status AS ENUM (
 );
 
 CREATE TYPE ticket_status AS ENUM (
+    'RESERVED',
     'ISSUED',
     'CHECKED_IN',
     'TRANSFERRED',
@@ -88,6 +89,7 @@ CREATE TYPE account_type AS ENUM (
 CREATE TYPE reimbursement_status AS ENUM (
     'DRAFT',
     'SUBMITTED',
+    'NEEDS_CORRECTION',
     'TREASURER_APPROVED',
     'PRESIDENT_APPROVED',
     'REJECTED',
@@ -196,6 +198,16 @@ CREATE TABLE club_memberships (
     CONSTRAINT uq_club_user_membership UNIQUE (club_id, user_id)
 );
 
+CREATE TABLE membership_renewal_reminders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    membership_id UUID NOT NULL REFERENCES club_memberships(id) ON DELETE CASCADE,
+    reminder_type VARCHAR(32) NOT NULL, -- 'T_30_DAYS', 'T_7_DAYS', 'T_1_DAY', 'GRACE_PERIOD'
+    dispatched_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    recipient_email VARCHAR(255) NOT NULL,
+    delivery_status VARCHAR(32) NOT NULL DEFAULT 'SENT',
+    one_click_renewal_url TEXT NOT NULL
+);
+
 -- ============================================================================
 -- 4. MERCHANDISE & E-COMMERCE SUBSYSTEM
 -- ============================================================================
@@ -280,6 +292,7 @@ CREATE TABLE event_ticket_tiers (
     name VARCHAR(128) NOT NULL,
     description TEXT,
     allocation_limit INT NOT NULL CHECK (allocation_limit > 0),
+    reserved_count INT NOT NULL DEFAULT 0 CHECK (reserved_count >= 0),
     issued_count INT NOT NULL DEFAULT 0 CHECK (issued_count >= 0),
     member_price_cents INT NOT NULL CHECK (member_price_cents >= 0),
     non_member_price_cents INT NOT NULL CHECK (non_member_price_cents >= 0),
@@ -287,7 +300,7 @@ CREATE TABLE event_ticket_tiers (
     sales_close_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_issued_leq_allocation CHECK (issued_count <= allocation_limit)
+    CONSTRAINT chk_capacity_limits CHECK ((issued_count + reserved_count) <= allocation_limit)
 );
 
 CREATE TABLE tickets (
@@ -358,6 +371,37 @@ CREATE TABLE tasks (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE fundraisers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    club_id UUID NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+    event_id UUID REFERENCES events(id) ON DELETE SET NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    target_amount_cents INT NOT NULL CHECK (target_amount_cents > 0),
+    raised_amount_cents INT NOT NULL DEFAULT 0 CHECK (raised_amount_cents >= 0),
+    starts_at TIMESTAMPTZ NOT NULL,
+    ends_at TIMESTAMPTZ NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_fundraiser_dates CHECK (ends_at > starts_at)
+);
+
+CREATE TABLE volunteer_shifts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    club_id UUID NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+    fundraiser_id UUID REFERENCES fundraisers(id) ON DELETE CASCADE,
+    event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+    volunteer_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    role_title VARCHAR(128) NOT NULL, -- e.g. "Table Management", "Baking Lead", "Supplies Runner"
+    starts_at TIMESTAMPTZ NOT NULL,
+    ends_at TIMESTAMPTZ NOT NULL,
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_shift_chronology CHECK (ends_at > starts_at)
+);
+
 -- ============================================================================
 -- 8. AUTOMATED FINANCIAL LEDGER & EXPENSE REIMBURSEMENTS
 -- ============================================================================
@@ -398,15 +442,34 @@ CREATE TABLE ledger_lines (
     )
 );
 
+CREATE TABLE budgets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    club_id UUID NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+    fiscal_year VARCHAR(16) NOT NULL, -- e.g. "2025-2026"
+    category VARCHAR(64) NOT NULL,    -- "EVENT_PRODUCTION", "MARKETING", "SUPPLIES", "FOOD", "MERCHANDISE"
+    event_id UUID REFERENCES events(id) ON DELETE SET NULL,
+    allocated_amount_cents INT NOT NULL CHECK (allocated_amount_cents >= 0),
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_club_fiscal_category UNIQUE (club_id, fiscal_year, category, event_id)
+);
+
 CREATE TABLE expense_reimbursements (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     club_id UUID NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
     claimant_user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     title VARCHAR(255) NOT NULL,
     description TEXT,
+    category VARCHAR(64) NOT NULL, -- "EVENT_PRODUCTION", "SUPPLIES", "FOOD_CATERING", "MARKETING", "TRAVEL", "OTHER"
+    merchant_name VARCHAR(128) NOT NULL, -- Entered manually by user
+    purchase_date DATE NOT NULL,          -- Entered manually by user
     amount_cents INT NOT NULL CHECK (amount_cents > 0),
-    receipt_image_url TEXT NOT NULL,
-    receipt_ocr_metadata JSONB DEFAULT '{}'::jsonb,
+    receipt_image_url TEXT NOT NULL,      -- Mandatory uploaded receipt proof (image/pdf)
+    rejection_reason TEXT,                -- Required if status is REJECTED or NEEDS_CORRECTION
+    event_id UUID REFERENCES events(id) ON DELETE SET NULL,
+    fundraiser_id UUID REFERENCES fundraisers(id) ON DELETE SET NULL,
+    budget_id UUID REFERENCES budgets(id) ON DELETE SET NULL,
     status reimbursement_status NOT NULL DEFAULT 'SUBMITTED',
     treasurer_approver_id UUID REFERENCES users(id) ON DELETE SET NULL,
     treasurer_approved_at TIMESTAMPTZ,
@@ -415,7 +478,11 @@ CREATE TABLE expense_reimbursements (
     disbursement_method VARCHAR(64),
     disbursed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_claimant_not_approver CHECK (
+        (claimant_user_id != treasurer_approver_id OR treasurer_approver_id IS NULL) AND
+        (claimant_user_id != president_approver_id OR president_approver_id IS NULL)
+    )
 );
 
 -- ============================================================================
@@ -493,65 +560,7 @@ END;
 $$;
 
 -- ============================================================================
--- 12. FUNDRAISERS, VOLUNTEER SHIFTS & RENEWAL REMINDER ENGINE
--- ============================================================================
-
-CREATE TABLE fundraisers (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    club_id UUID NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
-    event_id UUID REFERENCES events(id) ON DELETE SET NULL,
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    target_amount_cents INT NOT NULL CHECK (target_amount_cents > 0),
-    raised_amount_cents INT NOT NULL DEFAULT 0 CHECK (raised_amount_cents >= 0),
-    starts_at TIMESTAMPTZ NOT NULL,
-    ends_at TIMESTAMPTZ NOT NULL,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_fundraiser_dates CHECK (ends_at > starts_at)
-);
-
-CREATE TABLE volunteer_shifts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    club_id UUID NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
-    fundraiser_id UUID REFERENCES fundraisers(id) ON DELETE CASCADE,
-    event_id UUID REFERENCES events(id) ON DELETE CASCADE,
-    volunteer_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    role_title VARCHAR(128) NOT NULL, -- e.g. "Table Management", "Baking Lead", "Supplies Runner"
-    starts_at TIMESTAMPTZ NOT NULL,
-    ends_at TIMESTAMPTZ NOT NULL,
-    notes TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_shift_chronology CHECK (ends_at > starts_at)
-);
-
-CREATE TABLE membership_renewal_reminders (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    membership_id UUID NOT NULL REFERENCES club_memberships(id) ON DELETE CASCADE,
-    reminder_type VARCHAR(32) NOT NULL, -- 'T_30_DAYS', 'T_7_DAYS', 'T_1_DAY', 'GRACE_PERIOD'
-    dispatched_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    recipient_email VARCHAR(255) NOT NULL,
-    delivery_status VARCHAR(32) NOT NULL DEFAULT 'SENT',
-    one_click_renewal_url TEXT NOT NULL
-);
-
-CREATE TABLE budgets (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    club_id UUID NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
-    fiscal_year VARCHAR(16) NOT NULL, -- e.g. "2025-2026"
-    category VARCHAR(64) NOT NULL,    -- "EVENT_PRODUCTION", "MARKETING", "SUPPLIES", "FOOD", "MERCHANDISE"
-    event_id UUID REFERENCES events(id) ON DELETE SET NULL,
-    allocated_amount_cents INT NOT NULL CHECK (allocated_amount_cents >= 0),
-    notes TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_club_fiscal_category UNIQUE (club_id, fiscal_year, category, event_id)
-);
-
--- ============================================================================
--- 13. ANALYTICAL PRODUCTION VIEWS
+-- 12. ANALYTICAL PRODUCTION VIEWS
 -- ============================================================================
 
 -- View: Per-Event Financial & Attendance Summary
@@ -664,7 +673,7 @@ FROM budgets b
 LEFT JOIN events e ON b.event_id = e.id;
 
 -- ============================================================================
--- 14. MULTI-TENANT ROW-LEVEL SECURITY (RLS) POLICIES
+-- 13. MULTI-TENANT ROW-LEVEL SECURITY (RLS) POLICIES
 -- ============================================================================
 
 -- Helper setting check: app.current_club_id
