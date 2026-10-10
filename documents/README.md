@@ -15,6 +15,7 @@ Welcome to the engineering and product specifications for **ClubSphere**, the di
 
 | Document | Format | Description |
 |---|---|---|
+| **[Implementation Plan](file:///e:/Projects/Active/ClubSphere_0.1/documents/IMPLEMENTATION_PLAN.md)** | Markdown | Step-by-step phased execution plan (Phases 0 through 5) covering scaffolding, APIs, UI, and testing. |
 | **[Technical Architecture & Security Blueprint](file:///e:/Projects/Active/ClubSphere_0.1/documents/TECHNICAL_ARCHITECTURE_DATABASE_SECURITY_BLUEPRINT.md)** | Markdown | Enterprise end-to-end technical blueprint bridging React.js, Express.js, PostgreSQL RLS, and Better Auth. |
 | **[PRD & Technical Specification](file:///e:/Projects/Active/ClubSphere_0.1/documents/PRD_TECHNICAL_SPECIFICATION_CLUBSPHERE.md)** | Markdown | Master 9-section enterprise Product Requirement Document and Software Architecture Specification for ClubSphere. |
 | **[Production Database Schema (DDL)](file:///e:/Projects/Active/ClubSphere_0.1/documents/schema.sql)** | SQL | Complete, normalized PostgreSQL 15+ DDL script with RLS policies, indexes, ENUM types, and audit triggers. |
