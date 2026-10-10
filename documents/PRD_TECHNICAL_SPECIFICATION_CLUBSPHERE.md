@@ -27,7 +27,7 @@
 ## 1. Executive Summary & Problem Resolution Matrix
 
 ### 1.1 Context & Strategic Imperative
-Collegiate student associations operate under an acute operational paradox: they execute commercial-grade workloads—handling tens of thousands of dollars in cash dues, organizing high-occupancy galas, distributing multi-variant branded merchandise, coordinating volunteer staff, and balancing compliance audits—while being staffed entirely by full-time students. With student officers cycling out annually, institutional memory vanishes, leaving clubs reliant on ad-hoc spreadsheets, paper notebooks, and disjointed messaging apps.
+Collegiate student associations operate under an acute operational paradox: they execute commercial-grade workloads—handling tens of thousands of rupees in cash dues, organizing high-occupancy galas, distributing multi-variant branded merchandise, coordinating volunteer staff, and balancing compliance audits—while being staffed entirely by full-time students. With student officers cycling out annually, institutional memory vanishes, leaving clubs reliant on ad-hoc spreadsheets, paper notebooks, and disjointed messaging apps.
 
 As demonstrated by the **Skyline Student Association** reference study, this manual fragmentation creates systemic failure modes:
 * Members lose track of events and lose access to entitled discounts.
@@ -76,8 +76,8 @@ The matrix below cross-examines every manual failure mode documented in the Skyl
 | **2** | **Cash Sales at Event Doors & Member Verification**<br>• Paper door lists<br>• Physical cash collection<br>• Inability to verify active membership at doors | Absence of digital ticketing infrastructure and real-time member status lookup. | **Event Ticketing & Rapid Check-In** (`src/modules/ticketing`) | Online seat tier reservation with instant digital ticket issuance. **Dual-Mode Scanner:**<br>1. *Ticket Mode:* Sub-200ms QR scan validation.<br>2. *Walk-Up Member Mode:* Scans student's permanent digital pass to immediately verify active dues status, photo, and tier on the spot. | **Double-Scan Lock:** Optimistic local cache verification backed by transactional Express/PostgreSQL lock (`UPDATE tickets SET status = 'CHECKED_IN' WHERE id = $1 AND status = 'VALID'`). Prevents screenshot reuse. | **FULL (100%)** |
 | **3** | **Club Budget in Notebooks & Opaque Balances**<br>• Hand-written ledgers<br>• Disorganized receipts<br>• Inability to explain "what came in, what went out, how much is left" | Accounting is uncoupled from transactional events (ticket purchases, merch sales, dues, expenses). | **Unified Treasurer Dashboard & Ledger** (`src/modules/ledger`) | Real-time dual-entry accounting engine. **Unified Executive Dashboard** displaying: (1) Total Income breakdown (dues, tickets, merch, fundraisers), (2) Total Expense breakdown, and (3) Net Available Operating Balance in real time. | **Immutable Audit Trail:** Append-only transaction log with SHA-256 state hashing and tamper-evident event records. 1-Click GAAP compliant University Student Activities compliance export (PDF/CSV). | **FULL (100%)** |
 | **4** | **Fragmented WhatsApp Announcements**<br>• Copy-pasted messages across groups<br>• Important updates buried in chatter<br>• Ghost members missing alerts | Broadcast channels lack message auditability, role-based targeting, and central archiving. | **Centralized Broadcast Hub** (`src/modules/broadcast`) | Canonical announcement publishing hub with multi-channel fanout (In-App Notification Feed + Transactional Email + Web Push). Permanent chronological web archive with searchable timestamps and delivery read-receipts. | **Immutable Publish Log:** Published announcements cannot be silently deleted or altered without an audit trail. Deliverability tracking verifies which members received and opened messages. | **FULL (100%)** |
-| **5** | **Lost Volunteer Receipts**<br>• Chasing paper receipts<br>• Delayed reimbursements<br>• Out-of-pocket volunteer friction<br>• Embezzlement risk | Absence of structured expense filing workflows, mobile image ingestion, and dual-signoff controls. | **Expense Reimbursement Workflow** (`src/modules/expenses`) | Mobile self-service expense claim portal. Volunteers photograph receipts at point-of-sale, upload metadata, and tag associated projects/fundraisers. | **Dual-Signoff Gate:** Two-person approval threshold (Treasurer verification + President sign-off) required for all disbursements exceeding $50. Full receipt image archived in S3 with secure signed URLs. | **FULL (100%)** |
-| **6** | **Merchandise Paper Orders & Unused Member Discounts**<br>• Sizing collected via chats<br>• Manual stock tracking<br>• Members not receiving discount benefits | E-commerce is decoupled from inventory databases and membership identity verification. | **Merchandise & Inventory Engine** (`src/modules/commerce`) | SKU and variant matrix engine (Sizes S–XXL, Colors, Fits). **Membership-Aware Pricing Engine:** Automatically detects active membership and applies discount at checkout. Displays dynamic "Member Price: $32 (Save $13)" badges and non-member upsell prompts. | **Atomic Inventory Decrement:** Uses PostgreSQL pessimistic row-level locking (`SELECT ... FOR UPDATE`) to guarantee zero overselling during flash drop peaks. Unpaid reserved carts release back to stock after 10 minutes. | **FULL (100%)** |
+| **5** | **Lost Volunteer Receipts**<br>• Chasing paper receipts<br>• Delayed reimbursements<br>• Out-of-pocket volunteer friction<br>• Embezzlement risk | Absence of structured expense filing workflows, mobile image ingestion, and dual-signoff controls. | **Expense Reimbursement Workflow** (`src/modules/expenses`) | Mobile self-service expense claim portal. Volunteers photograph receipts at point-of-sale, upload metadata, and tag associated projects/fundraisers. | **Dual-Signoff Gate:** Two-person approval threshold (Treasurer verification + President sign-off) required for all disbursements exceeding ₹2,500. Full receipt image archived in S3 with secure signed URLs. | **FULL (100%)** |
+| **6** | **Merchandise Paper Orders & Unused Member Discounts**<br>• Sizing collected via chats<br>• Manual stock tracking<br>• Members not receiving discount benefits | E-commerce is decoupled from inventory databases and membership identity verification. | **Merchandise & Inventory Engine** (`src/modules/commerce`) | SKU and variant matrix engine (Sizes S–XXL, Colors, Fits). **Membership-Aware Pricing Engine:** Automatically detects active membership and applies discount at checkout. Displays dynamic "Member Price: ₹799 (Save ₹400)" badges and non-member upsell prompts. | **Atomic Inventory Decrement:** Uses PostgreSQL pessimistic row-level locking (`SELECT ... FOR UPDATE`) to guarantee zero overselling during flash drop peaks. Unpaid reserved carts release back to stock after 10 minutes. | **FULL (100%)** |
 | **7** | **Bake Sale / Fundraiser Chaos & Unclear Progress**<br>• Tasks tracked in personal heads<br>• Unclear volunteer ownership<br>• Inability to see if fundraiser is on track | Lack of lightweight, event-linked project management tooling suited for student volunteers. | **Fundraiser Campaign & Task Board** (`src/modules/tasks`) | Real-time Kanban pipeline board linked directly to events and fundraisers. **Fundraiser Progress Hub:** Displays monetary goal vs. raised to date, volunteer shift schedules (who is baking, who is staffing the table), and an automated "On-Track" health indicator. | **Orphan Task Detector:** Tasks unassigned within 48 hours of an event trigger automated alerts to the Event Lead and Club President dashboard. | **FULL (100%)** |
 | **8** | **Post-Event Revenue & Attendance Blindspots**<br>• Unknown final turnout<br>• Manual calculation of event profitability<br>• Lost ticket reconciliation | Ticketing revenue and door check-in logs are disconnected from final financial reporting. | **Per-Event Financial & Attendance Report** (`src/modules/ticketing`) | Automated post-event reconciliation engine rolling up: (1) Capacity vs. tickets issued vs. actual door turnout (attendance rate %), (2) Gross ticket sales by tier, (3) Direct event production costs, and (4) Net Event Profit. | **Automated Event Rollup:** Backed by database view `view_event_financial_summary`. Instant 1-click executive PDF summary generated upon event conclusion. | **FULL (100%)** |
 
@@ -110,7 +110,7 @@ The matrix below cross-examines every manual failure mode documented in the Skyl
 
 ### 2.2 Persona 2: Treasurers & University Finance/Compliance Officers
 * **Archetype:** Marcus Vance (Club Treasurer) & Dr. Aris Thorne (University Director of Student Activities & Audit).
-* **Profile:** Marcus is an accounting student managing a $35,000 annual club operating budget; Dr. Thorne audits 85 registered student clubs for university policy compliance.
+* **Profile:** Marcus is an accounting student managing a ₹15,00,000 annual club operating budget; Dr. Thorne audits 85 registered student clubs for university policy compliance.
 * **Operational Workflows:**
   1. Reconciling ticket revenue, merchandise pre-orders, and membership dues against actual bank deposits.
   2. Reviewing uploaded itemized receipts from volunteers, validating tax/tip policies, and approving disbursements.
@@ -119,7 +119,7 @@ The matrix below cross-examines every manual failure mode documented in the Skyl
   * Marcus spends finals week deciphering faded physical receipts, messy Excel formulas, and unlabelled peer-to-peer mobile payments.
   * Dr. Thorne frequently flags clubs for "unaccounted cash flows" resulting in frozen university funding accounts.
 * **Jobs-To-Be-Done (JTBD):**
-  > *"When our club collects money or incurs expenses, I want every dollar automatically recorded in a double-entry ledger with itemized receipts attached, so that at semester's end I can export a bulletproof, audit-ready financial statement with a single click."*
+  > *"When our club collects money or incurs expenses, I want every rupee automatically recorded in a double-entry ledger with itemized receipts attached, so that at semester's end I can export a bulletproof, audit-ready financial statement with a single click."*
 * **Access Control & RBAC Privileges:**
   * Role: `CLUB_TREASURER` / `COMPLIANCE_AUDITOR`
   * Permissions: `ledger:view`, `ledger:post_manual_adjustment`, `reimbursements:approve_primary`, `reimbursements:payout`, `reports:export_financials`, `pricing:audit`.
@@ -189,7 +189,7 @@ stateDiagram-v2
 * **Multi-Channel Reminder Sequence & Audit Trail:**
   * **T-30 Days Notice:** Automated email via Nodemailer/Resend + In-App notification banner:
     * *Subject:* "Your Skyline Student Association membership expires in 30 days"
-    * *Body:* Displays personal savings stats ("You saved $45 in discounts this semester! Click below to renew with 1 click").
+    * *Body:* Displays personal savings stats ("You saved ₹1,200 in discounts this semester! Click below to renew with 1 click").
     * *Action:* Direct Stripe Checkout link with pre-populated student metadata.
     * *Audit:* Logged to `membership_renewal_reminders` with `reminder_type = 'T_30_DAYS'`.
   * **T-7 Days Urgent Ping:** High-priority reminder emphasizing imminent loss of upcoming Spring Gala member discounts. Logged with `reminder_type = 'T_7_DAYS'`.
@@ -204,15 +204,15 @@ stateDiagram-v2
 1. **Catalog Hierarchy:** Parent Product (e.g., "Skyline 2026 Embroidered Hoodie") → Variant Entity (`SKU`: `SKY-HD26-BLK-M`, attributes: `{ "size": "M", "color": "Jet Black", "fit": "Unisex" }`).
 2. **Membership-Aware Dynamic Pricing Engine:**
    * Every variant maintains dual pricing:
-     * `non_member_price_cents` (e.g., $45.00)
-     * `member_price_cents` (e.g., $32.00)
+     * `non_member_price_cents` (e.g., ₹1,199.00 / 119,900 paise)
+     * `member_price_cents` (e.g., ₹799.00 / 79,900 paise)
    * **Unified Member Benefit Eligibility Policy:** Member discounts are granted to any user whose membership status is either `ACTIVE` or `GRACE_PERIOD` (the 14-day transition period). Both ticketing and merchandise honor this identical rule:
      $$\text{applied\_price} = \begin{cases} \text{member\_price\_cents}, & \text{if user.membership.status} \in \{\text{'ACTIVE'}, \text{'GRACE\_PERIOD'}\} \\ \text{non\_member\_price\_cents}, & \text{otherwise} \end{cases}$$
    * **Storefront Dynamic Badging:**
-     * Active & Grace Period Members see: `"Member Exclusive: $32.00 (You save $13.00)"` with a green discount badge (or amber advisory in grace period: *"Grace period active - renew within X days"*).
-     * Non-Members see: `"$45.00"` alongside an interactive prompt: `"Members pay $32.00"`.
+     * Active & Grace Period Members see: `"Member Exclusive: ₹799.00 (You save ₹400.00)"` with a green discount badge (or amber advisory in grace period: *"Grace period active - renew within X days"*).
+     * Non-Members see: `"₹1,199.00"` alongside an interactive prompt: `"Members pay ₹799.00"`.
    * **Non-Member Cart Upsell Modal:** When a non-member adds apparel to their cart, the checkout drawer presents a high-conversion 1-click upsell:
-     > *"Add Annual Skyline Association Membership to your cart for $20.00 and immediately save $13.00 on this hoodie today!"*
+     > *"Add Annual Skyline Association Membership to your cart for ₹500.00 and immediately save ₹400.00 on this hoodie today!"*
 
 #### 3.2.2 Atomic Inventory Decrementation & Cart Locks
 To eliminate overselling during high-demand apparel drops, the system employs database-level atomic locking with a temporary reservation window:
@@ -251,13 +251,17 @@ stateDiagram-v2
     PROCESSING --> REFUNDED: Damaged / Out-of-Stock Refund
 ```
 
-* **Order Progression Workflow:**
-  1. `PENDING`: Order created with line items; stock reserved for 10 minutes.
-  2. `PAID`: Stripe webhook (`checkout.session.completed`) confirms payment. Deducts permanent stock, clears temporary reservation, posts journal entry (Debit `1020 Stripe Merchant`, Credit `4030 Merchandise Revenue`), and dispatches order confirmation email with pick-up QR code.
+* **Order Progression Workflow & Return Safeguards:**
+  1. `PENDING`: Order created with line items; variant stock reserved for 10 minutes (`reserved_stock` incremented).
+  2. `PAID`: Stripe webhook (`checkout.session.completed`) confirms payment. Deducts permanent stock (`available_stock = available_stock - quantity`), clears temporary reservation (`reserved_stock = reserved_stock - quantity`), posts journal entry (Debit `1010 Cash Clearing`, Credit `4030 Merchandise`), and dispatches order confirmation email with pick-up QR code.
   3. `PROCESSING`: Club merchandise team tags the order as packed/ready for pickup at the student union desk.
   4. `FULFILLED`: Volunteer scans pick-up QR code or checks off student ID at the table booth; transitions state to `FULFILLED`.
-  5. `CANCELLED`: Unpaid hold expires; inventory automatically rolled back into available stock.
-  6. `REFUNDED`: Executive-approved return or sizing mismatch; dispatches Stripe refund API call, posts reversing journal entry (Debit `4030 Merchandise Revenue`, Credit `1020 Stripe Merchant`), and restores `available_stock = available_stock + 1`.
+  5. `CANCELLED`: Unpaid hold expires; inventory automatically rolled back into available stock (`reserved_stock` decremented).
+  6. **Refund & Restock Safeguards (`REFUNDED`):**
+     * **Pre-Fulfillment Cancellation (Customer cancels before union pickup):** Full Stripe refund dispatched, reversing journal entry posted, and inventory restored (`available_stock = available_stock + quantity`).
+     * **Post-Fulfillment Return (Merchandise physically returned):** Officer inspects garment at the union desk:
+       * *Sellable Condition (Unworn, tags intact):* Dispatches Stripe refund, posts reversing entry, and restocks item (`available_stock = available_stock + quantity`).
+       * *Damaged / Worn Condition (Unsellable):* Dispatches Stripe refund, posts reversing entry, but does NOT restore stock; logs inventory loss without restocking.
 
 ---
 
@@ -356,10 +360,16 @@ stateDiagram-v2
      * Increments `issued_count`, decrements `reserved_count`, provisions a cryptographically signed ticket with HMAC-SHA256 QR code, and inserts record into `tickets` with `status = 'ISSUED'`.
      * Automatically posts journal entry: Debit `1020 Stripe Clearing`, Credit `4020 Event Ticket Revenue`.
      * Dispatches transactional email with calendar `.ics` invite and digital pass attachment.
-  3. **Capacity Release on Expiry / Failure:** If the student abandons checkout or payment fails, an Express/Redis worker automatically rolls back `reserved_count = reserved_count - 1`.
+  3. **Capacity Release on Expiry / Failure & Late-Payment Policy:**
+     * Ticket holds are authoritatively governed by `tickets.reserved_until` (10-minute hold window).
+     * An automated background worker runs every 60 seconds; any uncompleted ticket with `status = 'RESERVED'` and `reserved_until < NOW()` is transitioned to `status = 'CANCELLED'` and decrements `event_ticket_tiers.reserved_count`.
+     * **Late-Payment Race Condition Safeguard:** If network latency causes a Stripe payment to complete *after* the reservation expired and the seat was released/reallocated:
+       * The webhook controller executes `SELECT status FROM tickets WHERE id = $1 FOR UPDATE`.
+       * Detecting `status = 'CANCELLED'`, the system strictly **refuses** to issue a ticket or increment `issued_count`.
+       * Instead, it immediately calls `stripe.refunds.create({ payment_intent })` and emails the student: *"Your 10-minute reservation hold expired before checkout completed. Your payment has been automatically and fully refunded."*
   4. **Door Ingress (`CHECKED_IN`):** Scanned at the event door using the PWA Scanner; atomic update sets `status = 'CHECKED_IN'`, `checked_in_at = NOW()`.
   5. **Refunds & Waitlist Auto-Promotion (`REFUNDED`):**
-     * If an attendee requests a refund before sales close, the ticket transitions to `status = 'REFUNDED'`, decrements `issued_count = issued_count - 1`, and posts a reversing journal entry (Debit `4020`, Credit `1020`).
+     * If an attendee requests a refund before sales close, the ticket transitions to `status = 'REFUNDED'`, decrements `issued_count = issued_count - 1`, and posts a reversing journal entry (Debit `4020 Tickets`, Credit `1010 Cash Clearing`).
      * The waitlist engine immediately detects available capacity and sends an exclusive 4-hour reservation window link to the top student on the waitlist.
 
 ---
@@ -367,13 +377,13 @@ stateDiagram-v2
 ### 3.4 Centralized Broadcast & Archival System
 * **Unified Composer:** Club executives author announcements with Markdown formatting, file attachments, and audience targeting flags (`ALL_MEMBERS`, `COMMITTEE_LEADS`, `GENERAL_PUBLIC`).
 * **Multi-Channel Dispatch Orchestration:**
-  1. **Canonical Web Entry:** Creates a permanent, immutable record in the club's public/member newsfeed.
-  2. **Transactional Email:** Dispatches asynchronously via queue to verified student emails.
+  1. **Canonical Web Entry:** Creates a permanent record in the club's public/member newsfeed.
+  2. **Transactional Email:** Dispatches asynchronously via queue to verified student emails with granular delivery status tracked in `announcement_deliveries` (`QUEUED`, `SENT`, `DELIVERED`, `FAILED`, `BOUNCED`).
   3. **Web Push / Mobile Alert:** Dispatches instantaneous push notifications to PWA installs.
-* **Timestamped Historical Archive & Verification:**
-  * Every broadcast is permanently timestamped (`published_at`) and indexed with a cryptographic content hash (`audit_hash`).
-  * Members and officers can search and filter the archive by date, author, or category.
-  * System tracks delivery read receipts (`announcement_read_receipts`), preventing disputes over missed notices.
+* **Append-Only Revision History & Immutable Verification:**
+  * To guarantee true non-repudiation, edits to an announcement do not overwrite past content; they append an immutable audit record to `announcement_revisions` (`announcement_id`, `revision_number`, `content_markdown`, `edited_by_user_id`, `edited_at`, `revision_hash`).
+  * System tracks delivery read receipts in `announcement_read_receipts` (`READ`), preventing disputes over missed notices.
+  * Members and officers can search and filter the archive by date, author, or category, answering the Skyline requirement: *"Know what was announced and when."*
 
 ---
 
@@ -430,7 +440,7 @@ To replace handwritten notebooks and shoeboxes of receipts, ClubSphere enforces 
 Rather than relying on fragile OCR scanning, ClubSphere provides a simple, structured form combined with mandatory receipt proof and an officer review lightbox:
 
 * **User Form Intake (Claimant Side):**
-  * Claimant fills: Title, Category (`EVENT_PRODUCTION`, `SUPPLIES`, `FOOD_CATERING`, `MARKETING`, `TRAVEL`, `OTHER`), Merchant Name, Date of Purchase, Amount ($ USD), Detailed Description/Purpose, and optional Event/Fundraiser link.
+  * Claimant fills: Title, Category (`EVENT_PRODUCTION`, `SUPPLIES`, `FOOD_CATERING`, `MARKETING`, `TRAVEL`, `OTHER`), Merchant Name, Date of Purchase, Amount (INR ₹), Detailed Description/Purpose, and optional Event/Fundraiser link.
   * **Mandatory Receipt Proof:** Claimant must upload a photo or PDF file of the original paper/digital receipt to Cloudflare R2 / S3 storage (`receipt_image_url`). Claims cannot be submitted without receipt proof.
 * **Reviewer Interface (Officer Side):**
   * Officer review desk displays all claim details side-by-side with a high-resolution receipt image lightbox for quick visual cross-verification.
@@ -440,28 +450,33 @@ Rather than relying on fragile OCR scanning, ClubSphere provides a simple, struc
       [*] --> DRAFT: Claimant Creates Claim
       DRAFT --> SUBMITTED: Claimant Uploads Receipt & Submits
       
-      SUBMITTED --> TREASURER_APPROVED: Treasurer Verifies Receipt (< $50)
-      SUBMITTED --> NEEDS_CORRECTION: Blurry Receipt / Details Mismatch
+      SUBMITTED --> UNDER_REVIEW: Officer Opens Claim in Lightbox
+      UNDER_REVIEW --> TREASURER_APPROVED: Treasurer Approves (< ₹2,500 Final Approval)
+      UNDER_REVIEW --> TREASURER_APPROVED: Treasurer Verifies (>= ₹2,500, Awaiting President)
+      UNDER_REVIEW --> NEEDS_CORRECTION: Blurry Receipt / Details Mismatch
       NEEDS_CORRECTION --> SUBMITTED: Claimant Adjusts & Resubmits
-      SUBMITTED --> REJECTED: Ineligible / Policy Violation (Reason Given)
+      UNDER_REVIEW --> REJECTED: Ineligible / Policy Violation (Reason Logged)
       
-      TREASURER_APPROVED --> PRESIDENT_APPROVED: Claim >= $50 (Secondary Sign-off)
-      TREASURER_APPROVED --> DISBURSED: Claim < $50 (Treasurer Payout)
-      PRESIDENT_APPROVED --> DISBURSED: Payout Executed via Bank Transfer/Check
+      TREASURER_APPROVED --> PRESIDENT_APPROVED: President Signs Off (>= ₹2,500 Final Approval)
+      TREASURER_APPROVED --> DISBURSED: Claim < ₹2,500 (Treasurer Payout Settled)
+      PRESIDENT_APPROVED --> DISBURSED: Claim >= ₹2,500 (Treasurer Payout Settled)
   ```
 * **Approval Authority & Anti-Fraud Separation of Duties:**
-  1. **Threshold Rule:** Claims $< \$50$ require only the Treasurer's single approval. Claims $\ge \$50$ strictly require dual sign-off (Treasurer verification $\rightarrow$ President secondary approval).
+  1. **Threshold Rule:** Claims $< ₹2,500$ require only the Treasurer's single approval (which serves as Final Approval). Claims $\ge ₹2,500$ strictly require dual sign-off (Treasurer verification $\rightarrow$ President secondary approval, which serves as Final Approval).
   2. **Anti-Fraud Separation of Duties Rule:** Enforced by database constraint `chk_claimant_not_approver`. A claimant **cannot** approve their own expense claim (`claimant_user_id != approver_id`). If the Treasurer submits an expense reimbursement, the President or Vice President must review and approve it.
-  3. **Two-Stage Accrual Ledger Posting (Zero Double-Counting):**
-     * **Stage 1 (Upon Final Approval - Liability Recognition):**
+  3. **Two-Stage Accrual Ledger Posting (Strict Final-Approval Timing):**
+     * **Stage 1 (Upon FINAL Required Approval - Liability Recognition):**
+       * Triggered when a claim receives its final required statutory approval: immediately upon `TREASURER_APPROVED` for claims $< ₹2,500$, or upon `PRESIDENT_APPROVED` for claims $\ge ₹2,500$.
        * Debit: `5010/5020 - Expense Category Account` (e.g. Supplies, Event Production)
-       * Credit: `2010 - Accounts Payable` (Money owed to claimant recognized as liability)
+       * Credit: `2010 - Accounts Payable` (Liability recognized: money owed to claimant)
        * Tag: `reference_type = 'EXPENSE_ACCRUAL'`, `reference_id = expense_reimbursements.id`
+       * *Important Safeguard:* For dual-approval claims ($\ge ₹2,500$), no liability or expense is posted after Treasurer verification alone; the accrual is deferred until the President formally signs off.
      * **Stage 2 (Upon Disbursement - Cash Settlement):**
+       * Triggered when the Treasurer executes the bank transfer or check payment (`status = 'DISBURSED'`).
        * Debit: `2010 - Accounts Payable` (Liability cleared to zero)
        * Credit: `1010 - Cash & Bank Clearing` (Cash account reduced)
        * Tag: `reference_type = 'EXPENSE_PAYOUT'`, `reference_id = expense_reimbursements.id`
-     * This two-stage separation ensures expenses are committed against category budgets upon approval while preventing duplicate ledger entries or premature cash deductions.
+     * This two-stage separation ensures expenses are committed against category budgets only when fully authorized, while preventing premature cash deductions and guaranteeing zero double-counting.
 
 #### 3.6.3 Unified Treasurer Executive Dashboard ("What Came In, What Went Out, How Much Is Left")
 Answering the Treasurer's core end-of-semester mandate in one visual console (backed by `view_treasurer_financial_summary`):
@@ -491,7 +506,7 @@ To transition from passive record-keeping to proactive financial governance, Clu
 #### 3.7.1 Budget Envelope Architecture
 * **Budget Entity (`budgets` table):**
   * Associated with `club_id`, `fiscal_year` (e.g., "2025-2026"), and `category` (`EVENT_PRODUCTION`, `SUPPLIES`, `FOOD_CATERING`, `MARKETING`, `MERCHANDISE`).
-  * Can be tied to a specific flagship event via optional `event_id` (e.g., Spring Gala with a dedicated $5,000 budget cap).
+  * Can be tied to a specific flagship event via optional `event_id` (e.g., Spring Gala with a dedicated ₹1,50,000 budget cap).
   * Unique constraint `uq_club_fiscal_category` prevents duplicate envelopes for the same category/event.
 
 #### 3.7.2 Real-Time Variance & Burn Rate Engine
@@ -1096,7 +1111,7 @@ $$;
 +--------------------------+-------------------------------------------------------------------------+
 | D - Denial of Service    | Redis express-rate-limit token bucket (10 req/s on rapid scanner)       |
 +--------------------------+-------------------------------------------------------------------------+
-| E - Elevation of Priv    | Two-Person Rule on financial payouts > $50, granular RBAC gatekeeper    |
+| E - Elevation of Priv    | Two-Person Rule on financial payouts > ₹2,500, granular RBAC gatekeeper  |
 +--------------------------+-------------------------------------------------------------------------+
 ```
 
@@ -1107,7 +1122,7 @@ $$;
 | **Repudiation** | Administrative Actions & Overrides | An officer deletes an event or clears inventory, then denies taking the action. | Comprehensive `audit_logs` table records every mutation. Captures actor UUID, client IP address, User-Agent, before/after JSON diffs, and timestamp in an append-only store with revoked `DELETE` and `UPDATE` permissions. |
 | **Information Disclosure** | Multi-Tenant Data Leakage | A club officer manipulates the URL (e.g. `club_id` parameter tampering) to view competitor club members. | PostgreSQL Row-Level Security (RLS) is enabled on all tenant tables. Every query executes within a database session populated with `SET LOCAL app.current_club_id`. Cross-tenant queries return zero records at the database engine level. |
 | **Denial of Service** | Ticket Drop Endpoints | Scripted bots flood the checkout endpoint to hoard limited gala tickets or crash the scanner. | Redis Token Bucket rate limiting: max 10 requests/minute on checkout; max 300 scans/minute on check-in. CAPTCHA enabled on public reservation forms. |
-| **Elevation of Privilege** | Expense Reimbursement Disbursement | A rogue committee lead approves their own $500 expense payout. | Separation of Duties: Database constraints prevent claimant from acting as approver (`claimant_user_id != treasurer_approver_id AND claimant_user_id != president_approver_id`). Payouts > $50 mandate dual approval (Treasurer + President). |
+| **Elevation of Privilege** | Expense Reimbursement Disbursement | A rogue committee lead approves their own ₹15,000 expense payout. | Separation of Duties: Database constraints prevent claimant from acting as approver (`claimant_user_id != treasurer_approver_id AND claimant_user_id != president_approver_id`). Payouts > ₹2,500 mandate dual approval (Treasurer + President). |
 
 ---
 

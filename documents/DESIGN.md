@@ -137,7 +137,7 @@ tokens:
 
 ### 2.2 Typography Hierarchy
 * Use `font_families.sans` for all interface chrome, narrative copy, and executive dashboards.
-* Use `font_families.mono` for all numerical currency figures (`$25.00`), ticket codes (`TCK-8942-XF91`), SKUs (`SKY-HD26-BLK-M`), and student ID numbers. This prevents vertical misalignment in financial data grids.
+* Use `font_families.mono` for all numerical currency figures (`₹250.00`), ticket codes (`TCK-8942-XF91`), SKUs (`SKY-HD26-BLK-M`), and student ID numbers. This prevents vertical misalignment in financial data grids.
 
 ---
 

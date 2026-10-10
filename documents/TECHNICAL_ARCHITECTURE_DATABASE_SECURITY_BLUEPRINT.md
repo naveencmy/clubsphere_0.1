@@ -157,7 +157,7 @@ sequenceDiagram
     participant Stripe as Stripe Checkout / Webhook
     participant Ledger as Ledger Service
 
-    Student->>ReactStore: Clicks "Reserve Size M Hoodie ($32.00)"
+    Student->>ReactStore: Clicks "Reserve Size M Hoodie (₹799.00)"
     ReactStore->>ExpressAPI: POST /api/v1/commerce/reserve {variant_id, quantity: 1}
     
     rect rgb(255, 250, 240)
@@ -180,7 +180,7 @@ sequenceDiagram
         ExpressAPI->>PG: BEGIN;
         ExpressAPI->>PG: UPDATE product_variants<br/>SET available_stock = available_stock - 1,<br/>    reserved_stock = reserved_stock - 1<br/>WHERE id = $1;
         ExpressAPI->>PG: INSERT INTO orders (user_id, status) VALUES ($2, 'PAID');
-        ExpressAPI->>Ledger: Post Journal Entry:<br/>Debit: 1020 Stripe Merchant ($32.00)<br/>Credit: 4030 Merchandise Revenue ($32.00)
+        ExpressAPI->>Ledger: Post Journal Entry:<br/>Debit: 1020 Stripe Merchant (₹799.00)<br/>Credit: 4030 Merchandise Revenue (₹799.00)
         ExpressAPI->>PG: COMMIT;
         ExpressAPI->>Redis: DEL "cart:hold:{session_id}:{variant_id}"
         end
@@ -305,7 +305,7 @@ Answering the Treasurer's core question at semester's end: *"What came in, what 
 Membership cycles run on an academic year basis (expiring annually on August 31 or custom club date):
 * **Trigger:** Daily Express background worker (`node-cron` at 02:00 UTC).
 * **Cadence Sequence:**
-  * **T-30 Days Notice:** Dispatches transactional email + in-app banner showing accumulated member savings ("You saved $45 in discounts this year! Click to renew with 1 click").
+  * **T-30 Days Notice:** Dispatches transactional email + in-app banner showing accumulated member savings ("You saved ₹1,200 in discounts this year! Click to renew with 1 click").
   * **T-7 Days Notice:** High-priority reminder emphasizing imminent loss of upcoming gala ticket discounts.
   * **T-1 Day Notice:** Urgent final warning.
   * **T-0 Days (Lapse Date):** Automatically transitions state to `GRACE_PERIOD` (14 days). Scanner shows amber badge; member ticket pricing retained for 14 days.
@@ -328,25 +328,29 @@ sequenceDiagram
     participant Stripe as Stripe Checkout Session
     participant Worker as Node-Cron Expiry Worker
 
-    Student->>Storefront: Selects "Early Bird Member Ticket ($15.00)"
+    Student->>Storefront: Selects "Early Bird Member Ticket (₹250.00)"
     Storefront->>ExpressAPI: POST /api/v1/events/:id/reserve {tier_id}
     ExpressAPI->>PG: UPDATE event_ticket_tiers<br/>SET reserved_count = reserved_count + 1<br/>WHERE id = $1 AND (allocation_limit - (issued_count + reserved_count)) >= 1<br/>RETURNING id;
     ExpressAPI->>Redis: SETEX "ticket:hold:{user_id}:{tier_id}" 600 "RESERVED"
-    ExpressAPI->>Stripe: Create Stripe Checkout Session {amount: 1500, metadata: {tier_id, user_id}}
+    ExpressAPI->>Stripe: Create Stripe Checkout Session {amount: 25000, metadata: {tier_id, user_id}}
     ExpressAPI-->>Storefront: Checkout URL (10:00 Hold Active)
 
-    alt Payment Succeeded
+    alt Payment Succeeded (Within 10-Minute Hold)
         Stripe-->>ExpressAPI: Webhook: checkout.session.completed (event_id: evt_123)
         ExpressAPI->>PG: BEGIN;
         ExpressAPI->>PG: INSERT INTO processed_stripe_events (event_id) VALUES ('evt_123'); -- Idempotency Lock
         ExpressAPI->>PG: UPDATE event_ticket_tiers<br/>SET issued_count = issued_count + 1, reserved_count = reserved_count - 1<br/>WHERE id = $1;
-        ExpressAPI->>PG: INSERT INTO tickets (event_id, tier_id, user_id, ticket_code, qr_signature, status, price_paid_cents)<br/>VALUES ($1, $2, $3, $4, $5, 'ISSUED', 1500);
-        ExpressAPI->>PG: Post Journal Entry: Debit 1020 Stripe, Credit 4020 Ticket Revenue ($15.00);
+        ExpressAPI->>PG: INSERT INTO tickets (event_id, tier_id, user_id, ticket_code, qr_signature, status, price_paid_cents)<br/>VALUES ($1, $2, $3, $4, $5, 'ISSUED', 25000);
+        ExpressAPI->>PG: Post Journal Entry: Debit 1020 Stripe, Credit 4020 Ticket Revenue (₹250.00);
         ExpressAPI->>PG: COMMIT;
         ExpressAPI->>Redis: DEL "ticket:hold:{user_id}:{tier_id}"
     else Payment Abandoned / Timed Out (10 min)
         Worker->>Redis: Scan expired holds
         Worker->>PG: UPDATE event_ticket_tiers<br/>SET reserved_count = reserved_count - 1<br/>WHERE id = $1;
+        Worker->>PG: UPDATE tickets SET status = 'CANCELLED' WHERE status = 'RESERVED' AND reserved_until < NOW();
+    else Late Payment Arrival After Hold Expired
+        Stripe-->>ExpressAPI: Webhook: checkout.session.completed (delayed)
+        Note over ExpressAPI: Row lock detects ticket is CANCELLED.<br/>Calls stripe.refunds.create to auto-refund student.<br/>Refuses duplicate ticket creation to avoid overselling.
     end
 ```
 
@@ -356,9 +360,12 @@ sequenceDiagram
 1. **Order Initiation (`PENDING`):** Variant selected $\rightarrow$ pessimistic row lock acquired via `SELECT ... FOR UPDATE` $\rightarrow$ `reserved_stock` incremented $\rightarrow$ Redis hold set with 10-minute TTL.
 2. **Payment Confirmation (`PAID`):** Stripe webhook confirms charge $\rightarrow$ `available_stock` decremented $\rightarrow$ `reserved_stock` cleared $\rightarrow$ order state set to `PAID` $\rightarrow$ General Ledger credited (`4030 Merchandise Revenue`).
 3. **Fulfillment Pipeline (`PROCESSING` $\rightarrow$ `FULFILLED`):** Apparel bagged by volunteer lead $\rightarrow$ marked `PROCESSING` $\rightarrow$ student presents pick-up QR at union booth $\rightarrow$ volunteer scans QR code $\rightarrow$ marked `FULFILLED`.
-4. **Cancellation & Refund (`CANCELLED` / `REFUNDED`):**
-   * Unpaid checkout expiration: Worker releases `reserved_stock`.
-   * Authorized refund: Dispatches Stripe refund $\rightarrow$ sets `status = 'REFUNDED'` $\rightarrow$ posts reversing ledger entry $\rightarrow$ increments `available_stock = available_stock + 1`.
+4. **Cancellation, Return & Refund Lifecycle:**
+   * **Unpaid Checkout Expiration:** Worker automatically decrements `reserved_stock` upon 10-minute cart expiry.
+   * **Pre-Fulfillment Order Cancellation:** Customer cancels order before pickup $\rightarrow$ sets `status = 'CANCELLED'` $\rightarrow$ restores `available_stock = available_stock + quantity` $\rightarrow$ dispatches full payment refund and posts ledger reversal.
+   * **Post-Fulfillment Return & Desk Inspection:** Order already `FULFILLED` $\rightarrow$ student brings item to union desk $\rightarrow$ officer inspects condition:
+     * *Sellable Condition:* Restocks item (`available_stock = available_stock + quantity`), sets `status = 'REFUNDED'`, processes payment refund, and posts revenue reversal.
+     * *Damaged / Worn Condition:* Does NOT restock; sets `status = 'REFUNDED'`, logs inventory write-off loss to Account `5030`, processes payment refund, and reverses revenue.
 
 ---
 
@@ -366,18 +373,18 @@ sequenceDiagram
 Eliminating fragile OCR pipelines in favor of a rock-solid, user-driven submission form paired with mandatory receipt proof and officer visual review:
 
 * **Claimant Form Intake:**
-  * Claimant inputs: Title, Category (`EVENT_PRODUCTION`, `SUPPLIES`, `FOOD_CATERING`, `MARKETING`, `TRAVEL`, `OTHER`), Merchant Name, Date of Purchase, Amount ($ USD), Detailed Purpose, and associated Event / Fundraiser / Budget tag.
+  * Claimant inputs: Title, Category (`EVENT_PRODUCTION`, `SUPPLIES`, `FOOD_CATERING`, `MARKETING`, `TRAVEL`, `OTHER`), Merchant Name, Date of Purchase, Amount (INR ₹), Detailed Purpose, and associated Event / Fundraiser / Budget tag.
   * **Mandatory Receipt Upload:** Uploads original receipt file (image/PDF) to Cloudflare R2 / S3 storage (`receipt_image_url`). Claims cannot be submitted without an attached receipt.
 * **Reviewer Interface:** Officer review console renders the entered metadata alongside a high-resolution receipt zoom lightbox for fast visual inspection.
 * **Complete State Transition Engine:**
-  * `DRAFT` $\rightarrow$ `SUBMITTED`
-  * `SUBMITTED` $\rightarrow$ `TREASURER_APPROVED` (for claims $< \$50$) $\rightarrow$ `DISBURSED`
-  * `SUBMITTED` $\rightarrow$ `TREASURER_APPROVED` $\rightarrow$ `PRESIDENT_APPROVED` (for claims $\ge \$50$, dual-signoff gate) $\rightarrow$ `DISBURSED`
-  * `SUBMITTED` $\rightarrow$ `NEEDS_CORRECTION` (officer requests clearer receipt or adjusted amount; claimant resubmits)
-  * `SUBMITTED` $\rightarrow$ `REJECTED` (with mandatory recorded rejection rationale)
+  * `DRAFT` $\rightarrow$ `SUBMITTED` $\rightarrow$ `UNDER_REVIEW`
+  * `UNDER_REVIEW` $\rightarrow$ `TREASURER_APPROVED` (for claims $< ₹2,500$, single final approval) $\rightarrow$ `DISBURSED`
+  * `UNDER_REVIEW` $\rightarrow$ `TREASURER_APPROVED` $\rightarrow$ `PRESIDENT_APPROVED` (for claims $\ge ₹2,500$, dual-signoff final approval) $\rightarrow$ `DISBURSED`
+  * `UNDER_REVIEW` $\rightarrow$ `NEEDS_CORRECTION` (officer requests clearer receipt or adjusted amount; claimant resubmits to `SUBMITTED`)
+  * `UNDER_REVIEW` $\rightarrow$ `REJECTED` (with mandatory recorded rejection rationale)
 * **Separation of Duties (Anti-Fraud Rule):** Database constraint `chk_claimant_not_approver` strictly prohibits self-approval (`claimant_user_id != approver_id`). If the Treasurer submits an expense claim, the President or Vice President must review and approve it.
 * **Two-Stage Accrual Accounting Workflow (Zero Double-Counting):**
-  * **Stage 1 - Liability Recognition (Upon Final Approval):** When an expense receives final approval (`TREASURER_APPROVED` for $< \$50$ or `PRESIDENT_APPROVED` for $\ge \$50$):
+  * **Stage 1 - Liability Recognition (Upon Final Approval):** When an expense receives final approval (`TREASURER_APPROVED` for $< ₹2,500$ or `PRESIDENT_APPROVED` for $\ge ₹2,500$):
     * Posts balanced journal entry:
       * **Debit:** Account `5010 Event Expenses` or `5020 Supplies` (Expense recognized)
       * **Credit:** Account `2010 Accounts Payable` (Liability recognized: money owed to claimant)
@@ -1061,30 +1068,28 @@ SELECT
     e.title AS event_title,
     e.starts_at,
     e.capacity_limit,
-    COUNT(DISTINCT t.id) AS total_tickets_issued,
+    COUNT(DISTINCT CASE WHEN t.status IN ('ISSUED', 'CHECKED_IN') THEN t.id END) AS total_tickets_issued,
     COUNT(DISTINCT CASE WHEN t.status = 'CHECKED_IN' THEN t.id END) AS actual_attendance_count,
     ROUND(
         CASE 
-            WHEN COUNT(DISTINCT t.id) > 0 
-            THEN (COUNT(DISTINCT CASE WHEN t.status = 'CHECKED_IN' THEN t.id END)::numeric / COUNT(DISTINCT t.id)::numeric) * 100 
+            WHEN COUNT(DISTINCT CASE WHEN t.status IN ('ISSUED', 'CHECKED_IN') THEN t.id END) > 0 
+            THEN (COUNT(DISTINCT CASE WHEN t.status = 'CHECKED_IN' THEN t.id END)::numeric / COUNT(DISTINCT CASE WHEN t.status IN ('ISSUED', 'CHECKED_IN') THEN t.id END)::numeric) * 100 
             ELSE 0 
         END, 2
     ) AS attendance_rate_percentage,
-    COALESCE(SUM(t.price_paid_cents), 0) AS gross_ticket_revenue_cents,
+    COALESCE(SUM(CASE WHEN t.status IN ('ISSUED', 'CHECKED_IN') THEN t.price_paid_cents ELSE 0 END), 0) AS gross_ticket_revenue_cents,
     COALESCE(
-        (SELECT SUM(amount_cents) 
-         FROM expense_reimbursements 
-         WHERE club_id = e.club_id 
-           AND status = 'DISBURSED' 
-           AND description ILIKE '%' || e.title || '%'), 
+        (SELECT SUM(er.amount_cents) 
+         FROM expense_reimbursements er 
+         WHERE er.event_id = e.id 
+           AND er.status IN ('TREASURER_APPROVED', 'PRESIDENT_APPROVED', 'DISBURSED')), 
         0
     ) AS event_expenses_cents,
-    COALESCE(SUM(t.price_paid_cents), 0) - COALESCE(
-        (SELECT SUM(amount_cents) 
-         FROM expense_reimbursements 
-         WHERE club_id = e.club_id 
-           AND status = 'DISBURSED' 
-           AND description ILIKE '%' || e.title || '%'), 
+    COALESCE(SUM(CASE WHEN t.status IN ('ISSUED', 'CHECKED_IN') THEN t.price_paid_cents ELSE 0 END), 0) - COALESCE(
+        (SELECT SUM(er.amount_cents) 
+         FROM expense_reimbursements er 
+         WHERE er.event_id = e.id 
+           AND er.status IN ('TREASURER_APPROVED', 'PRESIDENT_APPROVED', 'DISBURSED')), 
         0
     ) AS net_event_profit_cents
 FROM events e

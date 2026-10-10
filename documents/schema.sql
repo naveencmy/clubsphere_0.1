@@ -1,6 +1,9 @@
 -- ============================================================================
 -- CLUBSPHERE: PRODUCTION DATABASE SCHEMA DDL
 -- Platform: PostgreSQL 15+
+-- Currency Standard: Indian Rupee (INR - ₹).
+-- Note: All monetary columns (*_cents) store integer amounts in Paise (1 INR = 100 Paise)
+-- to guarantee zero floating-point rounding errors across ledgers and gateways.
 -- Extensions: uuid-ossp, pgcrypto, citext
 -- Multi-Tenant Row-Level Security (RLS) & Audit Logging Enabled
 -- ============================================================================
@@ -89,6 +92,7 @@ CREATE TYPE account_type AS ENUM (
 CREATE TYPE reimbursement_status AS ENUM (
     'DRAFT',
     'SUBMITTED',
+    'UNDER_REVIEW',
     'NEEDS_CORRECTION',
     'TREASURER_APPROVED',
     'PRESIDENT_APPROVED',
@@ -310,7 +314,8 @@ CREATE TABLE tickets (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     ticket_code VARCHAR(32) UNIQUE NOT NULL,
     qr_signature TEXT NOT NULL,
-    status ticket_status NOT NULL DEFAULT 'ISSUED',
+    status ticket_status NOT NULL DEFAULT 'RESERVED',
+    reserved_until TIMESTAMPTZ,
     price_paid_cents INT NOT NULL CHECK (price_paid_cents >= 0),
     checked_in_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -351,25 +356,31 @@ CREATE TABLE announcement_read_receipts (
     PRIMARY KEY (announcement_id, user_id)
 );
 
+CREATE TABLE announcement_revisions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    announcement_id UUID NOT NULL REFERENCES announcements(id) ON DELETE CASCADE,
+    revision_number INT NOT NULL DEFAULT 1,
+    title VARCHAR(255) NOT NULL,
+    content_markdown TEXT NOT NULL,
+    edited_by_user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    edited_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    revision_hash VARCHAR(64) NOT NULL
+);
+
+CREATE TABLE announcement_deliveries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    announcement_id UUID NOT NULL REFERENCES announcements(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    channel VARCHAR(32) NOT NULL DEFAULT 'EMAIL', -- 'EMAIL', 'PUSH'
+    delivery_status VARCHAR(32) NOT NULL DEFAULT 'QUEUED', -- 'QUEUED', 'SENT', 'DELIVERED', 'FAILED', 'BOUNCED'
+    dispatched_at TIMESTAMPTZ,
+    error_message TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ============================================================================
 -- 7. COLLABORATIVE TASK & FUNDRAISER BOARD
 -- ============================================================================
-
-CREATE TABLE tasks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    club_id UUID NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
-    event_id UUID REFERENCES events(id) ON DELETE SET NULL,
-    creator_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-    assigned_to_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    title VARCHAR(255) NOT NULL,
-    description_markdown TEXT,
-    priority task_priority NOT NULL DEFAULT 'MEDIUM',
-    status task_status NOT NULL DEFAULT 'TODO',
-    due_date TIMESTAMPTZ,
-    checklist_items JSONB NOT NULL DEFAULT '[]'::jsonb,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
 
 CREATE TABLE fundraisers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -385,6 +396,23 @@ CREATE TABLE fundraisers (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_fundraiser_dates CHECK (ends_at > starts_at)
+);
+
+CREATE TABLE tasks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    club_id UUID NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+    event_id UUID REFERENCES events(id) ON DELETE SET NULL,
+    fundraiser_id UUID REFERENCES fundraisers(id) ON DELETE SET NULL,
+    creator_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    assigned_to_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    title VARCHAR(255) NOT NULL,
+    description_markdown TEXT,
+    priority task_priority NOT NULL DEFAULT 'MEDIUM',
+    status task_status NOT NULL DEFAULT 'TODO',
+    due_date TIMESTAMPTZ,
+    checklist_items JSONB NOT NULL DEFAULT '[]'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE volunteer_shifts (
@@ -515,9 +543,11 @@ CREATE INDEX idx_club_memberships_qr ON club_memberships(qr_secret_token);
 CREATE INDEX idx_product_variants_lookup ON product_variants(product_id, sku);
 CREATE INDEX idx_tickets_verification ON tickets(ticket_code, status);
 CREATE INDEX idx_tickets_event_user ON tickets(event_id, user_id);
+CREATE INDEX idx_tickets_reserved_expiry ON tickets(status, reserved_until) WHERE status = 'RESERVED';
 CREATE INDEX idx_check_ins_ticket ON check_ins(ticket_id);
 CREATE INDEX idx_announcements_club ON announcements(club_id, published_at DESC);
 CREATE INDEX idx_tasks_club_status ON tasks(club_id, status, due_date);
+CREATE INDEX idx_tasks_fundraiser ON tasks(fundraiser_id);
 CREATE INDEX idx_journal_entries_club ON journal_entries(club_id, posted_at DESC);
 CREATE INDEX idx_ledger_lines_account ON ledger_lines(account_id);
 CREATE INDEX idx_reimbursements_club_status ON expense_reimbursements(club_id, status);
@@ -571,30 +601,28 @@ SELECT
     e.title AS event_title,
     e.starts_at,
     e.capacity_limit,
-    COUNT(DISTINCT t.id) AS total_tickets_issued,
+    COUNT(DISTINCT CASE WHEN t.status IN ('ISSUED', 'CHECKED_IN') THEN t.id END) AS total_tickets_issued,
     COUNT(DISTINCT CASE WHEN t.status = 'CHECKED_IN' THEN t.id END) AS actual_attendance_count,
     ROUND(
         CASE 
-            WHEN COUNT(DISTINCT t.id) > 0 
-            THEN (COUNT(DISTINCT CASE WHEN t.status = 'CHECKED_IN' THEN t.id END)::numeric / COUNT(DISTINCT t.id)::numeric) * 100 
+            WHEN COUNT(DISTINCT CASE WHEN t.status IN ('ISSUED', 'CHECKED_IN') THEN t.id END) > 0 
+            THEN (COUNT(DISTINCT CASE WHEN t.status = 'CHECKED_IN' THEN t.id END)::numeric / COUNT(DISTINCT CASE WHEN t.status IN ('ISSUED', 'CHECKED_IN') THEN t.id END)::numeric) * 100 
             ELSE 0 
         END, 2
     ) AS attendance_rate_percentage,
-    COALESCE(SUM(t.price_paid_cents), 0) AS gross_ticket_revenue_cents,
+    COALESCE(SUM(CASE WHEN t.status IN ('ISSUED', 'CHECKED_IN') THEN t.price_paid_cents ELSE 0 END), 0) AS gross_ticket_revenue_cents,
     COALESCE(
-        (SELECT SUM(amount_cents) 
-         FROM expense_reimbursements 
-         WHERE club_id = e.club_id 
-           AND status = 'DISBURSED' 
-           AND description ILIKE '%' || e.title || '%'), 
+        (SELECT SUM(er.amount_cents) 
+         FROM expense_reimbursements er 
+         WHERE er.event_id = e.id 
+           AND er.status IN ('TREASURER_APPROVED', 'PRESIDENT_APPROVED', 'DISBURSED')), 
         0
     ) AS event_expenses_cents,
-    COALESCE(SUM(t.price_paid_cents), 0) - COALESCE(
-        (SELECT SUM(amount_cents) 
-         FROM expense_reimbursements 
-         WHERE club_id = e.club_id 
-           AND status = 'DISBURSED' 
-           AND description ILIKE '%' || e.title || '%'), 
+    COALESCE(SUM(CASE WHEN t.status IN ('ISSUED', 'CHECKED_IN') THEN t.price_paid_cents ELSE 0 END), 0) - COALESCE(
+        (SELECT SUM(er.amount_cents) 
+         FROM expense_reimbursements er 
+         WHERE er.event_id = e.id 
+           AND er.status IN ('TREASURER_APPROVED', 'PRESIDENT_APPROVED', 'DISBURSED')), 
         0
     ) AS net_event_profit_cents
 FROM events e
