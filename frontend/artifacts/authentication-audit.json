@@ -1,0 +1,38 @@
+[
+  {
+    "route": "/login",
+    "width": 320,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "route": "/register",
+    "width": 320,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "route": "/login",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "route": "/register",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "route": "/login",
+    "width": 1440,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "route": "/register",
+    "width": 1440,
+    "overflow": false,
+    "violations": []
+  }
+]

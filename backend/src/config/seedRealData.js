@@ -200,7 +200,7 @@ export async function seedDatabase() {
       VALUES ($1, $2, $3, 'credential', $4)
       ON CONFLICT (id) DO UPDATE SET
         password = EXCLUDED.password;
-    `, [`acc-${u.id}`, u.id, u.email, passwordHash]);
+    `, [`acc-${u.id}`, u.id, u.id, passwordHash]);
 
     // Upsert Club Membership
     await query(`

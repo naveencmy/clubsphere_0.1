@@ -58,7 +58,7 @@ export class UserRepository {
     await runner.query(
       `INSERT INTO accounts (id, user_id, account_id, provider_id, password)
        VALUES (gen_random_uuid()::text, $1, $2, 'credential', $3);`,
-      [user.id, email, passwordHash]
+      [user.id, user.id, passwordHash]
     );
 
     // 3. Insert student profile if studentId provided

@@ -1,6 +1,7 @@
 import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/browser',
+  testIgnore: 'authentication.spec.js',
   timeout: 60000,
   workers: 1,
   reporter: [['list'], ['html', { outputFolder: 'artifacts/browser-report', open: 'never' }]],

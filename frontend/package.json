@@ -10,6 +10,8 @@
     "test": "vitest run",
     "pretest:e2e": "npm run build",
     "test:e2e": "playwright test",
+    "pretest:auth": "npm run build",
+    "test:auth": "playwright test --config playwright.auth.config.js",
     "format": "prettier --write src tests *.js *.json index.html",
     "format:check": "prettier --check src tests *.js *.json index.html"
   },
@@ -17,6 +19,7 @@
     "@fontsource/inter": "^5.1.0",
     "@fontsource/jetbrains-mono": "^5.1.0",
     "@hookform/resolvers": "^3.9.0",
+    "better-auth": "^1.7.7",
     "lucide-react": "^0.468.0",
     "qrcode": "^1.5.4",
     "react": "^19.0.0",

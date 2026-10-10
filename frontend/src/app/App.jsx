@@ -1,6 +1,15 @@
 import { Component, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useParams, Outlet, useLocation } from 'react-router-dom';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useParams,
+  Outlet,
+  useLocation,
+} from 'react-router-dom';
 import { AppProvider, useApp } from './providers/AppProvider.jsx';
+import { Loading } from '../components/common/UI.jsx';
 
 function ScrollManager() {
   const { pathname } = useLocation();
@@ -11,7 +20,7 @@ function ScrollManager() {
     document.body.style.position = '';
     document.documentElement.style.overflow = '';
     const stuck = document.querySelectorAll(
-      '.razorpay-container, .razorpay-backdrop, iframe[name^="rzp"], div[id*="razorpay"]'
+      '.razorpay-container, .razorpay-backdrop, iframe[name^="rzp"], div[id*="razorpay"]',
     );
     stuck.forEach((el) => {
       try {
@@ -49,7 +58,8 @@ import Support, {
 } from '../features/support/Support.jsx';
 import { managerRoles, staffRoles, financeRoles } from '../services/permissions.js';
 function Guard({ roles, children }) {
-  const { data } = useApp();
+  const { data, authenticationPending } = useApp();
+  if (authenticationPending) return <Loading />;
   if (data.role === 'VISITOR') return <Navigate to="/login" replace />;
   if (roles && !roles.includes(data.role)) return <Navigate to="/unauthorized" replace />;
   return children || <Outlet />;
@@ -167,7 +177,9 @@ export default function App() {
                     <Route path="reports" element={<Finance />} />
                     <Route path="audit" element={<Administration />} />
                   </Route>
-                  <Route element={<Guard roles={['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR']} />}>
+                  <Route
+                    element={<Guard roles={['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR']} />}
+                  >
                     <Route path="settings" element={<Administration />} />
                     <Route path="roles" element={<Administration />} />
                     <Route path="plans" element={<MemberAdmin />} />

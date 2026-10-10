@@ -1,0 +1,84 @@
+[
+  {
+    "width": 320,
+    "pageGutter": 16,
+    "contentWidth": 288,
+    "introWidth": 288,
+    "leadWidth": 288,
+    "overflow": false,
+    "smallTargets": [],
+    "violations": [],
+    "runtimeErrors": []
+  },
+  {
+    "width": 390,
+    "pageGutter": 16,
+    "contentWidth": 358,
+    "introWidth": 358,
+    "leadWidth": 358,
+    "overflow": false,
+    "smallTargets": [],
+    "violations": [],
+    "runtimeErrors": []
+  },
+  {
+    "width": 768,
+    "pageGutter": 32,
+    "contentWidth": 704,
+    "introWidth": 336,
+    "leadWidth": 336,
+    "overflow": false,
+    "smallTargets": [
+      "ClubSphere home",
+      "Events",
+      "Log in",
+      "Join a club",
+      "Discover clubs",
+      "Get started",
+      "View event",
+      "Explore membership"
+    ],
+    "violations": [],
+    "runtimeErrors": []
+  },
+  {
+    "width": 1440,
+    "pageGutter": 32,
+    "contentWidth": 1376,
+    "introWidth": 656,
+    "leadWidth": 656,
+    "overflow": false,
+    "smallTargets": [
+      "ClubSphere home",
+      "Events",
+      "Log in",
+      "Join a club",
+      "Discover clubs",
+      "Get started",
+      "View event",
+      "Explore membership"
+    ],
+    "violations": [],
+    "runtimeErrors": []
+  },
+  {
+    "width": 1900,
+    "pageGutter": 32,
+    "contentWidth": 1836,
+    "introWidth": 886,
+    "leadWidth": 886,
+    "overflow": false,
+    "smallTargets": [
+      "ClubSphere home",
+      "Events",
+      "Log in",
+      "Join a club",
+      "Discover clubs",
+      "Get started",
+      "View event",
+      "Explore membership"
+    ],
+    "violations": [],
+    "runtimeErrors": []
+  }
+]

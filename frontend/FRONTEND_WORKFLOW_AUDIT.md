@@ -72,3 +72,7 @@ Paths below are relative to `src/`. All service names refer to exports through `
 ## Transparent integration limits
 
 All identity, permission, checkout, payment confirmation, notification dispatch, refund, accounting and payout operations are local demonstrations. Real authorization, signed passes, cross-device reservations, gateway callbacks, email providers and bank transfers require the future backend. Physical camera/audio/vibration remain NOT VERIFIED. These limits are displayed in the UI and do not represent unfinished production backend work within this frontend-only task.
+
+## Authentication update — 2026-10-10
+
+Identity now uses Better Auth with email/password, optional Google OAuth and PostgreSQL HTTP-only sessions. The current identity, club roles and route guards require a verified server session. Self-registration cannot request elevated system roles. Existing bcrypt accounts are normalized for Better Auth compatibility. Three real-database integration checks and three browser auth checks passed. Google consent/callback completion remains unverified pending private provider credentials. Earlier local demo sign-in audit results describe the historical prototype. Business workflows retain their existing adapters.

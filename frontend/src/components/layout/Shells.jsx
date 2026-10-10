@@ -21,13 +21,13 @@ import {
   Search,
   Menu,
   LogOut,
-  FlaskConical,
   ClipboardList,
   History,
 } from 'lucide-react';
 import { useApp } from '../../app/providers/AppProvider.jsx';
 import { useAction } from '../../hooks/useAction.js';
 import { authService } from '../../services/serviceFactory.js';
+import { authentication } from '../../services/authentication.js';
 import { managerRoles, financeRoles, staffRoles } from '../../services/permissions.js';
 import { Avatar, Button, LinkButton, Loading } from '../common/UI.jsx';
 export function Brand() {
@@ -40,56 +40,24 @@ export function Brand() {
     </Link>
   );
 }
-export function DemoStrip() {
-  const { data } = useApp();
-  const { run, busy } = useAction();
-  const navigate = useNavigate();
-  if (!data.demoControls) return null;
-  return (
-    <div className="demo-strip">
-      <span>
-        <FlaskConical size={14} style={{ verticalAlign: 'middle', marginRight: 8 }} /> Demo
-        workspace · all payments and deliveries are simulated
-      </span>
-      <div className="row">
-        <label htmlFor="demo-account">Demo account</label>
-        <select
-          id="demo-account"
-          value={data.session.userId}
-          disabled={busy}
-          onChange={async (e) => {
-            const result = await run(
-              () => authService.login(e.target.value),
-              'Demo account switched',
-            );
-            if (result) navigate(result.role === 'VISITOR' ? '/' : '/portal/dashboard');
-          }}
-        >
-          {data.accounts.map((a) => (
-            <option value={a.id} key={a.id}>
-              {a.name} · {a.role.replaceAll('_', ' ')}
-            </option>
-          ))}
-          {!data.accounts.some((a) => a.id === data.session.userId) && (
-            <option value={data.session.userId}>{data.user?.name}</option>
-          )}
-        </select>
-        <Link to="/demo">Scenarios</Link>
-      </div>
-    </div>
-  );
-}
 export function PublicShell() {
   const { data } = useApp();
+  const { pathname } = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
   return (
-    <>
+    <div className={`public-shell${pathname === '/' ? ' landing-shell' : ''}`}>
       <a className="skip-link" href="#main">
         Skip to content
       </a>
       <header className="public-header">
         <div className="public-header-inner">
           <Brand />
-          <nav className="public-nav" aria-label="Public navigation">
+          <nav
+            id="public-navigation"
+            className={`public-nav ${menuOpen ? 'is-open' : ''}`}
+            aria-label="Public navigation"
+            onClick={() => setMenuOpen(false)}
+          >
             <NavLink to="/clubs">Discover clubs</NavLink>
             <NavLink to="/events">Events</NavLink>
             <NavLink to="/store">Merchandise</NavLink>
@@ -100,27 +68,25 @@ export function PublicShell() {
               {data.role === 'VISITOR' ? 'Log in' : 'My workspace'}
             </LinkButton>
             <LinkButton primary to="/membership">
-              Become a member
+              Join a club
             </LinkButton>
+            <Button
+              icon
+              className="public-menu-toggle"
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={menuOpen}
+              aria-controls="public-navigation"
+              onClick={() => setMenuOpen(!menuOpen)}
+            >
+              <Menu size={20} aria-hidden="true" />
+            </Button>
           </div>
         </div>
       </header>
-      <DemoStrip />
       <main id="main" className="public-container">
         <Outlet />
       </main>
-      <footer className="public-footer">
-        <div className="row between">
-          <Brand />
-          <span className="muted">Your campus. Your community. Connected.</span>
-          <div className="row">
-            <Link to="/membership">Membership</Link>
-            <Link to="/clubs">Our clubs</Link>
-            <Link to="/login">Get started</Link>
-          </div>
-        </div>
-      </footer>
-    </>
+    </div>
   );
 }
 export function PortalShell() {
@@ -278,8 +244,11 @@ export function PortalShell() {
             className="menu-button"
             disabled={busy}
             onClick={async () => {
-              await run(() => authService.logout(), 'Signed out of demo');
-              navigate('/');
+              const result = await run(async () => {
+                await authentication.signOut();
+                return true;
+              }, 'Signed out');
+              if (result) navigate('/login', { replace: true });
             }}
           >
             <LogOut size={16} />
@@ -328,7 +297,6 @@ export function PortalShell() {
             </Link>
           </div>
         </header>
-        <DemoStrip />
         <main id="main" className="page" key={location.pathname}>
           {loading ? <Loading /> : <Outlet />}
         </main>

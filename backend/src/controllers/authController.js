@@ -18,7 +18,7 @@ export const loginSchema = z.object({
 export class AuthController {
   static async register(req, res, next) {
     try {
-      const result = await AuthService.register(req.body);
+      const result = await AuthService.register({ ...req.body, role: 'STUDENT' });
       return sendSuccess(res, result, 'User registered successfully', 201);
     } catch (err) {
       next(err);

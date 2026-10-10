@@ -61,3 +61,51 @@ Each row has desktop and mobile PNGs using the prefix below. The automated visua
 The first audit found mobile Kanban document overflow, undersized icon buttons, unnamed progress bars and an empty scroll region without keyboard focus. All were corrected and the rerun passed. Interaction inspection then corrected the scanner reticle's mobile centering, modal placement and destructive-button text color. Keyboard-driven focus verification passed after enforcing the documented outline over browser defaults.
 
 Physical camera capture, actual 60fps, perceived chime/buzz and vibration remain NOT VERIFIED. This audit does not present API instrumentation as physical device verification.
+
+## Landing redesign verification — 2026-10-10
+
+The landing page now uses a centered introduction, three entry links, compact event rows, restrained club and product cards, membership benefits, semantic announcements, joining steps and a final registration action. All ten original landing sections and destinations remain available. The public account toolbar is removed; workspace controls and authentication are preserved.
+
+| Design requirement | Token or component | Actual implementation location | Verification result | Necessary correction |
+|---|---|---|---|---|
+| Minimal, consistent ClubSphere palette and typography | Existing `--surface`, `--background`, `--slate-*`, `--primary` and type tokens | `src/features/public/Home.jsx`, `src/styles/landing.css` | PASS | Rendered desktop/mobile screenshots reviewed; no new palette or font family. |
+| Responsive landing and accessible mobile navigation | PublicShell menu and scoped landing grids | `src/components/layout/Shells.jsx`, `src/styles/landing.css` | PASS | Checked 320, 390, 768 and 1440px. Scoped link layouts override the existing generic mobile link rule without changing other modules. |
+| Mobile touch targets, contrast and semantic announcements | Existing focus/target rules, article/time markup | Home and PublicShell | PASS | No document overflow, undersized mobile targets, runtime errors or axe WCAG AA violations in the four audited sizes. |
+| Preserved role access | Existing Login and auth service | `src/features/auth/AuthPages.jsx`, `src/mock/services/core.js` (unchanged) | PASS | Existing account sign-in reaches the workspace for all eight authenticated roles. Real password authentication is not implemented. |
+
+Evidence: `artifacts/landing-redesign-audit.json`, `artifacts/screenshots/landing-desktop.png`, `landing-mobile.png`, `landing-320.png` and `landing-768.png`. Browser checks: `tests/browser/landing-redesign.spec.js` (nine tests). Core services, permissions, mock records, payments and routing are unchanged.
+
+### Split hero and event slideshow
+
+The hero places the original copy on the left and the existing first three listed events in a slideshow on the right. Mobile widths stack the two panels. The registration action is moved from the bottom invitation to the top, replacing “Explore events”; its `/register` destination is preserved.
+
+| Design requirement | Token or component | Actual implementation location | Verification result | Necessary correction |
+|---|---|---|---|---|
+| Two-column hero with unchanged discovery and registration destinations | Landing hero, LinkButton | `src/features/public/Home.jsx`, `src/styles/landing.css` | PASS | Desktop/mobile captures and link assertions verify placement and routes. |
+| Subtle event transition with readable text | Slideshow using existing date/type/surface tokens | `src/features/public/EventSlideshow.jsx`, landing CSS | PASS | Replaced opacity fading with a short horizontal slide so text retains full contrast throughout the transition. |
+| Accessible slideshow controls and reduced-motion alternative | Previous/next, selectors, pause, live region, media preference | EventSlideshow | PASS | Automatic advancement, manual selection, pause persistence, event link, disabled automatic rotation/animation under reduced motion verified in Chrome. Mobile controls are at least 48px. |
+
+The updated browser suite has eleven checks, including the four-width rendered audit and eight role sign-ins. Current evidence includes `landing-hero-1440.png` and `landing-hero-390.png` alongside the full-page screenshots. Core workflow implementation remains unchanged.
+
+## Real authentication and full-width landing verification — 2026-10-10
+
+This section supersedes the earlier demo sign-in claims. Public login/signup now use Better Auth and verified PostgreSQL sessions. The public footer and demo account selector are removed. Core domain mock workflows remain separate from authentication.
+
+| Design requirement | Corresponding token or component | Actual implementation location | Verification result | Necessary correction |
+|---|---|---|---|---|
+| ClubSphere colors, typography, spacing, radius and card elevation | Existing primary/slate/surface/type/space/radius/shadow tokens | `src/styles/auth.css`, `src/features/auth/AuthPages.jsx` | PASS | Login and signup rendered at 320, 390 and 1440px; screenshots reviewed. |
+| Responsive login/signup, readable contrast and visible focus | Shared inputs, Google button, password visibility control, signup link | AuthPages, auth.css and shared app styles | PASS | Six rendered route/width checks have no overflow or WCAG AA axe violations. Visible password focus outline reviewed. |
+| Email/password authentication, session persistence and logout | Better Auth client, server auth configuration and cookie session | `src/services/authentication.js`, `src/app/providers/AppProvider.jsx`, `../backend/src/config/betterAuth.js` | PASS | Browser signup/login/reload/logout/wrong-password checks and three PostgreSQL integration checks pass. |
+| Continue with Google | Better Auth social sign-in and server Google provider | `src/services/authClient.js`, backend betterAuth.js | NOT VERIFIED | Invocation and missing-provider feedback pass. Configure private Google OAuth credentials to verify consent and callback completion. |
+| Remove demo login controls and public footer | PublicShell and AuthenticationPage | `src/components/layout/Shells.jsx`, AuthPages | PASS | Rendered login/signup checks assert no footer or demo account selector. |
+
+Evidence: `artifacts/authentication-audit.json`, six `login-*`/`register-*` screenshots and `tests/browser/authentication.spec.js`. These are rendered checks, rather than conclusions from token presence alone. The earlier role-selector browser checks are historical; role access now comes from server memberships.
+
+### Full-width landing adjustment
+
+| Design requirement | Corresponding token or component | Actual implementation location | Verification result | Necessary correction |
+|---|---|---|---|---|
+| Use the available page width and fill the left text column | Route-scoped landing shell, equal-column hero, full-width introduction | `src/components/layout/Shells.jsx`, `src/styles/landing.css` | PASS | Rendered at 320, 390, 768, 1440 and 1900px. Desktop gutters measure 32px; mobile gutters measure 16px. Introductory copy occupies its full grid column. |
+| Preserve layout, buttons and slideshow functions | Existing Home links and EventSlideshow | Home.jsx, EventSlideshow.jsx | PASS | Three browser checks pass, including slideshow advancement, pause, selectors, destinations and reduced-motion behavior. No overflow, runtime errors or axe violations at the audited widths. |
+
+Current evidence: `artifacts/landing-redesign-audit.json`, five full-page width screenshots including `landing-1900.png`, and desktop/mobile hero captures. The historical role-selector checks are no longer part of this three-check landing suite.

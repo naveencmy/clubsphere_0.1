@@ -3,6 +3,7 @@ import { app } from './app.js';
 import { config } from './config/env.js';
 import { pool, checkDatabaseConnection, query } from './config/db.js';
 import { MembershipService } from './services/membershipService.js';
+import { migrateAuthAccounts } from './config/migrateAuthAccounts.js';
 
 let server;
 
@@ -13,6 +14,7 @@ async function startServer() {
     console.warn('⚠️ Database connection check failed on startup:', dbHealth.error);
     console.warn('⚠️ Starting server anyway (database may become available later).');
   } else {
+    await migrateAuthAccounts();
     console.log(`✅ Connected to PostgreSQL database [${dbHealth.database}] at ${dbHealth.timestamp}`);
   }
 

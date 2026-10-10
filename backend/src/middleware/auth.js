@@ -1,7 +1,9 @@
-import jwt from 'jsonwebtoken';
-import { config } from '../config/env.js';
-import { query } from '../config/db.js';
-import { UnauthorizedError } from '../utils/errors.js';
+import jwt from "jsonwebtoken";
+import { config } from "../config/env.js";
+import { query } from "../config/db.js";
+import { UnauthorizedError } from "../utils/errors.js";
+import { fromNodeHeaders } from "better-auth/node";
+import { auth } from "../config/betterAuth.js";
 
 /**
  * Authentication middleware that verifies JWT bearer tokens / session cookies.
@@ -12,33 +14,38 @@ export async function authenticate(req, res, next) {
     let token = null;
 
     const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.split(' ')[1];
-    } else if (req.headers['x-session-token']) {
-      token = req.headers['x-session-token'];
-    }
-
-    if (!token) {
-      throw new UnauthorizedError('Authentication required. Missing Bearer token.');
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.split(" ")[1];
+    } else if (req.headers["x-session-token"]) {
+      token = req.headers["x-session-token"];
     }
 
     let userId = null;
     let decoded = null;
-    try {
-      decoded = jwt.verify(token, config.JWT_SECRET);
-      userId = decoded.userId || decoded.id;
-    } catch (err) {
-      // Check Better Auth database sessions table
-      const sessionRes = await query(
-        `SELECT user_id FROM sessions WHERE token = $1 AND expires_at > NOW() LIMIT 1;`,
-        [token]
-      );
-      if (sessionRes.rowCount > 0) {
-        userId = sessionRes.rows[0].user_id;
-      } else {
-        throw new UnauthorizedError('Invalid or expired authentication token.');
+    if (!token) {
+      const session = await auth.api.getSession({
+        headers: fromNodeHeaders(req.headers),
+      });
+      if (!session) throw new UnauthorizedError("Sign in to continue.");
+      userId = session.user.id;
+    } else
+      try {
+        decoded = jwt.verify(token, config.JWT_SECRET);
+        userId = decoded.userId || decoded.id;
+      } catch (err) {
+        // Check Better Auth database sessions table
+        const sessionRes = await query(
+          `SELECT user_id FROM sessions WHERE token = $1 AND expires_at > NOW() LIMIT 1;`,
+          [token],
+        );
+        if (sessionRes.rowCount > 0) {
+          userId = sessionRes.rows[0].user_id;
+        } else {
+          throw new UnauthorizedError(
+            "Invalid or expired authentication token.",
+          );
+        }
       }
-    }
 
     // Retrieve active user record with full profile
     const userRes = await query(
@@ -47,11 +54,11 @@ export async function authenticate(req, res, next) {
        FROM users u
        LEFT JOIN user_profiles up ON u.id = up.user_id
        WHERE u.id = $1 LIMIT 1;`,
-      [userId]
+      [userId],
     );
 
     if (userRes.rowCount === 0) {
-      throw new UnauthorizedError('User account not found or deactivated.');
+      throw new UnauthorizedError("User account not found or deactivated.");
     }
 
     req.user = userRes.rows[0];
@@ -69,13 +76,24 @@ export async function optionalAuth(req, res, next) {
   try {
     let token = null;
     const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.split(' ')[1];
-    } else if (req.headers['x-session-token']) {
-      token = req.headers['x-session-token'];
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.split(" ")[1];
+    } else if (req.headers["x-session-token"]) {
+      token = req.headers["x-session-token"];
     }
 
-    if (token) {
+    if (!token && req.headers.cookie) {
+      const session = await auth.api.getSession({
+        headers: fromNodeHeaders(req.headers),
+      });
+      if (session) {
+        const userRes = await query(
+          "SELECT id, name, email, system_role AS role, image AS avatar_url FROM users WHERE id = $1",
+          [session.user.id],
+        );
+        req.user = userRes.rows[0];
+      }
+    } else if (token) {
       let userId = null;
       try {
         const decoded = jwt.verify(token, config.JWT_SECRET);
@@ -83,7 +101,7 @@ export async function optionalAuth(req, res, next) {
       } catch (e) {
         const sessionRes = await query(
           `SELECT user_id FROM sessions WHERE token = $1 AND expires_at > NOW() LIMIT 1;`,
-          [token]
+          [token],
         );
         if (sessionRes.rowCount > 0) {
           userId = sessionRes.rows[0].user_id;
@@ -97,7 +115,7 @@ export async function optionalAuth(req, res, next) {
            FROM users u
            LEFT JOIN user_profiles up ON u.id = up.user_id
            WHERE u.id = $1 LIMIT 1;`,
-          [userId]
+          [userId],
         );
         if (userRes.rowCount > 0) {
           req.user = userRes.rows[0];
