@@ -634,10 +634,11 @@ SELECT
         (SELECT SUM(er.amount_cents) 
          FROM expense_reimbursements er 
          WHERE er.club_id = b.club_id 
-           AND er.status = 'DISBURSED'
+           AND er.status IN ('TREASURER_APPROVED', 'PRESIDENT_APPROVED', 'DISBURSED')
            AND (
-               (b.event_id IS NOT NULL AND er.description ILIKE '%' || e.title || '%')
-               OR (b.event_id IS NULL AND er.description ILIKE '%' || b.category || '%')
+               er.budget_id = b.id
+               OR (er.budget_id IS NULL AND b.event_id IS NOT NULL AND er.event_id = b.event_id)
+               OR (er.budget_id IS NULL AND b.event_id IS NULL AND er.category = b.category)
            )), 
         0
     ) AS actual_spent_cents,
@@ -645,10 +646,11 @@ SELECT
         (SELECT SUM(er.amount_cents) 
          FROM expense_reimbursements er 
          WHERE er.club_id = b.club_id 
-           AND er.status = 'DISBURSED'
+           AND er.status IN ('TREASURER_APPROVED', 'PRESIDENT_APPROVED', 'DISBURSED')
            AND (
-               (b.event_id IS NOT NULL AND er.description ILIKE '%' || e.title || '%')
-               OR (b.event_id IS NULL AND er.description ILIKE '%' || b.category || '%')
+               er.budget_id = b.id
+               OR (er.budget_id IS NULL AND b.event_id IS NOT NULL AND er.event_id = b.event_id)
+               OR (er.budget_id IS NULL AND b.event_id IS NULL AND er.category = b.category)
            )), 
         0
     ) AS remaining_balance_cents,
@@ -659,16 +661,41 @@ SELECT
                 (SELECT SUM(er.amount_cents) 
                  FROM expense_reimbursements er 
                  WHERE er.club_id = b.club_id 
-                   AND er.status = 'DISBURSED'
+                   AND er.status IN ('TREASURER_APPROVED', 'PRESIDENT_APPROVED', 'DISBURSED')
                    AND (
-                       (b.event_id IS NOT NULL AND er.description ILIKE '%' || e.title || '%')
-                       OR (b.event_id IS NULL AND er.description ILIKE '%' || b.category || '%')
+                       er.budget_id = b.id
+                       OR (er.budget_id IS NULL AND b.event_id IS NOT NULL AND er.event_id = b.event_id)
+                       OR (er.budget_id IS NULL AND b.event_id IS NULL AND er.category = b.category)
                    )), 
                 0
             )::numeric / b.allocated_amount_cents::numeric) * 100 
             ELSE 0 
         END, 2
-    ) AS percentage_consumed
+    ) AS percentage_consumed,
+    CASE 
+        WHEN b.allocated_amount_cents = 0 THEN 'NORMAL'
+        WHEN (COALESCE(
+            (SELECT SUM(er.amount_cents) 
+             FROM expense_reimbursements er 
+             WHERE er.club_id = b.club_id 
+               AND er.status IN ('TREASURER_APPROVED', 'PRESIDENT_APPROVED', 'DISBURSED')
+               AND (
+                   er.budget_id = b.id
+                   OR (er.budget_id IS NULL AND b.event_id IS NOT NULL AND er.event_id = b.event_id)
+                   OR (er.budget_id IS NULL AND b.event_id IS NULL AND er.category = b.category)
+               )), 0)::numeric / b.allocated_amount_cents::numeric) * 100 >= 100 THEN 'EXCEEDED'
+        WHEN (COALESCE(
+            (SELECT SUM(er.amount_cents) 
+             FROM expense_reimbursements er 
+             WHERE er.club_id = b.club_id 
+               AND er.status IN ('TREASURER_APPROVED', 'PRESIDENT_APPROVED', 'DISBURSED')
+               AND (
+                   er.budget_id = b.id
+                   OR (er.budget_id IS NULL AND b.event_id IS NOT NULL AND er.event_id = b.event_id)
+                   OR (er.budget_id IS NULL AND b.event_id IS NULL AND er.category = b.category)
+               )), 0)::numeric / b.allocated_amount_cents::numeric) * 100 >= 80 THEN 'WARNING'
+        ELSE 'NORMAL'
+    END AS alert_status
 FROM budgets b
 LEFT JOIN events e ON b.event_id = e.id;
 

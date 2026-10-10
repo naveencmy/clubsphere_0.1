@@ -452,9 +452,16 @@ Rather than relying on fragile OCR scanning, ClubSphere provides a simple, struc
 * **Approval Authority & Anti-Fraud Separation of Duties:**
   1. **Threshold Rule:** Claims $< \$50$ require only the Treasurer's single approval. Claims $\ge \$50$ strictly require dual sign-off (Treasurer verification $\rightarrow$ President secondary approval).
   2. **Anti-Fraud Separation of Duties Rule:** Enforced by database constraint `chk_claimant_not_approver`. A claimant **cannot** approve their own expense claim (`claimant_user_id != approver_id`). If the Treasurer submits an expense reimbursement, the President or Vice President must review and approve it.
-  3. **Automated Ledger Posting:** Upon payout disbursement:
-     * Debit: `50XX - Expense Category Account` ($amount)
-     * Credit: `1010 - Cash & Bank Clearing` ($amount)
+  3. **Two-Stage Accrual Ledger Posting (Zero Double-Counting):**
+     * **Stage 1 (Upon Final Approval - Liability Recognition):**
+       * Debit: `5010/5020 - Expense Category Account` (e.g. Supplies, Event Production)
+       * Credit: `2010 - Accounts Payable` (Money owed to claimant recognized as liability)
+       * Tag: `reference_type = 'EXPENSE_ACCRUAL'`, `reference_id = expense_reimbursements.id`
+     * **Stage 2 (Upon Disbursement - Cash Settlement):**
+       * Debit: `2010 - Accounts Payable` (Liability cleared to zero)
+       * Credit: `1010 - Cash & Bank Clearing` (Cash account reduced)
+       * Tag: `reference_type = 'EXPENSE_PAYOUT'`, `reference_id = expense_reimbursements.id`
+     * This two-stage separation ensures expenses are committed against category budgets upon approval while preventing duplicate ledger entries or premature cash deductions.
 
 #### 3.6.3 Unified Treasurer Executive Dashboard ("What Came In, What Went Out, How Much Is Left")
 Answering the Treasurer's core end-of-semester mandate in one visual console (backed by `view_treasurer_financial_summary`):

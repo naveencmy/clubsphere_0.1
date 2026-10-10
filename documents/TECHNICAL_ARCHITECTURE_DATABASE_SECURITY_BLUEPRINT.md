@@ -376,6 +376,18 @@ Eliminating fragile OCR pipelines in favor of a rock-solid, user-driven submissi
   * `SUBMITTED` $\rightarrow$ `NEEDS_CORRECTION` (officer requests clearer receipt or adjusted amount; claimant resubmits)
   * `SUBMITTED` $\rightarrow$ `REJECTED` (with mandatory recorded rejection rationale)
 * **Separation of Duties (Anti-Fraud Rule):** Database constraint `chk_claimant_not_approver` strictly prohibits self-approval (`claimant_user_id != approver_id`). If the Treasurer submits an expense claim, the President or Vice President must review and approve it.
+* **Two-Stage Accrual Accounting Workflow (Zero Double-Counting):**
+  * **Stage 1 - Liability Recognition (Upon Final Approval):** When an expense receives final approval (`TREASURER_APPROVED` for $< \$50$ or `PRESIDENT_APPROVED` for $\ge \$50$):
+    * Posts balanced journal entry:
+      * **Debit:** Account `5010 Event Expenses` or `5020 Supplies` (Expense recognized)
+      * **Credit:** Account `2010 Accounts Payable` (Liability recognized: money owed to claimant)
+    * `reference_type = 'EXPENSE_ACCRUAL'`, `reference_id = expense_reimbursements.id`.
+  * **Stage 2 - Cash Settlement (Upon Disbursement):** When the Treasurer executes the reimbursement payout (`status = 'DISBURSED'`):
+    * Posts balanced journal entry:
+      * **Debit:** Account `2010 Accounts Payable` (Liability cleared to zero)
+      * **Credit:** Account `1010 Cash Clearing` (Operating cash reduced)
+    * `reference_type = 'EXPENSE_PAYOUT'`, `reference_id = expense_reimbursements.id`.
+  * **Accrual Integrity:** This two-stage separation ensures expenses are accurately reflected against the budget upon approval without prematurely crediting cash, and guarantees zero risk of double-counting.
 
 ---
 
@@ -1112,10 +1124,11 @@ SELECT
         (SELECT SUM(er.amount_cents) 
          FROM expense_reimbursements er 
          WHERE er.club_id = b.club_id 
-           AND er.status = 'DISBURSED'
+           AND er.status IN ('TREASURER_APPROVED', 'PRESIDENT_APPROVED', 'DISBURSED')
            AND (
-               (b.event_id IS NOT NULL AND er.description ILIKE '%' || e.title || '%')
-               OR (b.event_id IS NULL AND er.description ILIKE '%' || b.category || '%')
+               er.budget_id = b.id
+               OR (er.budget_id IS NULL AND b.event_id IS NOT NULL AND er.event_id = b.event_id)
+               OR (er.budget_id IS NULL AND b.event_id IS NULL AND er.category = b.category)
            )), 
         0
     ) AS actual_spent_cents,
@@ -1123,10 +1136,11 @@ SELECT
         (SELECT SUM(er.amount_cents) 
          FROM expense_reimbursements er 
          WHERE er.club_id = b.club_id 
-           AND er.status = 'DISBURSED'
+           AND er.status IN ('TREASURER_APPROVED', 'PRESIDENT_APPROVED', 'DISBURSED')
            AND (
-               (b.event_id IS NOT NULL AND er.description ILIKE '%' || e.title || '%')
-               OR (b.event_id IS NULL AND er.description ILIKE '%' || b.category || '%')
+               er.budget_id = b.id
+               OR (er.budget_id IS NULL AND b.event_id IS NOT NULL AND er.event_id = b.event_id)
+               OR (er.budget_id IS NULL AND b.event_id IS NULL AND er.category = b.category)
            )), 
         0
     ) AS remaining_balance_cents,
@@ -1137,16 +1151,41 @@ SELECT
                 (SELECT SUM(er.amount_cents) 
                  FROM expense_reimbursements er 
                  WHERE er.club_id = b.club_id 
-                   AND er.status = 'DISBURSED'
+                   AND er.status IN ('TREASURER_APPROVED', 'PRESIDENT_APPROVED', 'DISBURSED')
                    AND (
-                       (b.event_id IS NOT NULL AND er.description ILIKE '%' || e.title || '%')
-                       OR (b.event_id IS NULL AND er.description ILIKE '%' || b.category || '%')
+                       er.budget_id = b.id
+                       OR (er.budget_id IS NULL AND b.event_id IS NOT NULL AND er.event_id = b.event_id)
+                       OR (er.budget_id IS NULL AND b.event_id IS NULL AND er.category = b.category)
                    )), 
                 0
             )::numeric / b.allocated_amount_cents::numeric) * 100 
             ELSE 0 
         END, 2
-    ) AS percentage_consumed
+    ) AS percentage_consumed,
+    CASE 
+        WHEN b.allocated_amount_cents = 0 THEN 'NORMAL'
+        WHEN (COALESCE(
+            (SELECT SUM(er.amount_cents) 
+             FROM expense_reimbursements er 
+             WHERE er.club_id = b.club_id 
+               AND er.status IN ('TREASURER_APPROVED', 'PRESIDENT_APPROVED', 'DISBURSED')
+               AND (
+                   er.budget_id = b.id
+                   OR (er.budget_id IS NULL AND b.event_id IS NOT NULL AND er.event_id = b.event_id)
+                   OR (er.budget_id IS NULL AND b.event_id IS NULL AND er.category = b.category)
+               )), 0)::numeric / b.allocated_amount_cents::numeric) * 100 >= 100 THEN 'EXCEEDED'
+        WHEN (COALESCE(
+            (SELECT SUM(er.amount_cents) 
+             FROM expense_reimbursements er 
+             WHERE er.club_id = b.club_id 
+               AND er.status IN ('TREASURER_APPROVED', 'PRESIDENT_APPROVED', 'DISBURSED')
+               AND (
+                   er.budget_id = b.id
+                   OR (er.budget_id IS NULL AND b.event_id IS NOT NULL AND er.event_id = b.event_id)
+                   OR (er.budget_id IS NULL AND b.event_id IS NULL AND er.category = b.category)
+               )), 0)::numeric / b.allocated_amount_cents::numeric) * 100 >= 80 THEN 'WARNING'
+        ELSE 'NORMAL'
+    END AS alert_status
 FROM budgets b
 LEFT JOIN events e ON b.event_id = e.id;
 ```
