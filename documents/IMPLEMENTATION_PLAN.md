@@ -97,11 +97,13 @@ This implementation plan translates the product requirements from [PRD_TECHNICAL
   - Multi-channel announcement dispatcher (Web Newsfeed + Transactional Email Mailing List + PWA Push Alerts)
   - Immutable historical announcement archive with publication timestamps (`published_at`), category filters, and cryptographic SHA-256 audit hashes
   - Delivery and read receipt tracking (`announcement_read_receipts`) to verify communication delivery
-- [ ] **2.6 Automated Dual-Entry Ledger & Unified Treasurer Dashboard (`backend/src/modules/ledger/`):**
-  - General Ledger chart of accounts viewer (`1010 Cash`, `2010 Payables`, `4010 Dues`, `4020 Tickets`, `4030 Merch`, `4040 Fundraisers`)
-  - Mobile receipt upload endpoint with presigned S3/R2 storage and metadata tagging
-  - Dual-signoff expense approval workflow (Treasurer verification $\rightarrow$ President sign-off for claims > $50)
-  - Unified Treasurer Executive Dashboard API (backed by `view_treasurer_financial_summary`) displaying: Total Inflows ("What Came In"), Total Outflows ("What Went Out"), Available Operating Cash Balance ("How Much Is Left"), and 1-click University Student Activities compliance export
+- [ ] **2.6 Budget Allocation, Dual-Entry Ledger & Unified Treasurer Dashboard (`backend/src/modules/ledger/`):**
+  - **Budget Envelopes & Allocation Engine:** CRUD endpoints for semester/event budget caps (`budgets` table) by category (e.g., Event Production, Supplies, Catering, Marketing)
+  - **Budget Variance & Burn Rate API:** `GET /api/v1/budgets/variance` (backed by `view_budget_variance`) reporting Allocated ($) vs. Actual Spent ($) vs. Remaining Balance ($) and % Consumed with automated budget overrun warnings (>85% amber, 100% red)
+  - **General Ledger Chart of Accounts:** Viewer and posting service for accounts (`1010 Cash Clearing`, `2010 Accounts Payable`, `4010 Dues`, `4020 Tickets`, `4030 Merch`, `4040 Fundraisers`, `5010 Event Expenses`, `5020 Supplies`)
+  - **Mobile Receipt Ingestion:** Presigned upload endpoint for photo receipts with OCR metadata extraction
+  - **Dual-Signoff Gate:** Two-person approval threshold (Treasurer review $\rightarrow$ President sign-off for claims > $50) preventing unauthorized payouts
+  - **Unified Treasurer Executive Dashboard API:** `GET /api/v1/treasurer/summary` (backed by `view_treasurer_financial_summary`) delivering: Total Inflows ("What Came In"), Total Outflows ("What Went Out"), Available Operating Cash Balance ("How Much Is Left"), and 1-click University Student Activities compliance audit export
 - [ ] **2.7 Background Cron Schedulers (`backend/src/cron/cron-jobs.js`):**
   - Daily 02:00 UTC cycle: Membership renewal status transitions (`RENEWAL_DUE`, `GRACE_PERIOD`, `EXPIRED`) and email reminder dispatches
   - 2-minute cycle: Release expired 10-minute cart inventory holds
@@ -126,11 +128,12 @@ This implementation plan translates the product requirements from [PRD_TECHNICAL
   - Event discovery, tiered ticket reservation, and checkout
   - Apparel merchandise storefront with live variant selector (Sizes S–XXL), member discount pricing badges, and non-member cart upsell prompt
 - [ ] **3.4 Executive Club Dashboard & Treasurer Console:**
-  - **Unified Treasurer Executive Dashboard:** Large monospaced KPI cards for Total Inflows, Total Outflows, and Net Operating Balance; 1-click university audit export (PDF/CSV)
-  - **Per-Event Reconciliation Modal:** Turnout attendance % gauge, gross revenue by tier, direct event expenses, and net profit report
-  - **Fundraiser & Volunteer Shift Board:** Visual monetary progress bar, 2-hour shift roster grid (baking, supplies, table duty), and "On-Track" health badge
-  - **Collaborative Kanban Board:** Drag-and-drop task movement with automated overdue warnings
-  - **Volunteer Expense Desk:** Receipt photo lightbox, OCR metadata inspector, and dual-signoff approval controls
+  - **Unified Treasurer Executive Dashboard (`TreasurerDashboard.jsx`):** Large monospaced KPI cards for Total Inflows, Total Outflows, and Net Operating Balance; 1-click university audit export (PDF/CSV)
+  - **Budget Envelopes & Variance Tracker (`BudgetEnvelopesWidget.jsx`):** Real-time progress bars for category/event budgets (Allocated vs Spent vs Remaining) with color-coded burn rates
+  - **Per-Event Reconciliation Modal (`EventReconciliationModal.jsx`):** Turnout attendance % gauge, gross revenue by tier, direct event expenses, and net profit report
+  - **Fundraiser & Volunteer Shift Board (`FundraiserShiftBoard.jsx`):** Visual monetary progress bar, 2-hour shift roster grid (baking, supplies, table duty), and "On-Track" health badge
+  - **Collaborative Kanban Board (`KanbanBoard.jsx`):** Drag-and-drop task movement with automated overdue warnings
+  - **Volunteer Expense Desk (`ExpenseDesk.jsx`):** Receipt photo lightbox, OCR metadata inspector, and dual-signoff approval controls
 
 ---
 

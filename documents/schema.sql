@@ -459,6 +459,7 @@ CREATE INDEX idx_fundraisers_club ON fundraisers(club_id, is_active);
 CREATE INDEX idx_volunteer_shifts_club_event ON volunteer_shifts(club_id, event_id, starts_at);
 CREATE INDEX idx_volunteer_shifts_fundraiser ON volunteer_shifts(fundraiser_id);
 CREATE INDEX idx_membership_renewal_reminders ON membership_renewal_reminders(membership_id, reminder_type);
+CREATE INDEX idx_budgets_club_year ON budgets(club_id, fiscal_year);
 
 -- ============================================================================
 -- 11. AUDIT & UPDATED_AT TRIGGERS
@@ -536,6 +537,19 @@ CREATE TABLE membership_renewal_reminders (
     one_click_renewal_url TEXT NOT NULL
 );
 
+CREATE TABLE budgets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    club_id UUID NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+    fiscal_year VARCHAR(16) NOT NULL, -- e.g. "2025-2026"
+    category VARCHAR(64) NOT NULL,    -- "EVENT_PRODUCTION", "MARKETING", "SUPPLIES", "FOOD", "MERCHANDISE"
+    event_id UUID REFERENCES events(id) ON DELETE SET NULL,
+    allocated_amount_cents INT NOT NULL CHECK (allocated_amount_cents >= 0),
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_club_fiscal_category UNIQUE (club_id, fiscal_year, category, event_id)
+);
+
 -- ============================================================================
 -- 13. ANALYTICAL PRODUCTION VIEWS
 -- ============================================================================
@@ -597,6 +611,58 @@ FROM clubs c
 LEFT JOIN ledger_accounts la ON c.id = la.club_id
 GROUP BY c.id, c.name;
 
+-- View: Budget Variance & Category Allocation Tracking (Allocated vs Spent vs Remaining)
+CREATE OR REPLACE VIEW view_budget_variance AS
+SELECT 
+    b.id AS budget_id,
+    b.club_id,
+    b.fiscal_year,
+    b.category,
+    b.event_id,
+    e.title AS event_title,
+    b.allocated_amount_cents,
+    COALESCE(
+        (SELECT SUM(er.amount_cents) 
+         FROM expense_reimbursements er 
+         WHERE er.club_id = b.club_id 
+           AND er.status = 'DISBURSED'
+           AND (
+               (b.event_id IS NOT NULL AND er.description ILIKE '%' || e.title || '%')
+               OR (b.event_id IS NULL AND er.description ILIKE '%' || b.category || '%')
+           )), 
+        0
+    ) AS actual_spent_cents,
+    b.allocated_amount_cents - COALESCE(
+        (SELECT SUM(er.amount_cents) 
+         FROM expense_reimbursements er 
+         WHERE er.club_id = b.club_id 
+           AND er.status = 'DISBURSED'
+           AND (
+               (b.event_id IS NOT NULL AND er.description ILIKE '%' || e.title || '%')
+               OR (b.event_id IS NULL AND er.description ILIKE '%' || b.category || '%')
+           )), 
+        0
+    ) AS remaining_balance_cents,
+    ROUND(
+        CASE 
+            WHEN b.allocated_amount_cents > 0 
+            THEN (COALESCE(
+                (SELECT SUM(er.amount_cents) 
+                 FROM expense_reimbursements er 
+                 WHERE er.club_id = b.club_id 
+                   AND er.status = 'DISBURSED'
+                   AND (
+                       (b.event_id IS NOT NULL AND er.description ILIKE '%' || e.title || '%')
+                       OR (b.event_id IS NULL AND er.description ILIKE '%' || b.category || '%')
+                   )), 
+                0
+            )::numeric / b.allocated_amount_cents::numeric) * 100 
+            ELSE 0 
+        END, 2
+    ) AS percentage_consumed
+FROM budgets b
+LEFT JOIN events e ON b.event_id = e.id;
+
 -- ============================================================================
 -- 14. MULTI-TENANT ROW-LEVEL SECURITY (RLS) POLICIES
 -- ============================================================================
@@ -635,6 +701,10 @@ CREATE POLICY tenant_fundraisers_policy ON fundraisers
 
 ALTER TABLE volunteer_shifts ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_volunteer_shifts_policy ON volunteer_shifts
+    USING (club_id = NULLIF(current_setting('app.current_club_id', true), '')::uuid);
+
+ALTER TABLE budgets ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_budgets_policy ON budgets
     USING (club_id = NULLIF(current_setting('app.current_club_id', true), '')::uuid);
 
 ALTER TABLE ledger_accounts ENABLE ROW LEVEL SECURITY;
