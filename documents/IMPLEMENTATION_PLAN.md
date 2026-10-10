@@ -74,28 +74,36 @@ This implementation plan translates the product requirements from [PRD_TECHNICAL
 * **Objective:** Implement modular routers, controllers, and services for the 6 core business subsystems in pure JavaScript.
 
 ### Tasks:
-- [ ] **2.1 Membership Subsystem (`backend/src/modules/memberships/`):**
-  - Registration endpoint and profile intake
+- [ ] **2.1 Membership Subsystem & Renewal Reminder Engine (`backend/src/modules/memberships/`):**
+  - Registration endpoint and profile intake with student ID validation
   - Dynamic HMAC-SHA256 QR token generator (`/memberships/me/pass`)
-  - Dues payment integration via Stripe webhook
-- [ ] **2.2 Event Ticketing & Rapid Scanner (`backend/src/modules/ticketing/`):**
-  - Ticket allocation and tier management (`member_price` vs `non_member_price`)
-  - Sub-200ms door scan endpoint: `POST /api/v1/events/:eventId/check-in`
-  - Atomic conditional update with double-scan prevention (`WHERE status = 'ISSUED'`)
+  - Dues payment integration via Stripe webhook (`checkout.session.completed`)
+  - Multi-channel automated renewal reminder worker (T-30, T-7, T-1 days before expiration) with 1-click Stripe renewal links, grace period management (14 days), and dispatch audit logging in `membership_renewal_reminders`
+- [ ] **2.2 Event Ticketing, Dual-Mode Scanner & Reconciliation (`backend/src/modules/ticketing/`):**
+  - Ticket allocation and tier management (`member_price` vs `non_member_price`, capacity caps, waitlists)
+  - Sub-200ms door scan endpoint: `POST /api/v1/events/:eventId/check-in` with atomic double-scan lock
+  - Walk-Up Direct Member Verification endpoint: `POST /api/v1/memberships/verify-pass` for general club meetings and table booths (<120ms photo/tier badge lookup)
+  - Per-Event Financial & Turnout Reconciliation endpoint: `GET /api/v1/events/:eventId/reconciliation` (backed by `view_event_financial_summary`) reporting capacity, tickets sold, actual turnout %, gross revenue, direct expenses, net profit, and 1-click executive PDF export
 - [ ] **2.3 Merchandise & Inventory Engine (`backend/src/modules/commerce/`):**
-  - SKU & variant catalog manager (Size S–XXL, colors)
-  - Two-Phase Reservation endpoint: `POST /api/v1/commerce/reserve` using `SELECT ... FOR UPDATE` row locks
-  - 10-minute temporary cart hold with Redis TTL
-- [ ] **2.4 Collaborative Task & Kanban Subsystem (`backend/src/modules/tasks/`):**
-  - CRUD endpoints for tasks linked to events/fundraisers
-  - Column status updater (`TODO` $\rightarrow$ `IN_PROGRESS` $\rightarrow$ `DONE`)
-  - Volunteer assignment and checklist item tracking
-- [ ] **2.5 Automated Dual-Entry Ledger & Expenses (`backend/src/modules/ledger/`):**
-  - General Ledger chart of accounts viewer (`1010 Cash`, `2010 Payables`, `4010 Dues`, etc.)
-  - Mobile receipt upload endpoint with presigned S3/R2 storage
-  - Dual-signoff expense approval workflow (Treasurer review $\rightarrow$ President sign-off)
-- [ ] **2.6 Background Cron Schedulers (`backend/src/cron/cron-jobs.js`):**
-  - Daily 02:00 UTC cycle: Membership status transitions (`RENEWAL_DUE`, `GRACE_PERIOD`, `EXPIRED`)
+  - SKU & variant catalog manager (Size S–XXL, colors, available vs reserved stock)
+  - Membership-Aware Pricing Resolver: Automatic tier discount detection, dynamic storefront discount badges (`"Member Exclusive: $32 (Save $13)"`), and checkout cart upsell modal
+  - Two-Phase Reservation endpoint: `POST /api/v1/commerce/reserve` using PostgreSQL `SELECT ... FOR UPDATE` row locks with 10-minute temporary cart hold backed by Redis TTL
+- [ ] **2.4 Collaborative Tasks, Fundraiser Campaigns & Volunteer Shifts (`backend/src/modules/tasks/`):**
+  - CRUD endpoints for tasks linked to events/fundraisers with column status (`BACKLOG` $\rightarrow$ `TODO` $\rightarrow$ `IN_PROGRESS` $\rightarrow$ `DONE`)
+  - Fundraiser Campaign Tracker (`fundraisers` table) displaying monetary target goal vs. raised to date with real-time visual progress bar
+  - Volunteer Shift Scheduler (`volunteer_shifts` table) for bake sale coordination (Supplies Runner, Baking Leads, 2-hour Table Management shifts)
+  - Automated "On-Track" Health Indicator (`HEALTHY` $\ge 90\%$ shifts filled, `AT_RISK` unassigned <48h, `CRITICAL` overdue prep tasks)
+- [ ] **2.5 Centralized Broadcast Hub & Timestamped Archive (`backend/src/modules/broadcast/`):**
+  - Multi-channel announcement dispatcher (Web Newsfeed + Transactional Email Mailing List + PWA Push Alerts)
+  - Immutable historical announcement archive with publication timestamps (`published_at`), category filters, and cryptographic SHA-256 audit hashes
+  - Delivery and read receipt tracking (`announcement_read_receipts`) to verify communication delivery
+- [ ] **2.6 Automated Dual-Entry Ledger & Unified Treasurer Dashboard (`backend/src/modules/ledger/`):**
+  - General Ledger chart of accounts viewer (`1010 Cash`, `2010 Payables`, `4010 Dues`, `4020 Tickets`, `4030 Merch`, `4040 Fundraisers`)
+  - Mobile receipt upload endpoint with presigned S3/R2 storage and metadata tagging
+  - Dual-signoff expense approval workflow (Treasurer verification $\rightarrow$ President sign-off for claims > $50)
+  - Unified Treasurer Executive Dashboard API (backed by `view_treasurer_financial_summary`) displaying: Total Inflows ("What Came In"), Total Outflows ("What Went Out"), Available Operating Cash Balance ("How Much Is Left"), and 1-click University Student Activities compliance export
+- [ ] **2.7 Background Cron Schedulers (`backend/src/cron/cron-jobs.js`):**
+  - Daily 02:00 UTC cycle: Membership renewal status transitions (`RENEWAL_DUE`, `GRACE_PERIOD`, `EXPIRED`) and email reminder dispatches
   - 2-minute cycle: Release expired 10-minute cart inventory holds
 
 ---
@@ -105,22 +113,24 @@ This implementation plan translates the product requirements from [PRD_TECHNICAL
 
 ### Tasks:
 - [ ] **3.1 Global State & Authentication Provider (`frontend/src/context/`):**
-  - `AuthContext.jsx`: Session state, login, registration, and logout flows
-  - `TenantContext.jsx`: Active club metadata and role state
-- [ ] **3.2 Rapid Door Scanner PWA Viewfinder (`frontend/src/components/scanner/ScannerHUD.jsx`):**
-  - Full-screen camera stream using HTML5 WebCodecs / BarcodeDetector
-  - Sub-15ms local sanity checks (timestamp freshness, nonce deduplication)
-  - Web Audio API chimes (523Hz C5 tone for valid pass, 180Hz warning buzzer for duplicate)
-  - Haptic vibration feedback (`navigator.vibrate`)
+  - `AuthContext.jsx`: Session state, login, registration, and logout flows via Better Auth
+  - `TenantContext.jsx`: Active club metadata, slug mapping, and role state
+- [ ] **3.2 Dual-Mode Rapid Door Scanner PWA (`frontend/src/components/scanner/ScannerHUD.jsx`):**
+  - Mode Switcher: **Mode A (Event Ticket Check-In)** vs. **Mode B (Walk-Up Direct Member Verification)**
+  - Full-screen camera stream using HTML5 WebCodecs / BarcodeDetector (<15ms client verification)
+  - Web Audio API chimes (523Hz C5 tone for valid pass, 180Hz warning buzzer for duplicate) and haptic pulse
+  - Instant Member Identity Card: Green badge (`ACTIVE` with photo, name, tier, expiration), Amber badge (`GRACE_PERIOD`), Red badge (`EXPIRED`) with on-the-spot self-service signup trigger
 - [ ] **3.3 Public Member Portal & Storefront:**
-  - Self-service member registration and dynamic QR pass display
+  - Self-service member registration and dynamic HMAC-SHA256 QR pass display
+  - Multi-channel timestamped announcement feed with search and unread indicators
   - Event discovery, tiered ticket reservation, and checkout
-  - Apparel merchandise catalog with live variant selector (Sizes S–XXL) and inventory counter
-- [ ] **3.4 Executive Club Dashboard:**
-  - Real-time KPI summary (active members, ticket revenue, balance sheet)
-  - Collaborative Kanban Board with drag-and-drop task movement
-  - Dual-Entry Financial Ledger Datagrid with monospaced numbers and PDF/CSV export
-  - Volunteer Expense Desk with receipt zoom modal and dual approval buttons
+  - Apparel merchandise storefront with live variant selector (Sizes S–XXL), member discount pricing badges, and non-member cart upsell prompt
+- [ ] **3.4 Executive Club Dashboard & Treasurer Console:**
+  - **Unified Treasurer Executive Dashboard:** Large monospaced KPI cards for Total Inflows, Total Outflows, and Net Operating Balance; 1-click university audit export (PDF/CSV)
+  - **Per-Event Reconciliation Modal:** Turnout attendance % gauge, gross revenue by tier, direct event expenses, and net profit report
+  - **Fundraiser & Volunteer Shift Board:** Visual monetary progress bar, 2-hour shift roster grid (baking, supplies, table duty), and "On-Track" health badge
+  - **Collaborative Kanban Board:** Drag-and-drop task movement with automated overdue warnings
+  - **Volunteer Expense Desk:** Receipt photo lightbox, OCR metadata inspector, and dual-signoff approval controls
 
 ---
 

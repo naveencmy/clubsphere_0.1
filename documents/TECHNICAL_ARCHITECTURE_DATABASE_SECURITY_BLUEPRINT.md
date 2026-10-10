@@ -227,6 +227,93 @@ flowchart TD
 
 ---
 
+#### 1.2.4 Dual-Mode Door Scanner & Walk-Up Direct Member Verification Protocol (< 120ms Lookup)
+Collegiate door staff face two distinct operational check-in scenarios:
+1. **Mode A: Ticketed Event Check-In (e.g. Spring Gala):**
+   * Volunteer scans event ticket QR code $\rightarrow$ verifies against `tickets` table $\rightarrow$ transitions `ISSUED` $\rightarrow$ `CHECKED_IN` $\rightarrow$ logs `check_ins` record.
+2. **Mode B: Walk-Up Direct Member Dues Verification (General Meetings & Tabling Booths):**
+   * *Problem Solved:* At club tables or general meetings, officers previously flipped through paper sign-up sheets or 500-row spreadsheets to verify dues payment.
+   * *Protocol:* The volunteer switches the React PWA Scanner to "Member Mode". The student presents their permanent digital pass `qr_secret_token`.
+   * *Express Route:* `POST /api/v1/memberships/verify-pass`
+   * *Sub-120ms Verification:* Evaluates HMAC-SHA256 signature, inspects `club_memberships.status`, and immediately returns attendee identity:
+     * **Green Badge (`ACTIVE`):** Full name, student ID, profile photo, tier (`STANDARD`, `PREMIUM`), and expiration date.
+     * **Amber Badge (`GRACE_PERIOD`):** Dues lapsed alert with 1-click renewal prompt.
+     * **Red Badge (`EXPIRED` / `UNREGISTERED`):** Prompts volunteer to open mobile self-service onboarding.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Student
+    actor Volunteer as Booth Volunteer (React PWA Scanner)
+    participant ExpressAPI as Express.js POST /api/v1/memberships/verify-pass
+    participant PG as PostgreSQL 16 DB
+
+    Student->>Volunteer: Presents Permanent Digital Member Pass
+    Volunteer->>ExpressAPI: Scan QR {qr_secret_token, client_ts}
+    ExpressAPI->>PG: SELECT cm.status, cm.tier, cm.valid_until, u.name, u.student_id, u.avatar_url<br/>FROM club_memberships cm<br/>JOIN users u ON cm.user_id = u.id<br/>WHERE cm.qr_secret_token = $1 AND cm.club_id = $2;
+    PG-->>ExpressAPI: Membership record
+    alt Status = 'ACTIVE'
+        ExpressAPI-->>Volunteer: HTTP 200 {status: "ACTIVE", name: "Maya Lin", tier: "STANDARD", valid_until: "2027-08-31"}
+        Note over Volunteer: Green HUD Card + Welcome Chime (115ms total)
+    else Status = 'GRACE_PERIOD'
+        ExpressAPI-->>Volunteer: HTTP 200 {status: "GRACE_PERIOD", name: "Liam Patel", renew_url: "..."}
+        Note over Volunteer: Amber HUD Card + "Dues Lapsed" Prompt
+    else Status = 'EXPIRED' or Not Found
+        ExpressAPI-->>Volunteer: HTTP 404 {status: "EXPIRED", message: "No active membership"}
+        Note over Volunteer: Red HUD Card + Self-Service QR Trigger
+    end
+```
+
+---
+
+#### 1.2.5 Fundraiser Campaign Health & Volunteer Shift Tracking Pipeline
+Addressing the Skyline Bake Sale scenario where tasks lived in chat messages and nobody knew who was baking or managing the table:
+* **Real-Time Campaign Tracking:** Linked to `fundraisers` table. Express route `GET /api/v1/fundraisers/:id/progress` computes:
+  $$\text{Progress \%} = \left(\frac{\text{raised\_amount\_cents}}{\text{target\_amount\_cents}}\right) \times 100$$
+* **Volunteer Shift Roster:** Manages slots in `volunteer_shifts` for Supplies Procurement, Baking Leads, and 2-Hour Table Staffing shifts.
+* **Automated Health Evaluator:**
+  * `HEALTHY` (Green): $\ge 90\%$ volunteer shifts staffed, all prep tasks on schedule.
+  * `AT_RISK` (Amber): Unassigned table shifts or pending supplies within 48 hours of launch.
+  * `CRITICAL` (Red): Overdue critical path tasks. Triggers instant high-priority alerts to the Club President and Event Lead.
+
+---
+
+#### 1.2.6 Unified Treasurer Real-Time Financial Aggregation Flow
+Answering the Treasurer's core question at semester's end: *"What came in, what went out, and how much is left?"*
+* **Architecture:** Backed by database view `view_treasurer_financial_summary`.
+* **Express Route:** `GET /api/v1/treasurer/summary`
+* **Aggregation Contract:**
+  1. **Total Inflows ("What Came In"):**
+     * Membership Dues (`4010`): Sum of ledger credit balances
+     * Event Ticket Sales (`4020`): Sum of ledger credit balances
+     * Merchandise Apparel Sales (`4030`): Sum of ledger credit balances
+     * Fundraiser Proceeds (`4040`): Sum of ledger credit balances
+     * $\text{Gross Inflow} = \sum \text{Revenue Accounts}$
+  2. **Total Outflows ("What Went Out"):**
+     * Event Production Costs (`5010`)
+     * Operating & Office Supplies (`5020`)
+     * Food & Catering (`5030`)
+     * Volunteer Reimbursements Disbursed (`5040`)
+     * $\text{Gross Outflow} = \sum \text{Expense Accounts}$
+  3. **Available Operating Balance ("How Much Is Left"):**
+     * Real-time cash asset calculation across `1010` (Cash Clearing), `1020` (Stripe Clearing), and `1030` (Petty Cash).
+  4. **1-Click University Compliance Export:** Generates an official PDF/CSV audit bundle with complete double-entry transaction IDs, timestamps, and receipt attachments for student activities advisors.
+
+---
+
+#### 1.2.7 Automated Multi-Channel Renewal Reminder Pipeline
+Membership cycles run on an academic year basis (expiring annually on August 31 or custom club date):
+* **Trigger:** Daily Express background worker (`node-cron` at 02:00 UTC).
+* **Cadence Sequence:**
+  * **T-30 Days Notice:** Dispatches transactional email + in-app banner showing accumulated member savings ("You saved $45 in discounts this year! Click to renew with 1 click").
+  * **T-7 Days Notice:** High-priority reminder emphasizing imminent loss of upcoming gala ticket discounts.
+  * **T-1 Day Notice:** Urgent final warning.
+  * **T-0 Days (Lapse Date):** Automatically transitions state to `GRACE_PERIOD` (14 days). Scanner shows amber badge; member ticket pricing retained for 14 days.
+  * **T+14 Days (Hard Expiry):** Transitions state to `EXPIRED`. Revokes member ticket discounts and digital pass signature.
+* **Audit Logging:** Every reminder dispatch is logged to `membership_renewal_reminders` with `reminder_type`, `dispatched_at`, `recipient_email`, and `delivery_status`.
+
+---
+
 ## 2. Comprehensive PostgreSQL Database Schema & Inter-Connectivity
 
 ### 2.1 Complete Production DDL Specification
@@ -789,6 +876,129 @@ CREATE POLICY tenant_reimbursements_policy ON expense_reimbursements
         club_id = NULLIF(current_setting('app.current_club_id', true), '')::uuid
         OR current_setting('app.user_system_role', true) = 'SUPER_ADMIN'
     );
+
+-- Fundraisers & Volunteer Shifts RLS
+ALTER TABLE fundraisers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_fundraisers_policy ON fundraisers
+    FOR ALL
+    USING (
+        club_id = NULLIF(current_setting('app.current_club_id', true), '')::uuid
+        OR current_setting('app.user_system_role', true) = 'SUPER_ADMIN'
+    );
+
+ALTER TABLE volunteer_shifts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_volunteer_shifts_policy ON volunteer_shifts
+    FOR ALL
+    USING (
+        club_id = NULLIF(current_setting('app.current_club_id', true), '')::uuid
+        OR current_setting('app.user_system_role', true) = 'SUPER_ADMIN'
+    );
+
+-- ============================================================================
+-- 11. FUNDRAISERS, VOLUNTEER SHIFTS & RENEWAL REMINDER ENGINE
+-- ============================================================================
+
+CREATE TABLE fundraisers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    club_id UUID NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+    event_id UUID REFERENCES events(id) ON DELETE SET NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    target_amount_cents INT NOT NULL CHECK (target_amount_cents > 0),
+    raised_amount_cents INT NOT NULL DEFAULT 0 CHECK (raised_amount_cents >= 0),
+    starts_at TIMESTAMPTZ NOT NULL,
+    ends_at TIMESTAMPTZ NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_fundraiser_dates CHECK (ends_at > starts_at)
+);
+
+CREATE TABLE volunteer_shifts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    club_id UUID NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+    fundraiser_id UUID REFERENCES fundraisers(id) ON DELETE CASCADE,
+    event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+    volunteer_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    role_title VARCHAR(128) NOT NULL, -- e.g. "Table Management", "Baking Lead", "Supplies Runner"
+    starts_at TIMESTAMPTZ NOT NULL,
+    ends_at TIMESTAMPTZ NOT NULL,
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_shift_chronology CHECK (ends_at > starts_at)
+);
+
+CREATE TABLE membership_renewal_reminders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    membership_id UUID NOT NULL REFERENCES club_memberships(id) ON DELETE CASCADE,
+    reminder_type VARCHAR(32) NOT NULL, -- 'T_30_DAYS', 'T_7_DAYS', 'T_1_DAY', 'GRACE_PERIOD'
+    dispatched_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    recipient_email VARCHAR(255) NOT NULL,
+    delivery_status VARCHAR(32) NOT NULL DEFAULT 'SENT',
+    one_click_renewal_url TEXT NOT NULL
+);
+
+-- ============================================================================
+-- 12. ANALYTICAL PRODUCTION VIEWS
+-- ============================================================================
+
+-- View: Per-Event Financial & Attendance Summary
+CREATE OR REPLACE VIEW view_event_financial_summary AS
+SELECT 
+    e.id AS event_id,
+    e.club_id,
+    e.title AS event_title,
+    e.starts_at,
+    e.capacity_limit,
+    COUNT(DISTINCT t.id) AS total_tickets_issued,
+    COUNT(DISTINCT CASE WHEN t.status = 'CHECKED_IN' THEN t.id END) AS actual_attendance_count,
+    ROUND(
+        CASE 
+            WHEN COUNT(DISTINCT t.id) > 0 
+            THEN (COUNT(DISTINCT CASE WHEN t.status = 'CHECKED_IN' THEN t.id END)::numeric / COUNT(DISTINCT t.id)::numeric) * 100 
+            ELSE 0 
+        END, 2
+    ) AS attendance_rate_percentage,
+    COALESCE(SUM(t.price_paid_cents), 0) AS gross_ticket_revenue_cents,
+    COALESCE(
+        (SELECT SUM(amount_cents) 
+         FROM expense_reimbursements 
+         WHERE club_id = e.club_id 
+           AND status = 'DISBURSED' 
+           AND description ILIKE '%' || e.title || '%'), 
+        0
+    ) AS event_expenses_cents,
+    COALESCE(SUM(t.price_paid_cents), 0) - COALESCE(
+        (SELECT SUM(amount_cents) 
+         FROM expense_reimbursements 
+         WHERE club_id = e.club_id 
+           AND status = 'DISBURSED' 
+           AND description ILIKE '%' || e.title || '%'), 
+        0
+    ) AS net_event_profit_cents
+FROM events e
+LEFT JOIN tickets t ON e.id = t.event_id
+GROUP BY e.id, e.club_id, e.title, e.starts_at, e.capacity_limit;
+
+-- View: Unified Treasurer Executive Financial Dashboard (Income, Expenses, Balance)
+CREATE OR REPLACE VIEW view_treasurer_financial_summary AS
+SELECT 
+    c.id AS club_id,
+    c.name AS club_name,
+    -- Total Income Breakdown
+    COALESCE(SUM(CASE WHEN la.account_code = '4010' THEN la.balance_cents ELSE 0 END), 0) AS membership_dues_income_cents,
+    COALESCE(SUM(CASE WHEN la.account_code = '4020' THEN la.balance_cents ELSE 0 END), 0) AS event_ticket_sales_income_cents,
+    COALESCE(SUM(CASE WHEN la.account_code = '4030' THEN la.balance_cents ELSE 0 END), 0) AS merchandise_sales_income_cents,
+    COALESCE(SUM(CASE WHEN la.account_code = '4040' THEN la.balance_cents ELSE 0 END), 0) AS fundraiser_donations_income_cents,
+    COALESCE(SUM(CASE WHEN la.type = 'REVENUE' THEN la.balance_cents ELSE 0 END), 0) AS total_gross_income_cents,
+    -- Total Expense Breakdown
+    COALESCE(SUM(CASE WHEN la.type = 'EXPENSE' THEN la.balance_cents ELSE 0 END), 0) AS total_expenses_cents,
+    -- Available Operating Cash Balance
+    COALESCE(SUM(CASE WHEN la.account_code IN ('1010', '1020', '1030') THEN la.balance_cents ELSE 0 END), 0) AS available_operating_balance_cents
+FROM clubs c
+LEFT JOIN ledger_accounts la ON c.id = la.club_id
+GROUP BY c.id, c.name;
 ```
 
 ---
