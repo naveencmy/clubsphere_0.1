@@ -1,0 +1,566 @@
+import { demoAccounts } from '../scenarios/demoAccounts.js';
+const base = new Date('2026-10-10T09:00:00+05:30').getTime();
+const day = 86400000;
+const at = (d, h = 0) => new Date(base + d * day + h * 3600000).toISOString();
+export function createSeed() {
+  const clubs = [
+    {
+      id: 'skyline',
+      slug: 'skyline',
+      name: 'Skyline Student Association',
+      initials: 'SS',
+      description: 'Good people. Great ideas. A campus that feels like home.',
+      category: 'Student community',
+      fiscalYear: '2026–2027',
+      location: 'Student Union, Ground Floor',
+    },
+    {
+      id: 'makers',
+      slug: 'makers',
+      name: 'Campus Makers Collective',
+      initials: 'CM',
+      description:
+        'Build something that matters. A community for curious minds and hands-on creators.',
+      category: 'Technology & innovation',
+      fiscalYear: '2026–2027',
+      location: 'Innovation Lab, Block B',
+    },
+  ];
+  const users = demoAccounts.map((u) => ({ ...u }));
+  const memberships = users
+    .filter((u) => !['VISITOR', 'STUDENT', 'AUDITOR'].includes(u.role))
+    .map((u, i) => ({
+      id: `MEM-${1001 + i}`,
+      clubId: 'skyline',
+      userId: u.id,
+      role: u.role,
+      tier: i === 0 ? 'PREMIUM' : 'STANDARD',
+      validFrom: at(-300),
+      validUntil: at(u.id === 'grace' ? -3 : u.id === 'expired' ? -20 : 180),
+      status: u.id === 'grace' ? 'GRACE_PERIOD' : u.id === 'expired' ? 'EXPIRED' : 'ACTIVE',
+      passCode: `PASS-${u.studentId}`,
+      dues: 50000,
+    }));
+  memberships.push({
+    id: 'MEM-2001',
+    clubId: 'makers',
+    userId: 'member',
+    role: 'VOLUNTEER',
+    tier: 'STANDARD',
+    validFrom: at(-90),
+    validUntil: at(90),
+    status: 'ACTIVE',
+    passCode: 'PASS-MAKERS-014',
+    dues: 30000,
+  });
+  memberships.push({
+    id: 'MEM-2002',
+    clubId: 'makers',
+    userId: 'lead',
+    role: 'PRESIDENT',
+    tier: 'STANDARD',
+    validFrom: at(-90),
+    validUntil: at(90),
+    status: 'ACTIVE',
+    passCode: 'PASS-MAKERS-011',
+    dues: 30000,
+  });
+  const plans = clubs.flatMap((c) => [
+    {
+      id: `${c.id}-standard`,
+      clubId: c.id,
+      title: 'Standard',
+      tier: 'STANDARD',
+      amount: c.id === 'makers' ? 30000 : 50000,
+      benefits: [
+        'Member ticket prices',
+        'Merchandise discounts',
+        'Community events',
+        'Digital membership pass',
+      ],
+    },
+    {
+      id: `${c.id}-premium`,
+      clubId: c.id,
+      title: 'Premium',
+      tier: 'PREMIUM',
+      amount: 90000,
+      benefits: [
+        'All Standard benefits',
+        'Early event access',
+        'Priority workshop seats',
+        'Alumni networking',
+      ],
+    },
+  ]);
+  const events = [
+    {
+      id: 'gala',
+      scannerUsers: ['volunteer'],
+      clubId: 'skyline',
+      title: 'The Skyline Spring Gala',
+      category: 'Social',
+      description:
+        'An evening of live music, campus connections and a celebration of everything we create together.',
+      venue: 'University Auditorium',
+      startsAt: at(12, 9),
+      endsAt: at(12, 13),
+      capacity: 120,
+      published: true,
+      salesOpen: at(-10),
+      salesClose: at(11),
+      visual: 'gala',
+    },
+    {
+      id: 'design',
+      scannerUsers: ['volunteer'],
+      clubId: 'skyline',
+      title: 'Designing what comes next',
+      category: 'Workshop',
+      description: 'A hands-on design workshop with alumni who are shaping the world around us.',
+      venue: 'Creative Studio · Block A',
+      startsAt: at(5, 5),
+      endsAt: at(5, 7),
+      capacity: 40,
+      published: true,
+      salesOpen: at(-5),
+      salesClose: at(4),
+      visual: 'design',
+    },
+    {
+      id: 'meet',
+      clubId: 'skyline',
+      title: 'October community meetup',
+      category: 'Community',
+      description: 'Meet your fellow members, share your ideas and help shape the next semester.',
+      venue: 'Student Union',
+      startsAt: at(3, 7),
+      endsAt: at(3, 9),
+      capacity: 80,
+      published: true,
+      salesOpen: at(-3),
+      salesClose: at(2),
+      visual: 'meet',
+    },
+    {
+      id: 'build',
+      clubId: 'makers',
+      title: 'Build night: ideas into prototypes',
+      category: 'Workshop',
+      description: 'Bring an idea. Leave with your first working prototype.',
+      venue: 'Innovation Lab',
+      startsAt: at(7, 8),
+      endsAt: at(7, 11),
+      capacity: 25,
+      published: true,
+      salesOpen: at(-3),
+      salesClose: at(6),
+      visual: 'design',
+    },
+  ];
+  const tiers = events.flatMap((e) => [
+    {
+      id: `${e.id}-general`,
+      eventId: e.id,
+      name: 'General admission',
+      capacity: Math.ceil(e.capacity * 0.75),
+      memberPrice: e.id === 'meet' ? 0 : 25000,
+      publicPrice: e.id === 'meet' ? 0 : 35000,
+    },
+    {
+      id: `${e.id}-premium`,
+      eventId: e.id,
+      name: 'Premium experience',
+      capacity: Math.floor(e.capacity * 0.25),
+      memberPrice: 50000,
+      publicPrice: 65000,
+    },
+  ]);
+  const tickets = [
+    {
+      id: 'TCK-1001',
+      code: 'TCK-SKY-1001',
+      clubId: 'skyline',
+      eventId: 'gala',
+      tierId: 'gala-general',
+      userId: 'member',
+      status: 'ISSUED',
+      amount: 25000,
+      createdAt: at(-2),
+      history: [{ status: 'ISSUED', at: at(-2) }],
+    },
+    {
+      id: 'TCK-1002',
+      code: 'TCK-SKY-1002',
+      clubId: 'skyline',
+      eventId: 'gala',
+      tierId: 'gala-general',
+      userId: 'volunteer',
+      status: 'CHECKED_IN',
+      amount: 25000,
+      checkedAt: at(-1),
+      station: 'DOOR-01',
+      createdAt: at(-2),
+      history: [
+        { status: 'ISSUED', at: at(-2) },
+        { status: 'CHECKED_IN', at: at(-1) },
+      ],
+    },
+  ];
+  const products = [
+    {
+      id: 'hoodie',
+      clubId: 'skyline',
+      title: 'The Skyline hoodie',
+      description:
+        'Your everyday campus essential. Heavyweight cotton, embroidered club crest, relaxed fit.',
+      category: 'Apparel',
+      visual: 'hoodie',
+    },
+    {
+      id: 'tee',
+      clubId: 'skyline',
+      title: 'Campus essentials tee',
+      description: 'Soft organic cotton. A little club pride, wherever you go.',
+      category: 'Apparel',
+      visual: 'tee',
+    },
+    {
+      id: 'tote',
+      clubId: 'skyline',
+      title: 'Everyday canvas tote',
+      description: 'For notebooks, big ideas and everything in between.',
+      category: 'Accessories',
+      visual: 'tote',
+    },
+    {
+      id: 'maker-tee',
+      clubId: 'makers',
+      title: 'Made on campus tee',
+      description: 'Wear your curiosity. A classic cotton tee for makers.',
+      category: 'Apparel',
+      visual: 'tee',
+    },
+  ];
+  const variants = products.flatMap((p) =>
+    (p.visual === 'tote' ? ['One size'] : ['S', 'M', 'L', 'XL', 'XXL']).map((size, i) => ({
+      id: `${p.id}-${size}`,
+      productId: p.id,
+      clubId: p.clubId,
+      sku: `${p.id.toUpperCase()}-NAVY-${size}`,
+      size,
+      color: 'Navy',
+      stock: 12 + i * 3,
+      memberPrice: p.visual === 'hoodie' ? 79900 : p.visual === 'tee' ? 39900 : 29900,
+      publicPrice: p.visual === 'hoodie' ? 119900 : p.visual === 'tee' ? 59900 : 44900,
+      cost: p.visual === 'hoodie' ? 45000 : 18000,
+    })),
+  );
+  const orders = [
+    {
+      id: 'ORD-1001',
+      clubId: 'skyline',
+      userId: 'member',
+      status: 'FULFILLED',
+      amount: 39900,
+      createdAt: at(-4),
+      items: [{ variantId: 'tee-M', quantity: 1, price: 39900 }],
+      pickup: 'Student Union · merchandise desk',
+      history: [
+        { status: 'PAID', at: at(-4) },
+        { status: 'FULFILLED', at: at(-3) },
+      ],
+    },
+  ];
+  const fundraisers = [
+    {
+      id: 'bake',
+      clubId: 'skyline',
+      title: 'Bake a little. Give a lot.',
+      description: 'Our annual bake sale supports the campus student wellbeing fund.',
+      target: 2500000,
+      startsAt: at(8, 1),
+      endsAt: at(8, 7),
+      active: true,
+    },
+  ];
+  const tasks = [
+    ['task-1', 'Plan the bake sale menu', 'BACKLOG', 'MEDIUM', null, 6, 0],
+    ['task-2', 'Buy baking supplies', 'TODO', 'URGENT', 'volunteer', 0.5, 1],
+    ['task-3', 'Design the fundraiser poster', 'IN_PROGRESS', 'MEDIUM', 'member', 3, 2],
+    ['task-4', 'Confirm table booking', 'BLOCKED', 'HIGH', 'lead', 1, 1],
+    ['task-5', 'Recruit the baking team', 'DONE', 'LOW', 'lead', -1, 3],
+  ].map(([id, title, status, priority, assignee, due, done]) => ({
+    id,
+    clubId: 'skyline',
+    title,
+    status,
+    priority,
+    assignee,
+    due: at(due),
+    fundraiserId: 'bake',
+    description: 'Coordinate with the team and keep the checklist up to date.',
+    checklist: ['Confirm requirements', 'Complete preparation', 'Share with the team'].map(
+      (title, i) => ({ title, done: i < done }),
+    ),
+  }));
+  const shifts = [
+    {
+      id: 'shift-1',
+      clubId: 'skyline',
+      fundraiserId: 'bake',
+      title: 'Baking lead',
+      startsAt: at(7, 1),
+      endsAt: at(7, 3),
+      userId: 'lead',
+    },
+    {
+      id: 'shift-2',
+      clubId: 'skyline',
+      fundraiserId: 'bake',
+      title: 'Supplies runner',
+      startsAt: at(7, 3),
+      endsAt: at(7, 5),
+      userId: null,
+    },
+    {
+      id: 'shift-3',
+      clubId: 'skyline',
+      fundraiserId: 'bake',
+      title: 'Table duty',
+      startsAt: at(8, 1),
+      endsAt: at(8, 3),
+      userId: 'volunteer',
+    },
+    {
+      id: 'shift-4',
+      clubId: 'skyline',
+      fundraiserId: 'bake',
+      title: 'Table duty',
+      startsAt: at(8, 3),
+      endsAt: at(8, 5),
+      userId: null,
+    },
+  ];
+  const announcements = [
+    {
+      id: 'ann-1',
+      clubId: 'skyline',
+      title: 'Your next great semester starts here',
+      content:
+        'Membership is open for 2026–27. Join a community that makes campus life a little more connected. Visit the membership page to find your plan.',
+      audience: 'PUBLIC',
+      pinned: true,
+      authorId: 'president',
+      publishedAt: at(-3),
+      status: 'PUBLISHED',
+    },
+    {
+      id: 'ann-2',
+      clubId: 'skyline',
+      title: 'The Spring Gala: save your seat',
+      content:
+        'Member bookings are now open. Your membership discount is applied automatically. Bring your digital ticket on the night.',
+      audience: 'ALL_MEMBERS',
+      pinned: false,
+      authorId: 'president',
+      publishedAt: at(-1),
+      status: 'PUBLISHED',
+    },
+    {
+      id: 'ann-3',
+      clubId: 'skyline',
+      title: 'Bake sale volunteers: team briefing',
+      content:
+        'Please check your tasks and claim a shift before Friday. We will meet at the Student Union for a quick preparation briefing.',
+      audience: 'COMMITTEE_ONLY',
+      pinned: false,
+      authorId: 'lead',
+      publishedAt: at(-0.5),
+      status: 'PUBLISHED',
+    },
+    {
+      id: 'ann-4',
+      clubId: 'makers',
+      title: 'A place for your next idea',
+      content: 'Build night registrations are open. All experience levels welcome.',
+      audience: 'PUBLIC',
+      pinned: true,
+      authorId: 'lead',
+      publishedAt: at(-2),
+      status: 'PUBLISHED',
+    },
+  ];
+  const expenses = [
+    {
+      id: 'EXP-1001',
+      clubId: 'skyline',
+      userId: 'volunteer',
+      title: 'Bake sale supplies',
+      merchant: 'Campus Stationery',
+      purchaseDate: '2026-10-09',
+      category: 'SUPPLIES',
+      amount: 320000,
+      purpose: 'Cups, napkins, packaging and baking ingredients.',
+      fundraiserId: 'bake',
+      budgetId: 'budget-supplies',
+      receipt: '/receipt-demo.svg',
+      status: 'SUBMITTED',
+      history: [{ status: 'SUBMITTED', at: at(-1) }],
+    },
+  ];
+  const budgets = [
+    {
+      id: 'budget-events',
+      clubId: 'skyline',
+      category: 'EVENT_PRODUCTION',
+      title: 'Events & experiences',
+      allocated: 1500000,
+      fiscalYear: '2026–2027',
+    },
+    {
+      id: 'budget-supplies',
+      clubId: 'skyline',
+      category: 'SUPPLIES',
+      title: 'Fundraiser supplies',
+      allocated: 400000,
+      fiscalYear: '2026–2027',
+    },
+    {
+      id: 'budget-marketing',
+      clubId: 'skyline',
+      category: 'MARKETING',
+      title: 'Community & outreach',
+      allocated: 500000,
+      fiscalYear: '2026–2027',
+    },
+  ];
+  const journal = [];
+  const post = (
+    id,
+    description,
+    amount,
+    debit,
+    credit,
+    reference,
+    referenceId,
+    clubId = 'skyline',
+    offset = -2,
+  ) =>
+    journal.push({
+      id,
+      number: id,
+      clubId,
+      description,
+      at: at(offset),
+      reference,
+      referenceId,
+      lines: [
+        { account: debit, debit: amount, credit: 0 },
+        { account: credit, debit: 0, credit: amount },
+      ],
+    });
+  memberships.forEach((m, i) =>
+    post(
+      `JRN-${1001 + i}`,
+      'Annual membership dues',
+      m.dues,
+      '1010',
+      '4010',
+      'MEMBERSHIP',
+      m.id,
+      m.clubId,
+      -20 + i,
+    ),
+  );
+  tickets.forEach((t, i) =>
+    post(`JRN-${1101 + i}`, 'Gala ticket payment', t.amount, '1010', '4020', 'TICKET', t.id),
+  );
+  post(
+    'JRN-1201',
+    'Campus essentials tee',
+    39900,
+    '1010',
+    '4030',
+    'ORDER',
+    'ORD-1001',
+    'skyline',
+    -4,
+  );
+  post(
+    'JRN-1301',
+    'Bake sale opening donations',
+    1250000,
+    '1010',
+    '4040',
+    'FUNDRAISER',
+    'bake',
+    'skyline',
+    -3,
+  );
+  const revisions = announcements.map((a) => ({
+    id: `${a.id}-r1`,
+    announcementId: a.id,
+    clubId: a.clubId,
+    title: a.title,
+    content: a.content,
+    number: 1,
+    at: a.publishedAt,
+    authorId: a.authorId,
+    hash: 'seed-unverified',
+  }));
+  const deliveries = announcements.flatMap((a) =>
+    users
+      .filter((u) => u.email)
+      .map((u) => ({
+        id: `${a.id}-${u.id}`,
+        clubId: a.clubId,
+        announcementId: a.id,
+        userId: u.id,
+        status: 'DELIVERED',
+      })),
+  );
+  return {
+    version: 1,
+    clock: base,
+    sequence: 2000,
+    session: { userId: 'visitor', clubId: 'skyline' },
+    users,
+    clubs,
+    memberships,
+    plans,
+    events,
+    tiers,
+    tickets,
+    products,
+    variants,
+    orders,
+    fundraisers,
+    tasks,
+    shifts,
+    announcements,
+    revisions,
+    deliveries,
+    expenses,
+    budgets,
+    journal,
+    readReceipts: [],
+    payments: [],
+    waitlist: [],
+    audit: [],
+    officerHistory: [],
+    notifications: [
+      {
+        id: 'notice-1',
+        clubId: 'skyline',
+        userId: 'member',
+        title: 'Your gala ticket is ready',
+        body: 'Find your ticket in My tickets.',
+        link: '/portal/tickets/TCK-1001',
+        read: false,
+        at: at(-2),
+      },
+    ],
+    failure: null,
+  };
+}

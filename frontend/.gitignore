@@ -1,0 +1,6 @@
+# Generated browser reports and traces; keep audit JSON and screenshots
+artifacts/browser-report/
+artifacts/test-results/
+playwright-report/
+test-results/
+blob-report/

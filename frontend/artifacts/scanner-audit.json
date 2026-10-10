@@ -1,0 +1,68 @@
+[
+  {
+    "viewport": "desktop",
+    "frame": {
+      "x": 580,
+      "y": 360,
+      "width": 280,
+      "height": 280
+    },
+    "success": {
+      "tone": {
+        "frequency": 440,
+        "type": "sine"
+      },
+      "haptic": 50,
+      "live": "Entry approved: Ananya Sharma, SKY-2025-014, General admission.",
+      "border": "rgb(30, 142, 62)"
+    },
+    "rejected": {
+      "tone": {
+        "frequency": 180,
+        "type": "sawtooth"
+      },
+      "haptic": [
+        100,
+        50,
+        100,
+        50,
+        100
+      ],
+      "border": "rgb(217, 48, 37)"
+    },
+    "violations": []
+  },
+  {
+    "viewport": "mobile",
+    "frame": {
+      "x": 55,
+      "y": 282,
+      "width": 280,
+      "height": 280
+    },
+    "success": {
+      "tone": {
+        "frequency": 440,
+        "type": "sine"
+      },
+      "haptic": 50,
+      "live": "Entry approved: Ananya Sharma, SKY-2025-014, General admission.",
+      "border": "rgb(30, 142, 62)"
+    },
+    "rejected": {
+      "tone": {
+        "frequency": 180,
+        "type": "sawtooth"
+      },
+      "haptic": [
+        100,
+        50,
+        100,
+        50,
+        100
+      ],
+      "border": "rgb(217, 48, 37)"
+    },
+    "violations": []
+  }
+]

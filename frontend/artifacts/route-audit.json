@@ -1,0 +1,375 @@
+{
+  "results": [
+    {
+      "role": "visitor",
+      "url": "/",
+      "result": "PASS"
+    },
+    {
+      "role": "visitor",
+      "url": "/clubs",
+      "result": "PASS"
+    },
+    {
+      "role": "visitor",
+      "url": "/clubs/skyline",
+      "result": "PASS"
+    },
+    {
+      "role": "visitor",
+      "url": "/clubs/makers",
+      "result": "PASS"
+    },
+    {
+      "role": "visitor",
+      "url": "/events",
+      "result": "PASS"
+    },
+    {
+      "role": "visitor",
+      "url": "/events/gala",
+      "result": "PASS"
+    },
+    {
+      "role": "visitor",
+      "url": "/membership",
+      "result": "PASS"
+    },
+    {
+      "role": "visitor",
+      "url": "/store",
+      "result": "PASS"
+    },
+    {
+      "role": "visitor",
+      "url": "/store/hoodie",
+      "result": "PASS"
+    },
+    {
+      "role": "visitor",
+      "url": "/cart",
+      "result": "PASS"
+    },
+    {
+      "role": "visitor",
+      "url": "/announcements",
+      "result": "PASS"
+    },
+    {
+      "role": "visitor",
+      "url": "/login",
+      "result": "PASS"
+    },
+    {
+      "role": "visitor",
+      "url": "/register",
+      "result": "PASS"
+    },
+    {
+      "role": "visitor",
+      "url": "/demo",
+      "result": "PASS"
+    },
+    {
+      "role": "visitor",
+      "url": "/unauthorized",
+      "result": "PASS"
+    },
+    {
+      "role": "visitor",
+      "url": "/support/loading",
+      "result": "PASS"
+    },
+    {
+      "role": "visitor",
+      "url": "/support/empty",
+      "result": "PASS"
+    },
+    {
+      "role": "visitor",
+      "url": "/support/error",
+      "result": "PASS"
+    },
+    {
+      "role": "visitor",
+      "url": "/missing",
+      "result": "PASS"
+    },
+    {
+      "role": "member",
+      "url": "/portal/dashboard",
+      "result": "PASS"
+    },
+    {
+      "role": "member",
+      "url": "/portal/profile",
+      "result": "PASS"
+    },
+    {
+      "role": "member",
+      "url": "/portal/membership",
+      "result": "PASS"
+    },
+    {
+      "role": "member",
+      "url": "/portal/pass",
+      "result": "PASS"
+    },
+    {
+      "role": "member",
+      "url": "/portal/renew",
+      "result": "PASS"
+    },
+    {
+      "role": "member",
+      "url": "/portal/tickets",
+      "result": "PASS"
+    },
+    {
+      "role": "member",
+      "url": "/portal/tickets/TCK-1001",
+      "result": "PASS"
+    },
+    {
+      "role": "member",
+      "url": "/portal/orders",
+      "result": "PASS"
+    },
+    {
+      "role": "member",
+      "url": "/portal/orders/ORD-1001",
+      "result": "PASS"
+    },
+    {
+      "role": "member",
+      "url": "/portal/announcements",
+      "result": "PASS"
+    },
+    {
+      "role": "member",
+      "url": "/portal/notifications",
+      "result": "PASS"
+    },
+    {
+      "role": "member",
+      "url": "/portal/search",
+      "result": "PASS"
+    },
+    {
+      "role": "member",
+      "url": "/checkout/order/ORD-AUDIT",
+      "result": "PASS"
+    },
+    {
+      "role": "volunteer",
+      "url": "/portal/dashboard",
+      "result": "PASS"
+    },
+    {
+      "role": "volunteer",
+      "url": "/portal/tasks",
+      "result": "PASS"
+    },
+    {
+      "role": "volunteer",
+      "url": "/portal/fundraisers",
+      "result": "PASS"
+    },
+    {
+      "role": "volunteer",
+      "url": "/portal/shifts",
+      "result": "PASS"
+    },
+    {
+      "role": "volunteer",
+      "url": "/portal/expenses",
+      "result": "PASS"
+    },
+    {
+      "role": "volunteer",
+      "url": "/portal/expenses/new",
+      "result": "PASS"
+    },
+    {
+      "role": "volunteer",
+      "url": "/portal/expenses/EXP-1001",
+      "result": "PASS"
+    },
+    {
+      "role": "volunteer",
+      "url": "/scanner/gala",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/members",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/members/MEM-1001",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/events",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/events/new",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/events/gala/edit",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/bookings",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/attendees",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/event-reports",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/products",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/inventory",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/orders",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/orders/ORD-1001",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/returns",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/tasks",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/fundraisers",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/shifts",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/announcements",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/broadcasts",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/deliveries",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/expenses",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/approvals",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/finance",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/ledger",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/budgets",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/reports",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/settings",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/roles",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/plans",
+      "result": "PASS"
+    },
+    {
+      "role": "president",
+      "url": "/dashboard/skyline/audit",
+      "result": "PASS"
+    },
+    {
+      "role": "auditor",
+      "url": "/portal/dashboard",
+      "result": "PASS"
+    },
+    {
+      "role": "auditor",
+      "url": "/dashboard/skyline/ledger",
+      "result": "PASS"
+    },
+    {
+      "role": "auditor",
+      "url": "/dashboard/skyline/reports",
+      "result": "PASS"
+    },
+    {
+      "role": "auditor",
+      "url": "/dashboard/skyline/audit",
+      "result": "PASS"
+    }
+  ],
+  "errors": []
+}

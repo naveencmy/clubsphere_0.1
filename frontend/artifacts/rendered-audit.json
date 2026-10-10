@@ -1,0 +1,1091 @@
+{
+  "results": [
+    {
+      "screen": "landing",
+      "viewport": "desktop",
+      "overflow": false,
+      "reticle": null,
+      "touch": [
+        {
+          "text": "ClubSphere home",
+          "width": 151.921875,
+          "height": 32
+        },
+        {
+          "text": "Discover clubs",
+          "width": 98.828125,
+          "height": 20
+        },
+        {
+          "text": "Events",
+          "width": 45.0625,
+          "height": 20
+        },
+        {
+          "text": "Merchandise",
+          "width": 86.96875,
+          "height": 20
+        },
+        {
+          "text": "Announcements",
+          "width": 109.640625,
+          "height": 20
+        },
+        {
+          "text": "Log in",
+          "width": 74.96875,
+          "height": 40
+        },
+        {
+          "text": "Become a member",
+          "width": 160.234375,
+          "height": 40
+        },
+        {
+          "text": "Public visitor · VISITORAarav Mehta · STUDENTAnany",
+          "width": 207,
+          "height": 40
+        },
+        {
+          "text": "Scenarios",
+          "width": 56.453125,
+          "height": 20
+        },
+        {
+          "text": "Find your community",
+          "width": 201.0625,
+          "height": 40
+        },
+        {
+          "text": "Explore events",
+          "width": 133.765625,
+          "height": 40
+        },
+        {
+          "text": "All upcoming events",
+          "width": 159.828125,
+          "height": 20
+        }
+      ],
+      "violations": []
+    },
+    {
+      "screen": "student-dashboard",
+      "viewport": "desktop",
+      "overflow": false,
+      "reticle": null,
+      "touch": [
+        {
+          "text": "",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "text": "",
+          "width": 400,
+          "height": 42
+        },
+        {
+          "text": "Notifications1",
+          "width": 65.921875,
+          "height": 40
+        },
+        {
+          "text": "AS",
+          "width": 36,
+          "height": 36
+        },
+        {
+          "text": "Public visitor · VISITORAarav Mehta · STUDENTAnany",
+          "width": 207,
+          "height": 40
+        },
+        {
+          "text": "Scenarios",
+          "width": 56.453125,
+          "height": 20
+        },
+        {
+          "text": "Explore events",
+          "width": 157.765625,
+          "height": 40
+        },
+        {
+          "text": "View my member pass",
+          "width": 211.21875,
+          "height": 40
+        },
+        {
+          "text": "View all",
+          "width": 77,
+          "height": 20
+        },
+        {
+          "text": "The Skyline Spring Gala",
+          "width": 160.984375,
+          "height": 17
+        },
+        {
+          "text": "Designing what comes next",
+          "width": 186.875,
+          "height": 17
+        },
+        {
+          "text": "October community meetup",
+          "width": 189.46875,
+          "height": 17
+        },
+        {
+          "text": "View all",
+          "width": 77,
+          "height": 20
+        },
+        {
+          "text": "Your next great semester starts here",
+          "width": 246.625,
+          "height": 17
+        },
+        {
+          "text": "The Spring Gala: save your seat",
+          "width": 214.359375,
+          "height": 17
+        }
+      ],
+      "violations": []
+    },
+    {
+      "screen": "membership-pass",
+      "viewport": "desktop",
+      "overflow": false,
+      "reticle": null,
+      "touch": [
+        {
+          "text": "",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "text": "",
+          "width": 400,
+          "height": 42
+        },
+        {
+          "text": "Notifications1",
+          "width": 65.921875,
+          "height": 40
+        },
+        {
+          "text": "AS",
+          "width": 36,
+          "height": 36
+        },
+        {
+          "text": "Public visitor · VISITORAarav Mehta · STUDENTAnany",
+          "width": 207,
+          "height": 40
+        },
+        {
+          "text": "Scenarios",
+          "width": 56.453125,
+          "height": 20
+        },
+        {
+          "text": "Renew membership",
+          "width": 494,
+          "height": 40
+        }
+      ],
+      "violations": []
+    },
+    {
+      "screen": "event-booking",
+      "viewport": "desktop",
+      "overflow": false,
+      "reticle": null,
+      "touch": [
+        {
+          "text": "ClubSphere home",
+          "width": 151.921875,
+          "height": 32
+        },
+        {
+          "text": "Discover clubs",
+          "width": 98.828125,
+          "height": 20
+        },
+        {
+          "text": "Events",
+          "width": 45.0625,
+          "height": 20
+        },
+        {
+          "text": "Merchandise",
+          "width": 86.96875,
+          "height": 20
+        },
+        {
+          "text": "Announcements",
+          "width": 109.640625,
+          "height": 20
+        },
+        {
+          "text": "My workspace",
+          "width": 133.640625,
+          "height": 40
+        },
+        {
+          "text": "Become a member",
+          "width": 160.234375,
+          "height": 40
+        },
+        {
+          "text": "Public visitor · VISITORAarav Mehta · STUDENTAnany",
+          "width": 207,
+          "height": 40
+        },
+        {
+          "text": "Scenarios",
+          "width": 56.453125,
+          "height": 20
+        },
+        {
+          "text": "Back to events",
+          "width": 133.125,
+          "height": 40
+        },
+        {
+          "text": "Reserve ticket",
+          "width": 506,
+          "height": 40
+        },
+        {
+          "text": "Join waitlist",
+          "width": 506,
+          "height": 40
+        },
+        {
+          "text": "ClubSphere home",
+          "width": 151.921875,
+          "height": 32
+        },
+        {
+          "text": "Membership",
+          "width": 82.71875,
+          "height": 20
+        },
+        {
+          "text": "Our clubs",
+          "width": 63.828125,
+          "height": 20
+        },
+        {
+          "text": "Get started",
+          "width": 73.703125,
+          "height": 20
+        }
+      ],
+      "violations": []
+    },
+    {
+      "screen": "ticket-details",
+      "viewport": "desktop",
+      "overflow": false,
+      "reticle": null,
+      "touch": [
+        {
+          "text": "",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "text": "",
+          "width": 400,
+          "height": 42
+        },
+        {
+          "text": "Notifications1",
+          "width": 65.921875,
+          "height": 40
+        },
+        {
+          "text": "AS",
+          "width": 36,
+          "height": 36
+        },
+        {
+          "text": "Public visitor · VISITORAarav Mehta · STUDENTAnany",
+          "width": 207,
+          "height": 40
+        },
+        {
+          "text": "Scenarios",
+          "width": 56.453125,
+          "height": 20
+        },
+        {
+          "text": "All tickets",
+          "width": 100.265625,
+          "height": 40
+        },
+        {
+          "text": "Request demo refund",
+          "width": 494,
+          "height": 40
+        },
+        {
+          "text": "Choose recipientRohan PatelIsha RaoKabir JoshiDiya",
+          "width": 494,
+          "height": 41
+        },
+        {
+          "text": "Transfer ticket",
+          "width": 494,
+          "height": 40
+        }
+      ],
+      "violations": []
+    },
+    {
+      "screen": "merchandise",
+      "viewport": "desktop",
+      "overflow": false,
+      "reticle": null,
+      "touch": [
+        {
+          "text": "ClubSphere home",
+          "width": 151.921875,
+          "height": 32
+        },
+        {
+          "text": "Discover clubs",
+          "width": 98.828125,
+          "height": 20
+        },
+        {
+          "text": "Events",
+          "width": 45.0625,
+          "height": 20
+        },
+        {
+          "text": "Merchandise",
+          "width": 86.96875,
+          "height": 20
+        },
+        {
+          "text": "Announcements",
+          "width": 109.640625,
+          "height": 20
+        },
+        {
+          "text": "My workspace",
+          "width": 133.640625,
+          "height": 40
+        },
+        {
+          "text": "Become a member",
+          "width": 160.234375,
+          "height": 40
+        },
+        {
+          "text": "Public visitor · VISITORAarav Mehta · STUDENTAnany",
+          "width": 207,
+          "height": 40
+        },
+        {
+          "text": "Scenarios",
+          "width": 56.453125,
+          "height": 20
+        },
+        {
+          "text": "Your cart (0)",
+          "width": 143.109375,
+          "height": 40
+        },
+        {
+          "text": "",
+          "width": 320,
+          "height": 42
+        },
+        {
+          "text": "The Skyline hoodie",
+          "width": 147.484375,
+          "height": 20
+        },
+        {
+          "text": "S · 12 availableM · 14 availableL · 18 availableXL",
+          "width": 312.65625,
+          "height": 41
+        },
+        {
+          "text": "Add to cart",
+          "width": 312.65625,
+          "height": 40
+        },
+        {
+          "text": "Campus essentials tee",
+          "width": 174.71875,
+          "height": 20
+        },
+        {
+          "text": "S · 12 availableM · 15 availableL · 18 availableXL",
+          "width": 312.671875,
+          "height": 41
+        },
+        {
+          "text": "Add to cart",
+          "width": 312.671875,
+          "height": 40
+        },
+        {
+          "text": "Everyday canvas tote",
+          "width": 165.953125,
+          "height": 20
+        },
+        {
+          "text": "One size · 12 available",
+          "width": 312.65625,
+          "height": 41
+        },
+        {
+          "text": "Add to cart",
+          "width": 312.65625,
+          "height": 40
+        }
+      ],
+      "violations": []
+    },
+    {
+      "screen": "merchandise-checkout",
+      "viewport": "desktop",
+      "overflow": false,
+      "reticle": null,
+      "touch": [
+        {
+          "text": "",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "text": "",
+          "width": 400,
+          "height": 42
+        },
+        {
+          "text": "Notifications1",
+          "width": 65.921875,
+          "height": 40
+        },
+        {
+          "text": "AS",
+          "width": 36,
+          "height": 36
+        },
+        {
+          "text": "Public visitor · VISITORAarav Mehta · STUDENTAnany",
+          "width": 207,
+          "height": 40
+        },
+        {
+          "text": "Scenarios",
+          "width": 56.453125,
+          "height": 20
+        },
+        {
+          "text": "Simulate successful payment",
+          "width": 494,
+          "height": 40
+        },
+        {
+          "text": "Simulate failed payment",
+          "width": 494,
+          "height": 40
+        },
+        {
+          "text": "Simulate cancelled payment",
+          "width": 494,
+          "height": 40
+        },
+        {
+          "text": "Simulate delayed confirmation",
+          "width": 494,
+          "height": 40
+        },
+        {
+          "text": "Return to workspace",
+          "width": 494,
+          "height": 40
+        }
+      ],
+      "violations": []
+    },
+    {
+      "screen": "kanban",
+      "viewport": "desktop",
+      "overflow": false,
+      "reticle": null,
+      "touch": [
+        {
+          "text": "",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "text": "",
+          "width": 400,
+          "height": 42
+        },
+        {
+          "text": "Notifications",
+          "width": 52,
+          "height": 40
+        },
+        {
+          "text": "MS",
+          "width": 36,
+          "height": 36
+        },
+        {
+          "text": "Public visitor · VISITORAarav Mehta · STUDENTAnany",
+          "width": 207,
+          "height": 40
+        },
+        {
+          "text": "Scenarios",
+          "width": 56.453125,
+          "height": 20
+        },
+        {
+          "text": "Create task",
+          "width": 111.34375,
+          "height": 40
+        },
+        {
+          "text": "",
+          "width": 320,
+          "height": 42
+        },
+        {
+          "text": "All campaignsBake a little. Give a lot.",
+          "width": 220,
+          "height": 41
+        },
+        {
+          "text": "List view",
+          "width": 93.453125,
+          "height": 40
+        },
+        {
+          "text": "↗",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "text": "BacklogTodoIn progressBlockedDone",
+          "width": 147.59375,
+          "height": 32
+        },
+        {
+          "text": "↗",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "text": "BacklogTodoIn progressBlockedDone",
+          "width": 147.59375,
+          "height": 32
+        },
+        {
+          "text": "↗",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "text": "BacklogTodoIn progressBlockedDone",
+          "width": 147.609375,
+          "height": 32
+        },
+        {
+          "text": "↗",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "text": "BacklogTodoIn progressBlockedDone",
+          "width": 147.59375,
+          "height": 32
+        },
+        {
+          "text": "↗",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "text": "BacklogTodoIn progressBlockedDone",
+          "width": 147.609375,
+          "height": 32
+        }
+      ],
+      "violations": []
+    },
+    {
+      "screen": "announcements",
+      "viewport": "desktop",
+      "overflow": false,
+      "reticle": null,
+      "touch": [
+        {
+          "text": "",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "text": "",
+          "width": 400,
+          "height": 42
+        },
+        {
+          "text": "Notifications1",
+          "width": 65.921875,
+          "height": 40
+        },
+        {
+          "text": "AS",
+          "width": 36,
+          "height": 36
+        },
+        {
+          "text": "Public visitor · VISITORAarav Mehta · STUDENTAnany",
+          "width": 207,
+          "height": 40
+        },
+        {
+          "text": "Scenarios",
+          "width": 56.453125,
+          "height": 20
+        },
+        {
+          "text": "",
+          "width": 320,
+          "height": 42
+        },
+        {
+          "text": "ALLPUBLICALL MEMBERSCOMMITTEE ONLY",
+          "width": 220,
+          "height": 41
+        },
+        {
+          "text": "Mark as read",
+          "width": 121.9375,
+          "height": 40
+        },
+        {
+          "text": "Publication history",
+          "width": 160.5,
+          "height": 40
+        },
+        {
+          "text": "Mark as read",
+          "width": 121.9375,
+          "height": 40
+        },
+        {
+          "text": "Publication history",
+          "width": 160.5,
+          "height": 40
+        }
+      ],
+      "violations": []
+    },
+    {
+      "screen": "expense-submission",
+      "viewport": "desktop",
+      "overflow": false,
+      "reticle": null,
+      "touch": [
+        {
+          "text": "",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "text": "",
+          "width": 400,
+          "height": 42
+        },
+        {
+          "text": "Notifications",
+          "width": 52,
+          "height": 40
+        },
+        {
+          "text": "KJ",
+          "width": 36,
+          "height": 36
+        },
+        {
+          "text": "Public visitor · VISITORAarav Mehta · STUDENTAnany",
+          "width": 207,
+          "height": 40
+        },
+        {
+          "text": "Scenarios",
+          "width": 56.453125,
+          "height": 20
+        },
+        {
+          "text": "",
+          "width": 523,
+          "height": 42
+        },
+        {
+          "text": "",
+          "width": 523,
+          "height": 42
+        },
+        {
+          "text": "",
+          "width": 523,
+          "height": 42
+        },
+        {
+          "text": "",
+          "width": 523,
+          "height": 42
+        },
+        {
+          "text": "EVENT_PRODUCTIONSUPPLIESFOOD_CATERINGMARKETINGTRAV",
+          "width": 523,
+          "height": 41
+        },
+        {
+          "text": "NoneEvents & experiencesFundraiser suppliesCommuni",
+          "width": 523,
+          "height": 41
+        },
+        {
+          "text": "NoneThe Skyline Spring GalaDesigning what comes ne",
+          "width": 523,
+          "height": 41
+        },
+        {
+          "text": "NoneBake a little. Give a lot.",
+          "width": 523,
+          "height": 41
+        }
+      ],
+      "violations": []
+    },
+    {
+      "screen": "expense-review",
+      "viewport": "desktop",
+      "overflow": false,
+      "reticle": null,
+      "touch": [
+        {
+          "text": "",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "text": "",
+          "width": 400,
+          "height": 42
+        },
+        {
+          "text": "Notifications",
+          "width": 52,
+          "height": 40
+        },
+        {
+          "text": "AK",
+          "width": 36,
+          "height": 36
+        },
+        {
+          "text": "Public visitor · VISITORAarav Mehta · STUDENTAnany",
+          "width": 207,
+          "height": 40
+        },
+        {
+          "text": "Scenarios",
+          "width": 56.453125,
+          "height": 20
+        },
+        {
+          "text": "Begin review",
+          "width": 121,
+          "height": 40
+        },
+        {
+          "text": "Inspect receipt",
+          "width": 494,
+          "height": 40
+        }
+      ],
+      "violations": []
+    },
+    {
+      "screen": "ledger",
+      "viewport": "desktop",
+      "overflow": false,
+      "reticle": null,
+      "touch": [
+        {
+          "text": "",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "text": "",
+          "width": 400,
+          "height": 42
+        },
+        {
+          "text": "Notifications",
+          "width": 52,
+          "height": 40
+        },
+        {
+          "text": "AK",
+          "width": 36,
+          "height": 36
+        },
+        {
+          "text": "Public visitor · VISITORAarav Mehta · STUDENTAnany",
+          "width": 207,
+          "height": 40
+        },
+        {
+          "text": "Scenarios",
+          "width": 56.453125,
+          "height": 20
+        },
+        {
+          "text": "Export ledger CSV",
+          "width": 182.390625,
+          "height": 40
+        },
+        {
+          "text": "Post adjustment",
+          "width": 167.65625,
+          "height": 40
+        },
+        {
+          "text": "",
+          "width": 320,
+          "height": 42
+        },
+        {
+          "text": "All accounts10104010402040304040",
+          "width": 220,
+          "height": 41
+        },
+        {
+          "text": "Income & expense entriesIncome entriesExpense entr",
+          "width": 220,
+          "height": 41
+        },
+        {
+          "text": "All sourcesMEMBERSHIPTICKETORDERFUNDRAISER",
+          "width": 220,
+          "height": 41
+        },
+        {
+          "text": "",
+          "width": 155,
+          "height": 42
+        },
+        {
+          "text": "",
+          "width": 155,
+          "height": 42
+        },
+        {
+          "text": "JRN-1001",
+          "width": 80.40625,
+          "height": 32
+        },
+        {
+          "text": "MEMBERSHIP · MEM-1001",
+          "width": 153.765625,
+          "height": 15
+        },
+        {
+          "text": "JRN-1001",
+          "width": 80.40625,
+          "height": 32
+        },
+        {
+          "text": "MEMBERSHIP · MEM-1001",
+          "width": 153.765625,
+          "height": 15
+        },
+        {
+          "text": "JRN-1002",
+          "width": 80.40625,
+          "height": 32
+        },
+        {
+          "text": "MEMBERSHIP · MEM-1002",
+          "width": 156.203125,
+          "height": 15
+        }
+      ],
+      "violations": []
+    },
+    {
+      "screen": "treasurer-dashboard",
+      "viewport": "desktop",
+      "overflow": false,
+      "reticle": null,
+      "touch": [
+        {
+          "text": "",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "text": "",
+          "width": 400,
+          "height": 42
+        },
+        {
+          "text": "Notifications",
+          "width": 52,
+          "height": 40
+        },
+        {
+          "text": "AK",
+          "width": 36,
+          "height": 36
+        },
+        {
+          "text": "Public visitor · VISITORAarav Mehta · STUDENTAnany",
+          "width": 207,
+          "height": 40
+        },
+        {
+          "text": "Scenarios",
+          "width": 56.453125,
+          "height": 20
+        },
+        {
+          "text": "Export ledger CSV",
+          "width": 182.390625,
+          "height": 40
+        },
+        {
+          "text": "Post adjustment",
+          "width": 167.65625,
+          "height": 40
+        }
+      ],
+      "violations": []
+    },
+    {
+      "screen": "landing",
+      "viewport": "mobile",
+      "overflow": false,
+      "reticle": null,
+      "touch": [],
+      "violations": []
+    },
+    {
+      "screen": "student-dashboard",
+      "viewport": "mobile",
+      "overflow": false,
+      "reticle": null,
+      "touch": [],
+      "violations": []
+    },
+    {
+      "screen": "membership-pass",
+      "viewport": "mobile",
+      "overflow": false,
+      "reticle": null,
+      "touch": [],
+      "violations": []
+    },
+    {
+      "screen": "event-booking",
+      "viewport": "mobile",
+      "overflow": false,
+      "reticle": null,
+      "touch": [],
+      "violations": []
+    },
+    {
+      "screen": "ticket-details",
+      "viewport": "mobile",
+      "overflow": false,
+      "reticle": null,
+      "touch": [],
+      "violations": []
+    },
+    {
+      "screen": "merchandise",
+      "viewport": "mobile",
+      "overflow": false,
+      "reticle": null,
+      "touch": [],
+      "violations": []
+    },
+    {
+      "screen": "merchandise-checkout",
+      "viewport": "mobile",
+      "overflow": false,
+      "reticle": null,
+      "touch": [],
+      "violations": []
+    },
+    {
+      "screen": "kanban",
+      "viewport": "mobile",
+      "overflow": false,
+      "reticle": null,
+      "touch": [],
+      "violations": []
+    },
+    {
+      "screen": "announcements",
+      "viewport": "mobile",
+      "overflow": false,
+      "reticle": null,
+      "touch": [],
+      "violations": []
+    },
+    {
+      "screen": "expense-submission",
+      "viewport": "mobile",
+      "overflow": false,
+      "reticle": null,
+      "touch": [],
+      "violations": []
+    },
+    {
+      "screen": "expense-review",
+      "viewport": "mobile",
+      "overflow": false,
+      "reticle": null,
+      "touch": [],
+      "violations": []
+    },
+    {
+      "screen": "ledger",
+      "viewport": "mobile",
+      "overflow": false,
+      "reticle": null,
+      "touch": [],
+      "violations": []
+    },
+    {
+      "screen": "treasurer-dashboard",
+      "viewport": "mobile",
+      "overflow": false,
+      "reticle": null,
+      "touch": [],
+      "violations": []
+    }
+  ],
+  "errors": []
+}

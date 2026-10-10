@@ -1,5 +1,17 @@
 # ClubSphere (v0.1)
 
+## Frontend development
+
+The React frontend is in [`frontend/`](frontend/). It uses persistent mock services for the documented ClubSphere workflows.
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+See the [frontend README](frontend/README.md) for build and test commands, demo accounts, and implementation audits. Production backend integration is separate from this frontend prototype.
+
 > **The digital operating system for collegiate student organizations** — unifying memberships, event ticketing with sub-200ms rapid door verification, merchandise e-commerce drops, volunteer task pipelines, announcements, and automated double-entry financial accounting in one secure platform.
 
 Inspired by the real-world operational challenges in collegiate clubs (modeled on the **Skyline Student Association** reference study).
