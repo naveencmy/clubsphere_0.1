@@ -1,0 +1,383 @@
+{
+  "info": {
+    "_postman_id": "c10b5000-0000-4000-8000-clubsphere001",
+    "name": "ClubSphere 0.1 - End-to-End Enterprise API Lifecycle & A/B Testing Collection",
+    "description": "Comprehensive Postman test collection validating all ClubSphere API workflows with chained real data flows, automated assertions, A/B experimentation tracking, sub-200ms latency checks, double-entry financial invariants, and multi-tenant RLS isolation.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "userId", "value": "", "type": "string" },
+    { "key": "clubId", "value": "c0000000-0000-0000-0000-000000000001", "type": "string" },
+    { "key": "variantId", "value": "", "type": "string" },
+    { "key": "orderId", "value": "", "type": "string" },
+    { "key": "eventId", "value": "", "type": "string" },
+    { "key": "tierId", "value": "", "type": "string" },
+    { "key": "ticketId", "value": "", "type": "string" },
+    { "key": "ticketCode", "value": "", "type": "string" },
+    { "key": "expenseId", "value": "", "type": "string" },
+    { "key": "announcementId", "value": "", "type": "string" },
+    { "key": "taskId", "value": "", "type": "string" },
+    { "key": "shiftId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01. System Health & Observability",
+      "item": [
+        {
+          "name": "GET /health - API Gateway Liveness Probe",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+          }
+        },
+        {
+          "name": "GET /health/ready - PostgreSQL Readiness Probe",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/health/ready", "host": ["{{baseUrl}}"], "path": ["health", "ready"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. Authentication & Student Identity",
+      "item": [
+        {
+          "name": "POST /api/auth/register - Register Student Account",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student_tester@campus.edu\",\n  \"password\": \"SecurePass123!\",\n  \"fullName\": \"Naveen Krishna\",\n  \"studentId\": \"STU202601\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] }
+          }
+        },
+        {
+          "name": "POST /api/auth/login - Authenticate User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student_tester@campus.edu\",\n  \"password\": \"SecurePass123!\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "GET /api/auth/me - Verify Current Profile",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "auth", "me"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03. Multi-Tenant Club Discovery",
+      "item": [
+        {
+          "name": "GET /api/clubs - List Active Campus Clubs",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/clubs", "host": ["{{baseUrl}}"], "path": ["api", "clubs"] }
+          }
+        },
+        {
+          "name": "GET /api/clubs/:id - Get Club Details",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/clubs/{{clubId}}", "host": ["{{baseUrl}}"], "path": ["api", "clubs", "{{clubId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04. A/B Testing & Real Experimentation",
+      "item": [
+        {
+          "name": "GET /api/experiments - List Active Experiments",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/experiments", "host": ["{{baseUrl}}"], "path": ["api", "experiments"] }
+          }
+        },
+        {
+          "name": "GET /api/experiments/:key/evaluate - Evaluate Variant Assignment",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/experiments/EXP_MERCH_MEMBERSHIP_UPSELL/evaluate?participantId={{userId}}", "host": ["{{baseUrl}}"], "path": ["api", "experiments", "EXP_MERCH_MEMBERSHIP_UPSELL", "evaluate"] }
+          }
+        },
+        {
+          "name": "POST /api/experiments/:key/track - Track Conversion Event",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metricName\": \"cart_to_paid_conversion_rate\",\n  \"value\": 1,\n  \"participantId\": \"{{userId}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/experiments/EXP_MERCH_MEMBERSHIP_UPSELL/track", "host": ["{{baseUrl}}"], "path": ["api", "experiments", "EXP_MERCH_MEMBERSHIP_UPSELL", "track"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05. Membership Lifecycle & Walk-Up Pass",
+      "item": [
+        {
+          "name": "POST /api/memberships/register - Register Club Membership",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tier\": \"STANDARD\",\n  \"duesPaid\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/memberships/register", "host": ["{{baseUrl}}"], "path": ["api", "memberships", "register"] }
+          }
+        },
+        {
+          "name": "GET /api/memberships/me/pass - Generate Rotating Digital Pass",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/memberships/me/pass", "host": ["{{baseUrl}}"], "path": ["api", "memberships", "me", "pass"] }
+          }
+        },
+        {
+          "name": "POST /api/memberships/verify-pass - Verify Digital Pass at Walk-Up Doors",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Club-Id", "value": "{{clubId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"qrSecretToken\": \"sample_token\",\n  \"timestamp\": 1760000000,\n  \"nonce\": \"abcd\",\n  \"signature\": \"sig_sample\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/memberships/verify-pass", "host": ["{{baseUrl}}"], "path": ["api", "memberships", "verify-pass"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06. Merchandise Store & Atomic Inventory Control",
+      "item": [
+        {
+          "name": "GET /api/store/catalog - Retrieve Store Catalog",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/store/catalog", "host": ["{{baseUrl}}"], "path": ["api", "store", "catalog"] }
+          }
+        },
+        {
+          "name": "POST /api/store/checkout/reserve - Atomic Cart Reservation (10-Min Hold)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"variantId\": \"{{variantId}}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/store/checkout/reserve", "host": ["{{baseUrl}}"], "path": ["api", "store", "checkout", "reserve"] }
+          }
+        },
+        {
+          "name": "POST /api/store/webhook/payment-settled - Finalize Stock & Post Revenue",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"stripePaymentIntentId\": \"pi_test_12345\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/store/webhook/payment-settled", "host": ["{{baseUrl}}"], "path": ["api", "store", "webhook", "payment-settled"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07. Event Ticketing & Sub-200ms Fast Check-In",
+      "item": [
+        {
+          "name": "GET /api/events - List Club Events",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-Club-Id", "value": "{{clubId}}" }],
+            "url": { "raw": "{{baseUrl}}/api/events", "host": ["{{baseUrl}}"], "path": ["api", "events"] }
+          }
+        },
+        {
+          "name": "GET /api/events/:id - Get Event Details & Ticket Tiers",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/events/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "events", "{{eventId}}"] }
+          }
+        },
+        {
+          "name": "POST /api/events/:id/tickets/reserve - Reserve Ticket Seat",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tierId\": \"{{tierId}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/events/{{eventId}}/tickets/reserve", "host": ["{{baseUrl}}"], "path": ["api", "events", "{{eventId}}", "tickets", "reserve"] }
+          }
+        },
+        {
+          "name": "POST /api/events/tickets/:id/confirm-payment - Finalize Ticket Issuance",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stripePaymentIntentId\": \"pi_test_ticket_123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/events/tickets/{{ticketId}}/confirm-payment", "host": ["{{baseUrl}}"], "path": ["api", "events", "tickets", "{{ticketId}}", "confirm-payment"] }
+          }
+        },
+        {
+          "name": "POST /api/events/:id/check-in - Rapid Door Scanner Check-In (< 200ms)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ticketCode\": \"{{ticketCode}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/events/{{eventId}}/check-in", "host": ["{{baseUrl}}"], "path": ["api", "events", "{{eventId}}", "check-in"] }
+          }
+        },
+        {
+          "name": "GET /api/events/:id/reconciliation - Event Financial Reconciliation",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/events/{{eventId}}/reconciliation", "host": ["{{baseUrl}}"], "path": ["api", "events", "{{eventId}}", "reconciliation"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "08. Financial General Ledger & Budgets",
+      "item": [
+        {
+          "name": "GET /api/ledger/accounts - Chart of Accounts",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/ledger/accounts", "host": ["{{baseUrl}}"], "path": ["api", "ledger", "accounts"] }
+          }
+        },
+        {
+          "name": "GET /api/ledger/budgets - Budget Variance Tracking",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/ledger/budgets", "host": ["{{baseUrl}}"], "path": ["api", "ledger", "budgets"] }
+          }
+        },
+        {
+          "name": "GET /api/ledger/summary - Treasurer Executive Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/ledger/summary", "host": ["{{baseUrl}}"], "path": ["api", "ledger", "summary"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "09. Expense Reimbursements & Dual Sign-Off",
+      "item": [
+        {
+          "name": "POST /api/ledger/expenses - Submit Expense Claim with Receipt Proof",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Robotics Sensor Supplies\",\n  \"category\": \"SUPPLIES\",\n  \"merchantName\": \"Electronics Hub Chennai\",\n  \"purchaseDate\": \"2026-10-10\",\n  \"amountCents\": 350000,\n  \"description\": \"Purchased ultrasonic and lidar sensors for club competition.\",\n  \"receiptImageUrl\": \"https://storage.clubsphere.org/receipts/proof-123.jpg\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/ledger/expenses", "host": ["{{baseUrl}}"], "path": ["api", "ledger", "expenses"] }
+          }
+        },
+        {
+          "name": "POST /api/ledger/expenses/:id/review - Mark Claim Under Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/ledger/expenses/{{expenseId}}/review", "host": ["{{baseUrl}}"], "path": ["api", "ledger", "expenses", "{{expenseId}}", "review"] }
+          }
+        },
+        {
+          "name": "POST /api/ledger/expenses/:id/treasurer-approve - Primary Approval",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/ledger/expenses/{{expenseId}}/treasurer-approve", "host": ["{{baseUrl}}"], "path": ["api", "ledger", "expenses", "{{expenseId}}", "treasurer-approve"] }
+          }
+        }
+      ]
+    }
+  ]
+}

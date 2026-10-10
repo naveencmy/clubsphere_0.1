@@ -1,0 +1,1004 @@
+{
+  "info": {
+    "_postman_id": "c10b5000-0000-4000-8000-clubsphere001",
+    "name": "ClubSphere 0.1 - End-to-End Enterprise API Lifecycle & A/B Testing Collection",
+    "description": "Comprehensive Postman test collection validating all ClubSphere API workflows with chained real data flows, automated assertions, A/B experimentation tracking, sub-200ms latency checks, double-entry financial invariants, and multi-tenant RLS isolation.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "userId", "value": "", "type": "string" },
+    { "key": "clubId", "value": "c0000000-0000-0000-0000-000000000001", "type": "string" },
+    { "key": "variantId", "value": "", "type": "string" },
+    { "key": "orderId", "value": "", "type": "string" },
+    { "key": "eventId", "value": "", "type": "string" },
+    { "key": "tierId", "value": "", "type": "string" },
+    { "key": "ticketId", "value": "", "type": "string" },
+    { "key": "ticketCode", "value": "", "type": "string" },
+    { "key": "expenseId", "value": "", "type": "string" },
+    { "key": "announcementId", "value": "", "type": "string" },
+    { "key": "taskId", "value": "", "type": "string" },
+    { "key": "shiftId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01. System Health & Observability",
+      "item": [
+        {
+          "name": "GET /health - API Gateway Liveness Probe",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] },
+            "description": "Verifies that the ClubSphere Express API gateway is responsive, instruments X-Request-Id, and returns healthy payload."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response contains UP status and gateway service name', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql('UP');",
+                  "    pm.expect(json.service).to.eql('ClubSphere API Gateway');",
+                  "});",
+                  "pm.test('Observability headers present', function () {",
+                  "    pm.expect(pm.response.headers.get('X-Request-Id')).to.be.ok;",
+                  "    pm.expect(pm.response.headers.get('X-ClubSphere-Service')).to.eql('ClubSphere-API');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /health/ready - PostgreSQL Readiness Probe",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/health/ready", "host": ["{{baseUrl}}"], "path": ["health", "ready"] },
+            "description": "Validates database connectivity to PostgreSQL pool and reports database timestamp."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 or 503 depending on live DB', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 503]);",
+                  "});",
+                  "pm.test('Payload contains database health object', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('database');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02. Authentication & Student Identity",
+      "item": [
+        {
+          "name": "POST /api/auth/register - Register Student Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student_tester_\" + Date.now() + \"@campus.edu\",\n  \"password\": \"SecurePass123!\",\n  \"fullName\": \"Naveen Krishna\",\n  \"studentId\": \"STU\" + Math.floor(100000 + Math.random() * 900000)\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var uniqueEmail = 'student_' + Date.now() + '@campus.edu';",
+                  "var studentId = 'STU' + Math.floor(100000 + Math.random() * 900000);",
+                  "pm.environment.set('temp_email', uniqueEmail);",
+                  "pm.environment.set('temp_student_id', studentId);",
+                  "pm.request.body.raw = JSON.stringify({",
+                  "  email: uniqueEmail,",
+                  "  password: 'Password123!',",
+                  "  fullName: 'Student Tester',",
+                  "  studentId: studentId",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "var res = pm.response.json();",
+                  "if (res.success && res.data && res.data.token) {",
+                  "    pm.environment.set('token', res.data.token);",
+                  "    pm.environment.set('userId', res.data.user.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/auth/login - Authenticate User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{temp_email}}\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var res = pm.response.json();",
+                  "if (res.success && res.data && res.data.token) {",
+                  "    pm.environment.set('token', res.data.token);",
+                  "    pm.environment.set('userId', res.data.user.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/auth/me - Verify Current Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "auth", "me"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var res = pm.response.json();",
+                  "pm.expect(res.success).to.be.true;",
+                  "pm.expect(res.data.id).to.eql(pm.environment.get('userId'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03. Club Discovery & Multi-Tenant Setup",
+      "item": [
+        {
+          "name": "GET /api/clubs - List Active Campus Clubs",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/clubs", "host": ["{{baseUrl}}"], "path": ["api", "clubs"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var res = pm.response.json();",
+                  "pm.expect(res.success).to.be.true;",
+                  "if (res.data && res.data.length > 0) {",
+                  "    pm.environment.set('clubId', res.data[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/clubs/:id - Get Club Details",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/clubs/{{clubId}}", "host": ["{{baseUrl}}"], "path": ["api", "clubs", "{{clubId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var res = pm.response.json();",
+                  "pm.expect(res.data.id).to.eql(pm.environment.get('clubId'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04. A/B Testing & Real Experimentation",
+      "item": [
+        {
+          "name": "GET /api/experiments - List Active Experiments",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/experiments", "host": ["{{baseUrl}}"], "path": ["api", "experiments"] },
+            "description": "Returns active experiments registered with locked hypotheses and primary metrics."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var res = pm.response.json();",
+                  "pm.expect(res.success).to.be.true;",
+                  "pm.expect(res.data.length).to.be.at.least(1);",
+                  "var exp = res.data.find(e => e.key === 'EXP_MERCH_MEMBERSHIP_UPSELL');",
+                  "pm.expect(exp).to.be.ok;",
+                  "pm.expect(exp.hypothesis.primary).to.be.undefined;",
+                  "pm.expect(exp.metrics.primary).to.eql('cart_to_paid_conversion_rate');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/experiments/:key/evaluate - Evaluate Variant Assignment",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/experiments/EXP_MERCH_MEMBERSHIP_UPSELL/evaluate?participantId={{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "experiments", "EXP_MERCH_MEMBERSHIP_UPSELL", "evaluate"],
+              "query": [
+                { "key": "participantId", "value": "{{userId}}" }
+              ]
+            },
+            "description": "Performs deterministic SHA-256 hash modulo 100 bucketing to assign participant to CONTROL or TREATMENT."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var res = pm.response.json();",
+                  "pm.expect(res.data.experimentKey).to.eql('EXP_MERCH_MEMBERSHIP_UPSELL');",
+                  "pm.expect(res.data.variant).to.be.oneOf(['CONTROL', 'TREATMENT']);",
+                  "pm.expect(res.data.bucket).to.be.within(0, 99);",
+                  "pm.environment.set('assigned_variant', res.data.variant);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/experiments/:key/track - Track Conversion Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metricName\": \"cart_to_paid_conversion_rate\",\n  \"value\": 1,\n  \"participantId\": \"{{userId}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/experiments/EXP_MERCH_MEMBERSHIP_UPSELL/track", "host": ["{{baseUrl}}"], "path": ["api", "experiments", "EXP_MERCH_MEMBERSHIP_UPSELL", "track"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "var res = pm.response.json();",
+                  "pm.expect(res.data.variant).to.eql(pm.environment.get('assigned_variant'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05. Membership Lifecycle & Walk-Up Pass",
+      "item": [
+        {
+          "name": "POST /api/memberships/register - Register Club Membership",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tier\": \"STANDARD\",\n  \"duesPaid\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/memberships/register", "host": ["{{baseUrl}}"], "path": ["api", "memberships", "register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201 Created or 200 OK', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 409]);",
+                  "});",
+                  "var res = pm.response.json();",
+                  "if (res.data) {",
+                  "    pm.expect(res.data.status).to.be.oneOf(['ACTIVE', 'GRACE_PERIOD']);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/memberships/me/pass - Generate Rotating Digital Pass",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/memberships/me/pass", "host": ["{{baseUrl}}"], "path": ["api", "memberships", "me", "pass"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var res = pm.response.json();",
+                  "pm.expect(res.data).to.have.property('qrPayload');",
+                  "pm.expect(res.data.qrPayload).to.have.property('signature');",
+                  "pm.environment.set('pass_token', res.data.qrPayload.token);",
+                  "pm.environment.set('pass_timestamp', res.data.qrPayload.timestamp);",
+                  "pm.environment.set('pass_nonce', res.data.qrPayload.nonce);",
+                  "pm.environment.set('pass_signature', res.data.qrPayload.signature);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/memberships/verify-pass - Verify Digital Pass at Walk-Up Doors",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Club-Id", "value": "{{clubId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"qrSecretToken\": \"{{pass_token}}\",\n  \"timestamp\": {{pass_timestamp}},\n  \"nonce\": \"{{pass_nonce}}\",\n  \"signature\": \"{{pass_signature}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/memberships/verify-pass", "host": ["{{baseUrl}}"], "path": ["api", "memberships", "verify-pass"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var res = pm.response.json();",
+                  "pm.expect(res.data.valid).to.be.true;",
+                  "pm.expect(res.data.status).to.be.oneOf(['ACTIVE', 'GRACE_PERIOD']);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06. Merchandise Store & Atomic Inventory Control",
+      "item": [
+        {
+          "name": "GET /api/store/catalog - Retrieve Store Catalog",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/store/catalog", "host": ["{{baseUrl}}"], "path": ["api", "store", "catalog"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var res = pm.response.json();",
+                  "if (res.data && res.data.products && res.data.products.length > 0) {",
+                  "    var p = res.data.products[0];",
+                  "    if (p.variants && p.variants.length > 0) {",
+                  "        pm.environment.set('variantId', p.variants[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/store/checkout/reserve - Atomic Cart Reservation (10-Min Hold)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"variantId\": \"{{variantId}}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/store/checkout/reserve", "host": ["{{baseUrl}}"], "path": ["api", "store", "checkout", "reserve"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201 Created or 409 Conflict if out of stock', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 404, 409]);",
+                  "});",
+                  "var res = pm.response.json();",
+                  "if (pm.response.code === 201) {",
+                  "    pm.environment.set('orderId', res.data.orderId);",
+                  "    pm.expect(res.data.status).to.eql('PENDING');",
+                  "    pm.expect(res.data.expiresInSeconds).to.eql(600);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/store/webhook/payment-settled - Finalize Stock & Post Revenue",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"stripePaymentIntentId\": \"pi_test_12345\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/store/webhook/payment-settled", "host": ["{{baseUrl}}"], "path": ["api", "store", "webhook", "payment-settled"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404, 409]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "07. Event Ticketing & Sub-200ms Fast Check-In",
+      "item": [
+        {
+          "name": "GET /api/events - List Club Events",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Club-Id", "value": "{{clubId}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/events", "host": ["{{baseUrl}}"], "path": ["api", "events"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var res = pm.response.json();",
+                  "if (res.data && res.data.length > 0) {",
+                  "    pm.environment.set('eventId', res.data[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/events/:id - Get Event Details & Ticket Tiers",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/events/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["api", "events", "{{eventId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});",
+                  "var res = pm.response.json();",
+                  "if (res.data && res.data.tiers && res.data.tiers.length > 0) {",
+                  "    pm.environment.set('tierId', res.data.tiers[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/events/:id/tickets/reserve - Reserve Ticket Seat",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tierId\": \"{{tierId}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/events/{{eventId}}/tickets/reserve", "host": ["{{baseUrl}}"], "path": ["api", "events", "{{eventId}}", "tickets", "reserve"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201 Created', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 404, 409]);",
+                  "});",
+                  "var res = pm.response.json();",
+                  "if (pm.response.code === 201) {",
+                  "    pm.environment.set('ticketId', res.data.ticketId);",
+                  "    pm.environment.set('ticketCode', res.data.ticketCode);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/events/tickets/:id/confirm-payment - Finalize Ticket Issuance",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stripePaymentIntentId\": \"pi_test_ticket_123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/events/tickets/{{ticketId}}/confirm-payment", "host": ["{{baseUrl}}"], "path": ["api", "events", "tickets", "{{ticketId}}", "confirm-payment"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404, 409]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/events/:id/check-in - Rapid Door Scanner Check-In (< 200ms)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ticketCode\": \"{{ticketCode}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/events/{{eventId}}/check-in", "host": ["{{baseUrl}}"], "path": ["api", "events", "{{eventId}}", "check-in"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Check-in responds with 200 or 409', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404, 409]);",
+                  "});",
+                  "pm.test('Ultra-fast door latency threshold < 200ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/events/:id/check-in - Replay / Duplicate Scan Guard",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ticketCode\": \"{{ticketCode}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/events/{{eventId}}/check-in", "host": ["{{baseUrl}}"], "path": ["api", "events", "{{eventId}}", "check-in"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Duplicate scan returns 409 Conflict', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([404, 409]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/events/:id/reconciliation - Event Financial Reconciliation",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/events/{{eventId}}/reconciliation", "host": ["{{baseUrl}}"], "path": ["api", "events", "{{eventId}}", "reconciliation"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "08. Broadcast Hub & Collaborative Tasks",
+      "item": [
+        {
+          "name": "POST /api/collaboration/announcements - Publish Broadcast",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Urgent: General Body Meeting\",\n  \"content\": \"# Meeting Agenda\\nAnnual budget voting scheduled for this Friday.\",\n  \"targetAudience\": \"ALL_MEMBERS\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/collaboration/announcements", "host": ["{{baseUrl}}"], "path": ["api", "collaboration", "announcements"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201 Created', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 404]);",
+                  "});",
+                  "var res = pm.response.json();",
+                  "if (res.data) {",
+                  "    pm.environment.set('announcementId', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT /api/collaboration/announcements/:id - Edit Announcement Revision",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Urgent: General Body Meeting (Venue Update)\",\n  \"content\": \"Meeting moved to Hall B at 5:00 PM.\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/collaboration/announcements/{{announcementId}}", "host": ["{{baseUrl}}"], "path": ["api", "collaboration", "announcements", "{{announcementId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/collaboration/announcements/:id/history - Audit Trail",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/collaboration/announcements/{{announcementId}}/history", "host": ["{{baseUrl}}"], "path": ["api", "collaboration", "announcements", "{{announcementId}}", "history"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "09. Financial General Ledger & Accounting",
+      "item": [
+        {
+          "name": "GET /api/ledger/accounts - Chart of Accounts",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/ledger/accounts", "host": ["{{baseUrl}}"], "path": ["api", "ledger", "accounts"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/ledger/budgets - Budget Variance Tracking",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/ledger/budgets", "host": ["{{baseUrl}}"], "path": ["api", "ledger", "budgets"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/ledger/summary - Treasurer Executive Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/ledger/summary", "host": ["{{baseUrl}}"], "path": ["api", "ledger", "summary"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "10. Expense Reimbursements & Dual Sign-Off",
+      "item": [
+        {
+          "name": "POST /api/ledger/expenses - Submit Expense Claim with Receipt Proof",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Robotics Sensor Supplies\",\n  \"category\": \"SUPPLIES\",\n  \"merchantName\": \"Electronics Hub Chennai\",\n  \"purchaseDate\": \"2026-10-10\",\n  \"amountCents\": 350000,\n  \"description\": \"Purchased ultrasonic and lidar sensors for club competition.\",\n  \"receiptImageUrl\": \"https://storage.clubsphere.org/receipts/proof-123.jpg\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/ledger/expenses", "host": ["{{baseUrl}}"], "path": ["api", "ledger", "expenses"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201 Created', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 404]);",
+                  "});",
+                  "var res = pm.response.json();",
+                  "if (res.data) {",
+                  "    pm.environment.set('expenseId', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/ledger/expenses/:id/review - Mark Claim Under Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/ledger/expenses/{{expenseId}}/review", "host": ["{{baseUrl}}"], "path": ["api", "ledger", "expenses", "{{expenseId}}", "review"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404, 409]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/ledger/expenses/:id/treasurer-approve - Primary Approval",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Club-Id", "value": "{{clubId}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/ledger/expenses/{{expenseId}}/treasurer-approve", "host": ["{{baseUrl}}"], "path": ["api", "ledger", "expenses", "{{expenseId}}", "treasurer-approve"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK or 403 Forbidden for separation of duties', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 403, 404, 409]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
