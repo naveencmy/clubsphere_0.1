@@ -3,6 +3,22 @@
  * Holds reactive client state synchronized directly from the PostgreSQL backend
  */
 
+export const DEFAULT_CLUB = {
+  id: 'nec-cse',
+  backendId: 'c0000000-0000-0000-0000-000000000001',
+  slug: 'nec-cse',
+  name: 'Computer Science Association (Team MATRIX)',
+  description: 'Department of Computer Science and Engineering Collegiate Association',
+  initials: 'CSE',
+  category: 'Department Association',
+  fiscalYear: '2026–2027',
+  location: 'CS Block, NEC Campus',
+  logoUrl: '/images/clubsphere-logo.png',
+  bannerUrl: '/images/banner.jpg',
+  primaryColor: '#1a73e8',
+  annualDuesCents: 50000,
+};
+
 export function createInitialState() {
   return {
     version: 9,
@@ -13,7 +29,7 @@ export function createInitialState() {
       clubId: 'nec-cse',
     },
     users: [],
-    clubs: [],
+    clubs: [DEFAULT_CLUB],
     memberships: [],
     plans: [
       {

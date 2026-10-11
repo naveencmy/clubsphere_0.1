@@ -11,8 +11,8 @@ export function Clubs() {
     { slug } = useParams();
   const c = slug ? data.clubs.find((c) => c.slug === slug) : null;
   useEffect(() => {
-    if (c && c.id !== data.club.id) authService.switchClub(c.id);
-  }, [c?.id, data.club.id]);
+    if (c && c.id !== data.club?.id) authService.switchClub(c.id);
+  }, [c?.id, data.club?.id]);
   if (slug && !c)
     return (
       <Empty title="Club not found" action={<LinkButton to="/clubs">Browse clubs</LinkButton>} />

@@ -31,7 +31,7 @@ export default function Home() {
               Get started <ArrowRight size={16} aria-hidden="true" />
             </LinkButton>
           </div>
-          <p className="landing-campus">For {data.club.name}</p>
+          <p className="landing-campus">For {data.club?.name || 'ClubSphere'}</p>
         </div>
         <EventSlideshow events={data.events.slice(0, 3)} tiers={data.tiers} />
       </section>

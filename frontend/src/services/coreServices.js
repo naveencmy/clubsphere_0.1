@@ -1,4 +1,4 @@
-import { store } from './store.js';
+import { store, DEFAULT_CLUB } from './store.js';
 import {
   roleFor,
   eligible,
@@ -321,7 +321,7 @@ export function snapshot() {
     role,
     user: actor(s),
     membership: member(s),
-    club: s.clubs.find((c) => c.id === clubId || c.slug === clubId) || s.clubs[0],
+    club: s.clubs?.find((c) => c.id === clubId || c.slug === clubId) || s.clubs?.[0] || DEFAULT_CLUB,
     accounts: s.users || [],
     demoControls: import.meta.env?.VITE_DEMO_CONTROLS !== 'false',
   };

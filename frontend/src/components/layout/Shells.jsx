@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   CircleDot,
@@ -356,13 +356,14 @@ export function PortalShell() {
     [query, setQuery] = useState('');
   const navigate = useNavigate(),
     location = useLocation();
-  const root = `/dashboard/${data.club.slug}`;
+  const root = `/dashboard/${data.club?.slug || 'nec-cse'}`;
   const manage = managerRoles.includes(data.role),
     finance = financeRoles.includes(data.role),
     staff = staffRoles.includes(data.role);
   const groups = [
     {
       name: 'Your workspace',
+      icon: LayoutDashboard,
       items: [
         ['Overview', '/portal/dashboard', LayoutDashboard],
         ['My membership', '/portal/membership', CreditCard],
@@ -378,6 +379,7 @@ export function PortalShell() {
       ? [
           {
             name: 'Get involved',
+            icon: HeartHandshake,
             items: [
               ['Task board', manage ? `${root}/tasks` : '/portal/tasks', Columns3],
               [
@@ -396,6 +398,7 @@ export function PortalShell() {
       ? [
           {
             name: 'Club operations',
+            icon: Building2,
             items: [
               ['Members', `${root}/members`, Users],
               ['Manage events', `${root}/events`, CalendarDays],
@@ -411,6 +414,7 @@ export function PortalShell() {
       ? [
           {
             name: 'Finance & governance',
+            icon: Wallet,
             items: [
               ['Financial overview', `${root}/finance`, Wallet],
               ['Financial ledger', `${root}/ledger`, Receipt],
@@ -421,10 +425,11 @@ export function PortalShell() {
           },
         ]
       : []),
-    ...(['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(data.role)
+    ...(['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR', 'PRESIDENT', 'ADMIN', 'SUPER_ADMIN'].includes(data.role)
       ? [
           {
             name: 'Administration',
+            icon: Shield,
             items: [
               ['Club settings', `${root}/settings`, Settings],
               ['Roles & handover', `${root}/roles`, Shield],
@@ -434,6 +439,43 @@ export function PortalShell() {
         ]
       : []),
   ];
+
+  const isRouteInGroup = (group, pathname) => {
+    if (!group || !group.items) return false;
+    return group.items.some(([_, path]) => {
+      if (path === pathname) return true;
+      if (path === '/portal/dashboard') return false;
+      return pathname.startsWith(path + '/');
+    });
+  };
+
+  const matchingGroup = groups.find((g) => isRouteInGroup(g, location.pathname));
+  const [selectedCategory, setSelectedCategory] = useState(null);
+
+  useEffect(() => {
+    if (matchingGroup) {
+      setSelectedCategory(matchingGroup.name);
+    }
+  }, [location.pathname, matchingGroup?.name]);
+
+  const activeCategoryName =
+    selectedCategory && groups.some((g) => g.name === selectedCategory)
+      ? selectedCategory
+      : (matchingGroup?.name || groups[0]?.name || 'Your workspace');
+
+  const activeGroup = groups.find((g) => g.name === activeCategoryName) || groups[0];
+
+  const handleSelectCategory = (categoryName) => {
+    setSelectedCategory(categoryName);
+    const target = groups.find((g) => g.name === categoryName);
+    if (target && target.items.length > 0) {
+      const alreadyInTarget = isRouteInGroup(target, location.pathname);
+      if (!alreadyInTarget) {
+        navigate(target.items[0][1]);
+      }
+    }
+  };
+
   async function search(e) {
     e.preventDefault();
     navigate(`/portal/search?q=${encodeURIComponent(query)}`);
@@ -449,28 +491,80 @@ export function PortalShell() {
         onClick={() => setOpen(false)}
       />
       <aside className={`sidebar ${open ? 'open' : ''}`} aria-label="Workspace navigation">
-        <div className="sidebar-brand">
-          <Brand />
+        <div className="sidebar-header-gemini">
+          <button
+            type="button"
+            className="gemini-hamburger-btn"
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            onClick={() => {
+              if (window.innerWidth < 768) {
+                setOpen(false);
+              } else {
+                setCollapsed(!collapsed);
+              }
+            }}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            <Menu size={20} />
+          </button>
+          <div className="sidebar-brand-container">
+            <Brand />
+          </div>
         </div>
         <WorkspaceIdentity data={data} busy={busy} run={run} navigate={navigate} />
-        <nav className="sidebar-nav">
-          {groups.map((g) => (
-            <div key={g.name}>
-              <div className="nav-section">{g.name}</div>
-              {g.items.map(([name, path, Icon]) => (
-                <NavLink
-                  className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-                  end={name === 'Overview'}
-                  key={name}
-                  to={path}
-                  onClick={() => setOpen(false)}
-                >
-                  <Icon />
-                  <span>{name}</span>
-                </NavLink>
-              ))}
+
+        {groups.length > 1 && (
+          <div className="sidebar-gemini-categories">
+            <div className="gemini-category-header">
+              <span className="gemini-category-caption">Categories</span>
             </div>
-          ))}
+            <div className="gemini-category-pill-list">
+              {groups.map((group) => {
+                const GIcon = group.icon;
+                const isSelected = group.name === activeCategoryName;
+                return (
+                  <button
+                    key={group.name}
+                    type="button"
+                    className={`gemini-cat-pill ${isSelected ? 'active' : ''}`}
+                    onClick={() => handleSelectCategory(group.name)}
+                    title={`${group.name} (${group.items.length})`}
+                  >
+                    <GIcon size={16} />
+                    <span className="gemini-cat-text">{group.name}</span>
+                    <span className="gemini-cat-badge">{group.items.length}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <nav className="sidebar-nav">
+          {activeGroup && (
+            <>
+              <div className="sidebar-active-domain-heading">
+                <activeGroup.icon size={15} className="active-domain-icon" />
+                <span className="active-domain-name">{activeGroup.name}</span>
+              </div>
+
+              <div className="sidebar-items-list">
+                {activeGroup.items.map(([name, path, Icon]) => (
+                  <NavLink
+                    className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                    end={name === 'Overview' || path === '/events' || path === '/store'}
+                    key={name}
+                    to={path}
+                    onClick={() => setOpen(false)}
+                    title={name}
+                  >
+                    <Icon size={18} />
+                    <span className="nav-item-label">{name}</span>
+                  </NavLink>
+                ))}
+              </div>
+            </>
+          )}
         </nav>
         <div className="sidebar-bottom">
           <Link to="/portal/profile" className="row">
@@ -498,35 +592,29 @@ export function PortalShell() {
       </aside>
       <div className="main-shell">
         <header className="topbar">
-          <Button
-            className="desktop-menu"
-            icon
-            aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
-            onClick={() => setCollapsed(!collapsed)}
-          >
-            <Menu size={20} />
-          </Button>
-          <Button
-            icon
-            className="mobile-menu"
-            aria-label="Open navigation"
-            aria-expanded={open}
-            onClick={() => setOpen(true)}
-          >
-            <Menu size={20} />
-          </Button>
-          <form className="topbar-search" onSubmit={search}>
-            <Search />
-            <input
-              className="input"
-              aria-label="Search ClubSphere"
-              placeholder="Search events, tasks, announcements…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </form>
+          <div className="topbar-left">
+            <Button
+              icon
+              className="mobile-menu"
+              aria-label="Open navigation"
+              aria-expanded={open}
+              onClick={() => setOpen(true)}
+            >
+              <Menu size={20} />
+            </Button>
+            <form className="topbar-search" onSubmit={search}>
+              <Search />
+              <input
+                className="input"
+                aria-label="Search ClubSphere"
+                placeholder="Search events, tasks, announcements…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </form>
+          </div>
           <div className="topbar-right">
-            <span className="caption muted">{data.club.fiscalYear}</span>
+            <span className="caption muted">{data.club?.fiscalYear || '2026–2027'}</span>
             <LinkButton to="/portal/notifications">
               <Bell size={18} />
               <span className="sr-only">Notifications</span>
