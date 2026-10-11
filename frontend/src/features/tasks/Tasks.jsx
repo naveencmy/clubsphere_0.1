@@ -66,12 +66,12 @@ export default function Tasks() {
       </div>
       <h3>{t.title}</h3>
       <span className="caption muted">
-        {t.checklist.filter((c) => c.done).length} of {t.checklist.length} done
+        {(t.checklist || []).filter((c) => c.done).length} of {(t.checklist || []).length} done
       </span>
       <Progress
         value={
-          t.checklist.length
-            ? (t.checklist.filter((c) => c.done).length / t.checklist.length) * 100
+          t.checklist?.length
+            ? ((t.checklist || []).filter((c) => c.done).length / t.checklist.length) * 100
             : 0
         }
       />
@@ -203,7 +203,7 @@ export default function Tasks() {
           <div className="stack">
             <Badge value={selected.status} />
             <p>{selected.description}</p>
-            {selected.checklist.map((item, i) => (
+            {(selected.checklist || []).map((item, i) => (
               <label className="checkbox-label" key={i}>
                 <input
                   type="checkbox"
@@ -214,7 +214,7 @@ export default function Tasks() {
                       () =>
                         taskService.update({
                           taskId: selected.id,
-                          checklist: selected.checklist.map((c, n) =>
+                          checklist: (selected.checklist || []).map((c, n) =>
                             n === i ? { ...c, done: e.target.checked } : c,
                           ),
                         }),

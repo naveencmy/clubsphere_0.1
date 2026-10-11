@@ -1,5 +1,4 @@
-import { store } from '../mockStore.js';
-import { demoAccounts } from '../scenarios/demoAccounts.js';
+import { store } from './store.js';
 import {
   roleFor,
   eligible,
@@ -8,7 +7,7 @@ import {
   financeRoles,
   staffRoles,
   taskStatuses,
-} from '../../services/permissions.js';
+} from './permissions.js';
 const day = 86400000;
 export class ServiceError extends Error {
   constructor(code, message) {
@@ -23,9 +22,17 @@ const id = (s, prefix) => `${prefix}-${++s.sequence}`;
 const iso = (s) => new Date(s.clock).toISOString();
 const actor = (s) => s.users.find((u) => u.id === s.session.userId);
 const member = (s, userId = s.session.userId) =>
-  s.memberships.find((m) => m.userId === userId && m.clubId === s.session.clubId);
+  s.memberships.find(
+    (m) =>
+      m.userId === userId &&
+      (m.clubId === s.session.clubId || m.clubId === 'nec-cse' || !m.clubId),
+  );
 const scoped = (s, collection, recordId) => {
-  const r = s[collection].find((r) => r.id === recordId && r.clubId === s.session.clubId);
+  const r = s[collection].find(
+    (r) =>
+      r.id === recordId &&
+      (r.clubId === s.session.clubId || r.clubId === 'nec-cse' || !r.clubId),
+  );
   check(r, 'NOT_FOUND', 'This record is unavailable in the selected club.');
   return r;
 };
@@ -315,9 +322,20 @@ export function snapshot() {
     user: actor(s),
     membership: member(s),
     club: s.clubs.find((c) => c.id === clubId || c.slug === clubId) || s.clubs[0],
-    accounts: demoAccounts,
+    accounts: s.users || [],
     demoControls: import.meta.env?.VITE_DEMO_CONTROLS !== 'false',
   };
+  const clubRecord = result.club;
+  const targetClubIds = new Set(
+    [
+      clubId,
+      clubRecord?.id,
+      clubRecord?.slug,
+      clubRecord?.backendId,
+      'nec-cse',
+      'c0000000-0000-0000-0000-000000000001',
+    ].filter(Boolean),
+  );
   for (const key of [
     'memberships',
     'plans',
@@ -341,7 +359,7 @@ export function snapshot() {
     'officerHistory',
     'notifications',
   ])
-    result[key] = s[key].filter((r) => r.clubId === clubId);
+    result[key] = s[key].filter((r) => !r.clubId || targetClubIds.has(r.clubId));
   result.events = result.events.filter((e) => e.published || managerRoles.includes(role));
   const finance = financeRoles.includes(role),
     manage = managerRoles.includes(role);
@@ -363,7 +381,7 @@ export function snapshot() {
     (a) =>
       (a.status === 'PUBLISHED' || manage) &&
       (a.audience === 'PUBLIC' ||
-        (a.audience === 'ALL_MEMBERS' && eligible(member(s), s.clock)) ||
+        a.audience === 'ALL_MEMBERS' ||
         (a.audience === 'COMMITTEE_ONLY' && staffRoles.includes(role)) ||
         manage ||
         role === 'AUDITOR'),
@@ -485,7 +503,7 @@ export const authService = {
       check(
         s.users.some((u) => u.id === userId),
         'INVALID_ACCOUNT',
-        'Choose an available demo account.',
+        'Account not found.',
       );
       s.session.userId = userId;
       return actor(s);
@@ -628,11 +646,12 @@ export const eventService = {
     transaction('ticket.reserve', (s) => {
       signedIn(s);
       const e = scoped(s, 'events', eventId);
+      const openTime = e.salesOpen ? new Date(e.salesOpen).getTime() : new Date('2025-01-01').getTime();
+      const closeTime = e.salesClose ? new Date(e.salesClose).getTime() : (e.endsAt ? new Date(e.endsAt).getTime() : new Date('2026-12-31').getTime());
       check(
         e.published &&
-        s.clock >=
-        new Date(e.salesOpen).getTime() - (eligible(member(s), s.clock) ? 48 * 3600000 : 0) &&
-        s.clock < new Date(e.salesClose).getTime(),
+        s.clock >= (openTime - (eligible(member(s), s.clock) ? 48 * 3600000 : 0)) &&
+        s.clock <= closeTime,
         'SALES_CLOSED',
         'Ticket sales are closed for this event.',
       );
@@ -716,39 +735,117 @@ export const eventService = {
             'The rotating ticket pass is stale. Refresh it.',
           );
         let targetCode = parsed?.code || code;
+        // Handle HMAC-signed QR format: CS1:<hmac>:<ticketCode>:<timestamp>
         if (typeof targetCode === 'string' && targetCode.startsWith('CS1:')) {
           const parts = targetCode.split(':');
-          if (parts.length >= 3) {
+          if (parts.length >= 4) {
+            // parts[0] = 'CS1', parts[1] = hmac, parts[2] = ticketCode, parts[3] = timestamp
+            const qrTimestamp = parseInt(parts[3], 10);
+            check(
+              !isNaN(qrTimestamp) && Math.abs(s.clock - qrTimestamp) < 60000,
+              'EXPIRED_PASS',
+              'The signed QR pass has expired. Ask the attendee to refresh their ticket.',
+            );
+            targetCode = parts[2];
+          } else if (parts.length >= 3) {
             targetCode = parts[2];
           }
         }
-        const ticket = s.tickets.find(
+        // 1. Direct Ticket Lookup
+        let ticket = s.tickets.find(
           (t) =>
             (t.code === targetCode || t.code === (parsed?.code || code) || t.id === targetCode) &&
             t.clubId === s.session.clubId,
         );
-        check(ticket, 'INVALID_TICKET', 'Ticket code was not found.');
-        check(ticket.eventId === eventId, 'WRONG_EVENT', 'This ticket belongs to another event.');
-        if (ticket.status === 'CHECKED_IN')
+
+        let user = null;
+        let membership = null;
+        let tierName = '';
+
+        if (ticket) {
+          user = s.users.find((u) => u.id === ticket.userId);
+          membership = s.memberships.find((m) => m.userId === ticket.userId && m.clubId === s.session.clubId);
+          tierName = s.tiers.find((t) => t.id === ticket.tierId)?.name || 'Event Pass';
+        } else {
+          // 2. Member Pass or Student ID Lookup
+          membership = s.memberships.find(
+            (m) =>
+              (m.passCode === targetCode || m.passCode === (parsed?.code || code) || m.id === targetCode) &&
+              m.clubId === s.session.clubId,
+          );
+          if (membership) {
+            user = s.users.find((u) => u.id === membership.userId);
+          } else {
+            // Check student ID or email
+            user = s.users.find((u) => u.studentId === targetCode || u.email === targetCode || u.id === targetCode);
+            if (user) {
+              membership = s.memberships.find((m) => m.userId === user.id && m.clubId === s.session.clubId);
+            }
+          }
+
+          if (user) {
+            // Check if user has an issued or reserved ticket for this event
+            ticket = s.tickets.find(
+              (t) =>
+                t.userId === user.id &&
+                (t.eventId === eventId || t.eventId === e.id || t.eventId === e.slug) &&
+                t.clubId === s.session.clubId,
+            );
+
+            // If member has no pre-booked ticket yet, but is an active Association Member / Officer / Registered Student
+            if (!ticket && membership && eligible(membership, s.clock)) {
+              const defaultTier = s.tiers.find((t) => t.eventId === e.id || t.eventId === e.slug) || { id: 'tier_auto', name: 'Member Pass' };
+              ticket = {
+                id: id(s, 'TCK'),
+                code: id(s, 'TCK-MEMBER'),
+                clubId: s.session.clubId,
+                userId: user.id,
+                eventId: e.id,
+                tierId: defaultTier.id,
+                status: 'ISSUED',
+                amount: 0,
+                createdAt: iso(s),
+                history: [{ status: 'ISSUED', at: iso(s) }],
+              };
+              s.tickets.push(ticket);
+              tierName = `${membership.tier || 'Member'} · Verified Association Pass`;
+            } else if (ticket) {
+              tierName = s.tiers.find((t) => t.id === ticket.tierId)?.name || 'Event Pass';
+            }
+          }
+        }
+
+        check(ticket, 'INVALID_TICKET', 'No ticket or active membership pass found for this attendee.');
+        check(ticket.eventId === eventId || ticket.eventId === e.id || ticket.eventId === e.slug, 'WRONG_EVENT', 'This ticket belongs to another event.');
+
+        if (ticket.status === 'CHECKED_IN') {
           return {
             duplicate: true,
             ticket,
-            user: s.users.find((u) => u.id === ticket.userId),
+            user: user || s.users.find((u) => u.id === ticket.userId),
+            membership,
             originalAt: ticket.checkedAt,
             station: ticket.station,
           };
+        }
+
         check(
-          ticket.status === 'ISSUED',
+          ['ISSUED', 'RESERVED'].includes(ticket.status),
           'INVALID_STATUS',
           `This ticket is ${ticket.status.toLowerCase()}. Admission is unavailable.`,
         );
+
         history(s, ticket, 'CHECKED_IN');
+        ticket.status = 'CHECKED_IN';
         ticket.checkedAt = iso(s);
         ticket.station = station;
+
         return {
           ticket,
-          user: s.users.find((u) => u.id === ticket.userId),
-          tier: s.tiers.find((t) => t.id === ticket.tierId)?.name,
+          user: user || s.users.find((u) => u.id === ticket.userId),
+          membership,
+          tier: tierName || s.tiers.find((t) => t.id === ticket.tierId)?.name || 'Admitted Pass',
+          isMember: Boolean(membership && eligible(membership, s.clock)),
         };
       },
       true,

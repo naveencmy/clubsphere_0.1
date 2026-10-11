@@ -95,11 +95,11 @@ export function Card({ title, action, children, className = '' }) {
     </section>
   );
 }
-export function Metric({ label, value, icon: Icon, detail }) {
-  return (
-    <Card className="metric">
+export function Metric({ label, value, icon: Icon, detail, to, actionLabel, className = '' }) {
+  const content = (
+    <>
       <div className="metric-top">
-        <span>{label}</span>
+        <span className="metric-label">{label}</span>
         {Icon && (
           <span className="metric-icon">
             <Icon size={18} />
@@ -107,9 +107,29 @@ export function Metric({ label, value, icon: Icon, detail }) {
         )}
       </div>
       <strong className="metric-value">{value}</strong>
-      {detail && <span className="caption muted">{detail}</span>}
-    </Card>
+      {(detail || actionLabel) && (
+        <div className="metric-footer">
+          {detail && <span className="caption muted metric-detail">{detail}</span>}
+          {actionLabel && (
+            <span className="metric-action">
+              <span>{actionLabel}</span>
+              <ArrowUpRight size={14} className="metric-action-icon" />
+            </span>
+          )}
+        </div>
+      )}
+    </>
   );
+
+  if (to) {
+    return (
+      <Link to={to} className={`card metric metric-interactive ${className}`}>
+        {content}
+      </Link>
+    );
+  }
+
+  return <Card className={`metric ${className}`}>{content}</Card>;
 }
 export function Empty({
   title = 'Nothing here yet',

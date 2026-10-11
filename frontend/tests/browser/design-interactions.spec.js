@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { createBrowserAuditSeed } from '../../src/mock/scenarios/browserAudit.js';
+import { createBrowserAuditSeed } from './helpers.js';
 import fs from 'node:fs';
 test('desktop navigation collapse and expand remain keyboard accessible', async ({ page }) => {
   await page.addInitScript(

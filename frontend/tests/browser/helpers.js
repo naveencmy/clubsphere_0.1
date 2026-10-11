@@ -1,7 +1,7 @@
-import { createSeed } from '../data/seed.js';
-// Reproducible browser audit fixtures; never embedded in page components or tests.
+import { createInitialState } from '../../src/services/store.js';
+
 export function createBrowserAuditSeed(role = 'visitor') {
-  const s = createSeed();
+  const s = createInitialState();
   s.session.userId = role;
   s.orders.push({
     id: 'ORD-AUDIT',

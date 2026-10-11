@@ -4,21 +4,38 @@ export const currency = (amount) =>
     currency: 'INR',
     minimumFractionDigits: 2,
   }).format((amount || 0) / 100);
-export const date = (value) =>
-  new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'Asia/Kolkata',
-  }).format(new Date(value));
-export const datetime = (value) =>
-  new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'Asia/Kolkata',
-  }).format(new Date(value));
+export const date = (value) => {
+  if (!value) return '—';
+  try {
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return '—';
+    return new Intl.DateTimeFormat('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'Asia/Kolkata',
+    }).format(d);
+  } catch {
+    return '—';
+  }
+};
+
+export const datetime = (value) => {
+  if (!value) return '—';
+  try {
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return '—';
+    return new Intl.DateTimeFormat('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Asia/Kolkata',
+    }).format(d);
+  } catch {
+    return '—';
+  }
+};
 export const initials = (name) =>
   (name || '?')
     .split(' ')

@@ -119,8 +119,10 @@ export class LedgerRepository {
   static async getBudgetVariance(clubId, fiscalYear = '2025-2026', client = null) {
     const runner = client || { query };
     const res = await runner.query(
-      `SELECT * FROM view_budget_variance
-       WHERE club_id = $1 AND fiscal_year = $2;`,
+      `SELECT vb.*, b.items_json
+       FROM view_budget_variance vb
+       JOIN budgets b ON vb.budget_id = b.id
+       WHERE vb.club_id = $1 AND vb.fiscal_year = $2;`,
       [clubId, fiscalYear]
     );
     return res.rows;

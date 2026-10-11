@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createBrowserAuditSeed } from '../../src/mock/scenarios/browserAudit.js';
+import { createBrowserAuditSeed } from './helpers.js';
 import fs from 'node:fs';
 test('Treasurer closes the semester by exporting the balanced ledger', async ({ page }) => {
   await page.addInitScript((s) => {

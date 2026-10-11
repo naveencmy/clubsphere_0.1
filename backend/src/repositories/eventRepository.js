@@ -6,7 +6,27 @@ export class EventRepository {
     const res = await runner.query(
       `SELECT e.*, 
               COALESCE(SUM(ett.allocation_limit), 0) as total_capacity,
-              COALESCE(SUM(ett.issued_count), 0) as total_tickets_sold
+              COALESCE(SUM(ett.issued_count), 0) as total_tickets_sold,
+              COALESCE(
+                JSON_AGG(
+                  JSON_BUILD_OBJECT(
+                    'id', ett.id,
+                    'eventId', e.id,
+                    'name', ett.name,
+                    'description', ett.description,
+                    'member_price_cents', ett.member_price_cents,
+                    'non_member_price_cents', ett.non_member_price_cents,
+                    'memberPriceCents', ett.member_price_cents,
+                    'nonMemberPriceCents', ett.non_member_price_cents,
+                    'allocation_limit', ett.allocation_limit,
+                    'issued_count', ett.issued_count,
+                    'reserved_count', ett.reserved_count,
+                    'sales_open_at', ett.sales_open_at,
+                    'sales_close_at', ett.sales_close_at
+                  )
+                ) FILTER (WHERE ett.id IS NOT NULL),
+                '[]'::json
+              ) as tiers
        FROM events e
        LEFT JOIN event_ticket_tiers ett ON e.id = ett.event_id
        WHERE e.club_id = $1
@@ -106,7 +126,7 @@ export class EventRepository {
          LEFT JOIN user_profiles up ON u.id = up.user_id
          JOIN event_ticket_tiers ett ON t.tier_id = ett.id
          JOIN events e ON t.event_id = e.id
-         WHERE t.ticket_code = $1 AND t.event_id = $2
+         WHERE t.ticket_code = $1 AND (t.event_id::text = $2 OR e.slug = $2)
          LIMIT 1;`
       : `SELECT t.*, u.name as attendee_name, up.student_id_number as student_id, u.email as attendee_email,
                 ett.name as tier_name, e.title as event_title, e.club_id
@@ -122,23 +142,26 @@ export class EventRepository {
     return res.rows[0] || null;
   }
 
+  static isUuid(str) {
+    return typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+  }
+
   static async findTicketByIdForUpdate(ticketId, client) {
-    const res = await client.query(
-      `SELECT * FROM tickets WHERE id = $1 FOR UPDATE;`,
-      [ticketId]
-    );
+    const isIdUuid = this.isUuid(ticketId);
+    const sql = isIdUuid
+      ? `SELECT * FROM tickets WHERE id = $1 FOR UPDATE;`
+      : `SELECT * FROM tickets WHERE ticket_code = $1 FOR UPDATE;`;
+    const res = await client.query(sql, [ticketId]);
     return res.rows[0] || null;
   }
 
   static async updateTicketStatus(ticketId, status, client = null) {
     const runner = client || { query };
-    const res = await runner.query(
-      `UPDATE tickets
-       SET status = $1, updated_at = NOW()
-       WHERE id = $2
-       RETURNING *;`,
-      [status, ticketId]
-    );
+    const isIdUuid = this.isUuid(ticketId);
+    const sql = isIdUuid
+      ? `UPDATE tickets SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *;`
+      : `UPDATE tickets SET status = $1, updated_at = NOW() WHERE ticket_code = $2 RETURNING *;`;
+    const res = await runner.query(sql, [status, ticketId]);
     return res.rows[0] || null;
   }
 

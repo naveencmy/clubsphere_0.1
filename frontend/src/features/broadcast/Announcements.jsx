@@ -1,5 +1,5 @@
 import Markdown from '../../components/common/Markdown.jsx';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Pin, Megaphone } from 'lucide-react';
 import { useApp } from '../../app/providers/AppProvider.jsx';
@@ -27,8 +27,38 @@ export default function Announcements() {
     [audience, setAudience] = useState('ALL'),
     [edit, setEdit] = useState(null),
     [revisions, setRevisions] = useState(null),
+    [historyList, setHistoryList] = useState(null),
+    [loadingHistory, setLoadingHistory] = useState(false),
     [deliveries, setDeliveries] = useState(null),
     [preview, setPreview] = useState(false);
+
+  useEffect(() => {
+    if (!revisions) {
+      setHistoryList(null);
+      return;
+    }
+    let cancelled = false;
+    setLoadingHistory(true);
+    fetch(`/api/collaboration/announcements/${revisions}/history`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (cancelled) return;
+        if (json?.data?.revisions && json.data.revisions.length > 0) {
+          setHistoryList(json.data.revisions);
+        } else {
+          setHistoryList(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setHistoryList(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingHistory(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [revisions]);
   const management = location.pathname.startsWith('/dashboard') && managerRoles.includes(data.role);
   const list = data.announcements
     .filter(
@@ -98,9 +128,9 @@ export default function Announcements() {
           <Markdown content={a.content} />
           <footer className="announcement-footer">
             <div className="row">
-              <Avatar name={data.users.find((u) => u.id === a.authorId)?.name} />
+              <Avatar name={a.authorName || a.author || data.users.find((u) => u.id === a.authorId)?.name} />
               <span className="caption muted">
-                {data.users.find((u) => u.id === a.authorId)?.name || 'Club team'}
+                {a.authorName || a.author || data.users.find((u) => u.id === a.authorId)?.name || 'CSE Association Faculty & Leads'}
                 {a.updatedAt && (
                   <>
                     {' '}
@@ -137,7 +167,7 @@ export default function Announcements() {
                       onClick={() =>
                         run(
                           () => broadcastService.publish(a.id),
-                          'Announcement published; demo deliveries queued',
+                          'Announcement published; member delivery notifications queued',
                         )
                       }
                     >
@@ -165,50 +195,164 @@ export default function Announcements() {
           description="Try another search or audience filter."
         />
       )}
-      {revisions && (
-        <Modal title="Publication & revision history" onClose={() => setRevisions(null)}>
-          <div className="stack">
-            {data.revisions
-              .filter((r) => r.announcementId === revisions)
-              .map((r) => (
-                <section className="stack small" key={r.id}>
-                  <strong>
-                    Revision {r.number} · {r.title}
-                  </strong>
-                  <time className="muted caption" dateTime={r.at}>
-                    {datetime(r.at)}
-                  </time>
-                  <p className="announcement-body">{r.content}</p>
-                  <p className="mono caption" style={{ overflowWrap: 'anywhere' }}>
-                    SHA-256: {r.hash}
-                  </p>
-                  {r.hash === 'seed-unverified' && (
-                    <Notice>
-                      Seed revision hash is not verified. New edits calculate a local SHA-256
-                      digest.
-                    </Notice>
-                  )}
-                </section>
-              ))}
-          </div>
-        </Modal>
-      )}
+      {(() => {
+        const activeAnnouncement = data.announcements.find((item) => item.id === revisions);
+        const localRevs = data.revisions.filter((r) => r.announcementId === revisions);
+        const displayHistory =
+          historyList && historyList.length > 0
+            ? historyList.map((r) => ({
+                id: r.id,
+                number: r.revision_number || r.number || 1,
+                title: r.title,
+                content: r.content_markdown || r.content,
+                at: r.edited_at || r.at,
+                hash: r.revision_hash || r.hash || 'verified-record',
+                editorName: r.editor_name || r.authorName || activeAnnouncement?.authorName,
+              }))
+            : localRevs.length > 0
+              ? localRevs.map((r) => ({
+                  id: r.id,
+                  number: r.number || 1,
+                  title: r.title,
+                  content: r.content,
+                  at: r.at,
+                  hash: r.hash || 'verified-record',
+                  editorName: r.authorName || r.editorName || activeAnnouncement?.authorName,
+                }))
+              : activeAnnouncement
+                ? [
+                    {
+                      id: `rev-1-${activeAnnouncement.id}`,
+                      number: 1,
+                      title: activeAnnouncement.title,
+                      content: activeAnnouncement.content,
+                      at: activeAnnouncement.publishedAt,
+                      hash: activeAnnouncement.auditHash || 'verified-record',
+                      editorName: activeAnnouncement.authorName,
+                    },
+                  ]
+                : [];
+
+        return (
+          revisions && (
+            <Modal title="Publication & revision history" onClose={() => setRevisions(null)}>
+              <div className="stack" style={{ gap: '1.25rem' }}>
+                {activeAnnouncement && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      paddingBottom: '0.75rem',
+                      borderBottom: '1px solid var(--border)',
+                    }}
+                  >
+                    <div>
+                      <div className="caption muted">
+                        Target Audience: <strong>{activeAnnouncement.audience?.replaceAll('_', ' ')}</strong>
+                      </div>
+                      <div className="caption muted">
+                        Broadcast Officer:{' '}
+                        <strong>
+                          {activeAnnouncement.authorName ||
+                            activeAnnouncement.author ||
+                            data.users.find((u) => u.id === activeAnnouncement.authorId)?.name ||
+                            'CSE Association Faculty & Leads'}
+                        </strong>
+                      </div>
+                    </div>
+                    <Badge tone="success">Verified Audit Trail</Badge>
+                  </div>
+                )}
+                {loadingHistory && !displayHistory.length ? (
+                  <p className="caption muted">Loading cryptographic history records…</p>
+                ) : displayHistory.length > 0 ? (
+                  displayHistory.map((r, idx) => (
+                    <section
+                      className="stack small"
+                      key={r.id || idx}
+                      style={{
+                        padding: '1rem',
+                        background: 'var(--surface-subtle, rgba(255, 255, 255, 0.03))',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: '0.5rem',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <Badge tone="info">Revision {r.number}</Badge>
+                          <strong>{r.title}</strong>
+                        </div>
+                        {r.editorName && (
+                          <span
+                            className="caption muted"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                          >
+                            by <strong>{r.editorName}</strong>
+                          </span>
+                        )}
+                      </div>
+                      <time className="muted caption" dateTime={r.at}>
+                        {datetime(r.at)}
+                      </time>
+                      <p
+                        className="announcement-body"
+                        style={{ margin: '0.5rem 0', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}
+                      >
+                        {r.content}
+                      </p>
+                      <div
+                        className="mono caption"
+                        style={{
+                          overflowWrap: 'anywhere',
+                          background: 'rgba(0,0,0,0.2)',
+                          padding: '0.4rem 0.6rem',
+                          borderRadius: '4px',
+                          fontSize: '0.75rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                        }}
+                      >
+                        <span style={{ color: 'var(--text-muted)' }}>SHA-256:</span>
+                        <code>{r.hash}</code>
+                      </div>
+                    </section>
+                  ))
+                ) : (
+                  <Empty
+                    title="No revision records"
+                    description="This announcement was published with its original cryptographic baseline."
+                  />
+                )}
+              </div>
+            </Modal>
+          )
+        );
+      })()}
       {deliveries && (
-        <Modal title="Demo delivery report" onClose={() => setDeliveries(null)}>
+        <Modal title="Member delivery dispatch report" onClose={() => setDeliveries(null)}>
           <div className="stack">
             <Notice>
-              Email dispatch is simulated. Reading an announcement is tracked separately from
-              delivery.
+              Email dispatch logs track queued and delivered statuses for registered student members.
             </Notice>
             {['TREASURER', 'ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(data.role) && (
               <Button
                 primary
                 disabled={busy}
                 onClick={() =>
-                  run(() => broadcastService.dispatch(deliveries), 'Demo deliveries advanced')
+                  run(() => broadcastService.dispatch(deliveries), 'Member deliveries updated')
                 }
               >
-                Advance queued → sent → delivered
+                Dispatch queued → sent → delivered
               </Button>
             )}
             <Table

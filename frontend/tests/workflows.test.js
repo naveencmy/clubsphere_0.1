@@ -1,5 +1,5 @@
 import { beforeEach, describe, it, expect } from 'vitest';
-import { store } from '../src/mock/mockStore.js';
+import { store } from '../src/services/store.js';
 import {
   authService,
   membershipService,
@@ -194,7 +194,7 @@ describe('Official Skyline journeys through the shared services', () => {
     const e = snapshot().expenses[0];
     await expenseService.save({
       ...e,
-      receipt: '/receipt-demo.svg',
+      receipt: '/receipts/receipt-aura-stage.pdf',
       purpose: 'Cups and packaging',
     });
     await login('treasurer');
@@ -233,7 +233,7 @@ describe('Domain safeguards', () => {
       category: 'SUPPLIES',
       amount: 10000,
       purpose: 'Test',
-      receipt: '/receipt-demo.svg',
+      receipt: '/receipts/receipt-aura-stage.pdf',
     });
     await expect(
       expenseService.decision({ expenseId: e.id, decision: 'review' }),

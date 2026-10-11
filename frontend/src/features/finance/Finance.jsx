@@ -531,7 +531,7 @@ export default function Finance({ dashboard = false }) {
         </Modal>
       )}
       {adjust && (
-        <Modal title="Post a balanced demo adjustment" onClose={() => setAdjust(false)}>
+        <Modal title="Post a balanced journal adjustment" onClose={() => setAdjust(false)}>
           <RecordForm
             fields={[
               { name: 'description', label: 'Description', required: true, full: true },
@@ -550,12 +550,12 @@ export default function Finance({ dashboard = false }) {
       )}
       {reverse && (
         <Confirm
-          title="Reverse this demo donation?"
-          description="This records a revenue reversal and reduces the campaign’s raised amount and operating cash."
+          title="Reverse this contribution?"
+          description="This records a revenue reversal and updates the campaign’s balance and financial ledger."
           onClose={() => setReverse(null)}
           onConfirm={async () => {
             await fundraiserService.reverseDonation(reverse);
-            toast('Donation reversed');
+            toast('Contribution reversed');
             setReverse(null);
           }}
         />
@@ -624,6 +624,29 @@ export function Budgets() {
                       ['Event', data.events.find((e) => e.id === b.eventId)?.title || 'Club-wide'],
                     ]}
                   />
+                  {b.items && Array.isArray(b.items) && b.items.length > 0 && (
+                    <div style={{ marginTop: 12, borderTop: '1px solid var(--border-subtle, #e2e8f0)', paddingTop: 10 }}>
+                      <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Approved Line Items:</h4>
+                      <table style={{ width: '100%', fontSize: 12, textAlign: 'left', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ color: 'var(--text-muted, #64748b)' }}>
+                            <th>Item</th>
+                            <th style={{ textAlign: 'center' }}>Qty</th>
+                            <th style={{ textAlign: 'right' }}>Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {b.items.map((it, idx) => (
+                            <tr key={idx} style={{ borderBottom: '1px solid var(--border-subtle, #f1f5f9)' }}>
+                              <td style={{ padding: '4px 0' }}>{it.name}</td>
+                              <td style={{ textAlign: 'center', padding: '4px 0' }}>{it.quantity}</td>
+                              <td style={{ textAlign: 'right', padding: '4px 0' }}>₹{it.total}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                   {writable && <Button onClick={() => setEdit(b)}>Edit envelope</Button>}
                 </div>
               </Card>

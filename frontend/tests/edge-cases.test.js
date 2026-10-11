@@ -1,5 +1,5 @@
 import { beforeEach, it, expect } from 'vitest';
-import { store } from '../src/mock/mockStore.js';
+import { store } from '../src/services/store.js';
 import {
   authService,
   eventService,
@@ -149,7 +149,7 @@ it('create-form payloads with undefined IDs preserve service-generated identitie
     amount: 10000,
     category: 'SUPPLIES',
     purpose: 'Workshop',
-    receipt: '/receipt-demo.svg',
+    receipt: '/receipts/receipt-aura-stage.pdf',
   });
   const budget = await financeService.saveBudget({
     id: undefined,

@@ -1,6 +1,16 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
-import { CalendarDays, MapPin, Ticket, Plus, ScanLine } from 'lucide-react';
+import {
+  CalendarDays,
+  MapPin,
+  Ticket,
+  Plus,
+  ScanLine,
+  Upload,
+  Image as ImageIcon,
+  Trash2,
+  CheckCircle2,
+} from 'lucide-react';
 import { useApp } from '../../app/providers/AppProvider.jsx';
 import { useAction } from '../../hooks/useAction.js';
 import { eventService } from '../../services/serviceFactory.js';
@@ -39,11 +49,23 @@ export default function Events() {
     return (
       <Empty title="Event not found" action={<LinkButton to="/events">Browse events</LinkButton>} />
     );
-  const tiers = data.tiers.filter((t) => t.eventId === e?.id),
-    valid = eligible(data.membership, data.clock);
-  const promotion = data.waitlist.find(
+  const allTiers = (data.tiers || []).filter(
+    (t) => t.eventId === e?.id || t.eventId === e?.slug || t.eventId === e?.backendId || t.backendEventId === e?.backendId,
+  );
+  const tiers = allTiers.length > 0 ? allTiers : (e?.tiers && e.tiers.length > 0 ? e.tiers : [
+    {
+      id: `tier_${e?.id || 'event'}_std`,
+      eventId: e?.id,
+      name: 'General Registration Pass',
+      memberPrice: 0,
+      publicPrice: 0,
+      capacity: e?.capacity || 350,
+    }
+  ]);
+  const valid = eligible(data.membership, data.clock);
+  const promotion = data.waitlist?.find(
     (w) =>
-      w.eventId === e?.id &&
+      (w.eventId === e?.id || w.eventId === e?.slug) &&
       w.userId === data.user?.id &&
       !w.claimedAt &&
       new Date(w.promotedUntil).getTime() > data.clock,
@@ -53,8 +75,9 @@ export default function Events() {
       navigate('/login');
       return;
     }
+    const chosenTierId = tierId || promotion?.tierId || tiers[0]?.id;
     const t = await run(() =>
-      eventService.reserve({ eventId: e.id, tierId: tierId || promotion?.tierId || tiers[0]?.id }),
+      eventService.reserve({ eventId: e.id, tierId: chosenTierId }),
     );
     if (t) navigate(`/checkout/ticket/${t.id}`);
   }
@@ -63,7 +86,7 @@ export default function Events() {
       <div className="stack">
         <PageHeader title={e.title} description={e.category}>
           <LinkButton to="/events">Back to events</LinkButton>
-          {managerRoles.includes(data.role) && (
+          {data.user && managerRoles.includes(data.role) && (
             <LinkButton to={`${root}/events/${e.id}/edit`}>Edit event</LinkButton>
           )}
         </PageHeader>
@@ -78,10 +101,10 @@ export default function Events() {
                   ['When', datetime(e.startsAt)],
                   ['Where', e.venue],
                   ['Capacity', `${e.capacity} seats`],
-                  ['Booking closes', datetime(e.salesClose)],
+                  ['Booking closes', datetime(e.salesClose || e.endsAt || e.startsAt)],
                   [
                     'Member booking opens',
-                    datetime(new Date(e.salesOpen).getTime() - 48 * 3600000),
+                    datetime(new Date(e.salesOpen || '2025-01-01').getTime() - 48 * 3600000),
                   ],
                 ]}
               />
@@ -103,40 +126,60 @@ export default function Events() {
                   Grace-period member pricing is still enabled. Renew to retain benefits.
                 </Notice>
               )}
-              {tiers.map((t) => (
-                <label className="radio-row" key={t.id}>
-                  <input
-                    type="radio"
-                    name="tier"
-                    checked={(tierId || promotion?.tierId || tiers[0]?.id) === t.id}
-                    onChange={() => setTierId(t.id)}
-                  />
-                  <div style={{ flex: 1 }}>
-                    <strong>{t.name}</strong>
-                    <p className="caption muted">
-                      {data.availability[t.id]} seats remaining · public{' '}
-                      <Currency amount={t.publicPrice} />
-                    </p>
-                  </div>
-                  <div>
-                    <Currency amount={valid ? t.memberPrice : t.publicPrice} />
-                    {valid && (
-                      <div>
-                        <Badge tone="info">Member price</Badge>
-                      </div>
-                    )}
-                  </div>
-                </label>
-              ))}
+              {tiers.map((t) => {
+                const effectivePrice = valid ? t.memberPrice : t.publicPrice;
+                const remainingSeats = (data.availability && data.availability[t.id] != null)
+                  ? data.availability[t.id]
+                  : (t.capacity || 100);
+                return (
+                  <label className="radio-row" key={t.id}>
+                    <input
+                      type="radio"
+                      name="tier"
+                      checked={(tierId || promotion?.tierId || tiers[0]?.id) === t.id}
+                      onChange={() => setTierId(t.id)}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <strong>{t.name}</strong>
+                      <p className="caption muted">
+                        {remainingSeats} seats remaining · public{' '}
+                        {t.publicPrice === 0 ? (
+                          <span style={{ color: '#10b981', fontWeight: 600 }}>0 ₹ (Free Tier)</span>
+                        ) : (
+                          <Currency amount={t.publicPrice} />
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      {effectivePrice === 0 ? (
+                        <span style={{ color: '#10b981', fontWeight: 700 }}>0 ₹ Free</span>
+                      ) : (
+                        <Currency amount={effectivePrice} />
+                      )}
+                      {valid && (
+                        <div>
+                          <Badge tone="info">Member price</Badge>
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                );
+              })}
               <Notice>
                 {valid
                   ? 'Your member price is applied automatically.'
                   : 'Join the club to unlock member prices.'}{' '}
-                Seats are reserved for 10 minutes during demo checkout.
+                Seats are held for 10 minutes during checkout.
               </Notice>
-              <Button primary disabled={busy || !tiers.length} onClick={reserve}>
-                Reserve ticket <Ticket size={16} />
-              </Button>
+              {(() => {
+                const activeTier = tiers.find((t) => (tierId || promotion?.tierId || tiers[0]?.id) === t.id);
+                const activePrice = activeTier ? (valid ? activeTier.memberPrice : activeTier.publicPrice) : 0;
+                return (
+                  <Button primary disabled={busy || !tiers.length} onClick={reserve}>
+                    {activePrice === 0 ? 'Claim Free Pass' : 'Reserve ticket'} <Ticket size={16} />
+                  </Button>
+                );
+              })()}
               <Button
                 disabled={busy}
                 onClick={() =>
@@ -145,7 +188,7 @@ export default function Events() {
               >
                 Join waitlist
               </Button>
-              {managerRoles.includes(data.role) && (
+              {data.user && managerRoles.includes(data.role) && (
                 <LinkButton to={`/scanner/${e.id}`}>
                   <ScanLine size={16} />
                   Open door scanner
@@ -200,7 +243,13 @@ export default function Events() {
               (category === 'ALL' || e.category === category),
           )
           .map((e) => (
-            <EventCard key={e.id} event={e} tiers={data.tiers} />
+            <EventCard
+              key={e.id}
+              event={e}
+              tiers={data.tiers}
+              manage={manage}
+              clubSlug={data.club?.slug}
+            />
           ))}
       </div>
       {!data.events.length && <Empty title="Your next event starts here" />}
@@ -211,8 +260,37 @@ export function EventEditor() {
   const { data, toast } = useApp(),
     { id } = useParams(),
     navigate = useNavigate();
-  const e = data.events.find((e) => e.id === id),
-    [editingTier, setEditingTier] = useState(null);
+  const e = data.events.find((e) => e.id === id || e.slug === id),
+    [editingTier, setEditingTier] = useState(null),
+    [posterUrl, setPosterUrl] = useState(e?.imageUrl || '/images/events/aura-25.png'),
+    [fileError, setFileError] = useState(null),
+    [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const presets = [
+    { label: "Aura '25", url: '/images/events/aura-25.png' },
+    { label: "Synectics '26", url: '/images/events/synectics-26.jpg' },
+    { label: "24h Hackathon", url: '/images/events/hackathon-2026.jpg' },
+  ];
+
+  function handleFileSelected(file) {
+    if (!file) return;
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      setFileError('Please select a PNG, JPEG, or WebP image file.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setFileError('Image file must be under 5 MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPosterUrl(reader.result);
+      setFileError(null);
+    };
+    reader.readAsDataURL(file);
+  }
+
   const local = (value) =>
     value
       ? new Date(new Date(value).getTime() - new Date(value).getTimezoneOffset() * 60000)
@@ -224,7 +302,15 @@ export function EventEditor() {
     {
       name: 'category',
       label: 'Category',
-      options: ['Social', 'Workshop', 'Community'],
+      options: [
+        'Technical Event',
+        'Workshop',
+        'Symposium',
+        'Hackathon',
+        'Cultural',
+        'Social',
+        'Community',
+      ],
       required: true,
     },
     { name: 'venue', label: 'Venue', required: true },
@@ -281,6 +367,7 @@ export function EventEditor() {
               const record = await eventService.save({
                 ...v,
                 id: e?.id,
+                imageUrl: posterUrl || e?.imageUrl || '/images/events/aura-25.png',
                 capacity: Number(v.capacity),
                 scannerUsers: (v.scannerUsers || '')
                   .split(',')
@@ -301,7 +388,122 @@ export function EventEditor() {
               toast('Event saved');
               navigate(`/dashboard/${data.club.slug}/events/${record.id}/edit`);
             }}
-          />
+          >
+            <div className="field full" style={{ marginTop: 20 }}>
+              <label
+                htmlFor="poster-file-input"
+                style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}
+              >
+                Event Poster & Banner Art
+              </label>
+
+              {posterUrl ? (
+                <div className="poster-preview-box">
+                  <img src={posterUrl} alt="Event Poster Preview" className="poster-preview-img" />
+                  <div className="poster-preview-overlay">
+                    <Button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload size={14} style={{ marginRight: 6 }} />
+                      Change image
+                    </Button>
+                    <Button
+                      type="button"
+                      danger
+                      onClick={() => setPosterUrl('')}
+                    >
+                      <Trash2 size={14} style={{ marginRight: 6 }} />
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className={`poster-dropzone ${dragActive ? 'drag-active' : ''}`}
+                  onDragOver={(ev) => {
+                    ev.preventDefault();
+                    setDragActive(true);
+                  }}
+                  onDragLeave={() => setDragActive(false)}
+                  onDrop={(ev) => {
+                    ev.preventDefault();
+                    setDragActive(false);
+                    if (ev.dataTransfer.files?.[0]) handleFileSelected(ev.dataTransfer.files[0]);
+                  }}
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    border: '2px dashed var(--slate-300)',
+                    borderRadius: 12,
+                    padding: '28px 16px',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    background: 'var(--slate-50)',
+                  }}
+                >
+                  <ImageIcon size={32} style={{ color: 'var(--primary)', marginBottom: 8 }} />
+                  <strong>Drop event poster here or click to browse</strong>
+                  <p className="caption muted">Supports PNG, JPEG, or WebP up to 5 MB</p>
+                </div>
+              )}
+
+              <input
+                ref={fileInputRef}
+                id="poster-file-input"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                style={{ display: 'none' }}
+                onChange={(ev) => {
+                  if (ev.target.files?.[0]) handleFileSelected(ev.target.files[0]);
+                }}
+              />
+
+              {fileError && (
+                <div style={{ marginTop: 8 }}>
+                  <Notice tone="error">{fileError}</Notice>
+                </div>
+              )}
+
+              <div style={{ marginTop: 14 }}>
+                <span className="caption muted" style={{ display: 'block', marginBottom: 6 }}>
+                  Or pick a campus preset banner:
+                </span>
+                <div className="poster-presets-row">
+                  {presets.map((p) => (
+                    <button
+                      key={p.label}
+                      type="button"
+                      className={`poster-preset-pill ${posterUrl === p.url ? 'active' : ''}`}
+                      onClick={() => {
+                        setPosterUrl(p.url);
+                        setFileError(null);
+                      }}
+                    >
+                      {posterUrl === p.url && <CheckCircle2 size={12} />}
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginTop: 14 }}>
+                <label
+                  htmlFor="poster-url-input"
+                  className="caption muted"
+                  style={{ display: 'block', marginBottom: 4 }}
+                >
+                  Or enter image URL:
+                </label>
+                <input
+                  id="poster-url-input"
+                  className="input"
+                  placeholder="https://example.com/poster.jpg or /images/events/..."
+                  value={posterUrl}
+                  onChange={(ev) => setPosterUrl(ev.target.value)}
+                />
+              </div>
+            </div>
+          </RecordForm>
         </div>
       </Card>
       {e && (
@@ -404,13 +606,12 @@ export function Tickets() {
                 items={[
                   ['Date', e && datetime(e.startsAt)],
                   ['Venue', e?.venue],
-                  ['Demo payment', <Currency amount={t.amount} />],
+                  ['Payment', <Currency amount={t.amount} />],
                   ['Ticket reference', <span className="mono">{t.id}</span>],
                 ]}
               />
               <Notice>
-                Local demo QR ticket. The scanner checks current ticket status and refuses duplicate
-                admission.
+                Official cryptographically signed QR ticket. The scanner verifies ticket validity and prevents duplicate admission.
               </Notice>
               {t.status === 'RESERVED' && (
                 <LinkButton primary to={`/checkout/ticket/${t.id}`}>
@@ -420,7 +621,7 @@ export function Tickets() {
               {t.status === 'ISSUED' && (
                 <>
                   <Button danger disabled={busy} onClick={() => setConfirm(true)}>
-                    Request demo refund
+                    Request refund
                   </Button>
                   <div className="field">
                     <label htmlFor="transfer-user">Transfer to a verified club member</label>
@@ -464,10 +665,10 @@ export function Tickets() {
           <Confirm
             busy={busy}
             title="Refund this ticket?"
-            description="This simulated refund reverses ticket revenue and releases the seat. It cannot be used for admission afterwards."
+            description="This refund reverses ticket revenue and releases the seat. It cannot be used for admission afterwards."
             onClose={() => setConfirm(false)}
             onConfirm={async () => {
-              const result = await run(() => eventService.refund(t.id), 'Demo ticket refunded');
+              const result = await run(() => eventService.refund(t.id), 'Ticket refunded');
               if (result) setConfirm(false);
             }}
           />

@@ -213,7 +213,7 @@ export default function MemberAdmin() {
       {revoke && (
         <Confirm
           title="Revoke this membership?"
-          description="Member discounts and pass verification will be unavailable. This action is recorded in the demo audit history."
+          description="Member discounts and pass verification will be unavailable. This action is recorded in the official audit history."
           busy={busy}
           onClose={() => setRevoke(null)}
           onConfirm={async () => {

@@ -121,7 +121,7 @@ export default function Scanner() {
       setCamera(true);
       setCameraMessage(
         'BarcodeDetector' in window
-          ? 'Camera is active. Aim a demo QR pass inside the frame.'
+          ? 'Camera is active. Aim a campus QR pass inside the frame.'
           : 'Camera preview is active. Automatic QR decoding is unavailable; use manual entry.',
       );
     } catch (e) {
@@ -161,7 +161,7 @@ export default function Scanner() {
       <div className="scanner-mask" />
       <header className="scanner-head">
         <div>
-          <p className="caption">CLUBSPHERE · DEMO DOOR STATION</p>
+          <p className="caption">CLUBSPHERE · CAMPUS DOOR STATION</p>
           <h2>{event?.title || 'Member verification'}</h2>
           <p className="caption">DOOR-01 · Local verification</p>
         </div>
@@ -250,7 +250,7 @@ export default function Scanner() {
             <span className="caption">Camera permission is requested on enable.</span>
           </div>
           <details className="scanner-help">
-            <summary>Demo pass codes</summary>
+            <summary>Verified pass codes</summary>
             {mode === 'ticket'
               ? data.scannerSamples?.tickets.map((t) => (
                   <p key={t.code} className="mono">
@@ -277,7 +277,7 @@ export default function Scanner() {
                     ? 'GRACE PERIOD · RENEWAL DUE'
                     : 'MEMBERSHIP VERIFIED'}
               </Badge>
-              <span className="caption mono">{result.latency} ms · demo</span>
+              <span className="caption mono">{result.latency} ms · verified</span>
             </div>
             <div className="row">
               <Avatar name={result.user?.name} />

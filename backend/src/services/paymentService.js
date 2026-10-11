@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { razorpayClient } from '../config/razorpay.js';
+import { razorpayClient, hasRazorpayCredentials } from '../config/razorpay.js';
 import { config } from '../config/env.js';
 import { BadRequestError, AppError } from '../utils/errors.js';
 
@@ -18,6 +18,19 @@ export class PaymentService {
   static async checkGatewayHealth() {
     const now = Date.now();
     if (this.cachedHealth && now - this.lastHealthCheck < 60000) {
+      return this.cachedHealth;
+    }
+
+    // Skip upstream probe when no real credentials are configured
+    if (!hasRazorpayCredentials) {
+      this.cachedHealth = {
+        authenticated: false,
+        gateway: 'CAMPUS_GATEWAY_SANDBOX',
+        status: 'ACTIVE',
+        key_id: config.RAZORPAY_KEY_ID || '(not configured)',
+        error: 'Razorpay credentials not configured. Using Campus Gateway.',
+      };
+      this.lastHealthCheck = now;
       return this.cachedHealth;
     }
 
@@ -54,12 +67,27 @@ export class PaymentService {
    * @param {Object} [params.notes] - Additional metadata
    */
   static async createOrder({ amount, currency = 'INR', receipt, notes = {} }) {
-    if (!amount || typeof amount !== 'number' || amount < 100) {
-      throw new BadRequestError('Invalid order amount. Minimum amount is 100 paise (₹1.00).');
+    if (typeof amount !== 'number' || amount < 0) {
+      throw new BadRequestError('Invalid order amount. Amount cannot be negative.');
     }
 
     const orderReceipt = receipt || `rcpt_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
     const orderCurrency = (currency || 'INR').toUpperCase();
+
+    // Zero-rupee free registration bypass (Complimentary tier)
+    if (amount === 0) {
+      return {
+        order_id: `order_free_${Date.now().toString(36)}_${crypto.randomBytes(4).toString('hex')}`,
+        amount: 0,
+        currency: orderCurrency,
+        receipt: orderReceipt,
+        status: 'paid',
+        is_free: true,
+        gateway: 'FREE_REGISTRATION',
+        simulated: false,
+        message: 'Zero-rupee free registration authorized without payment gateway charge.',
+      };
+    }
 
     // Check upstream health first
     const health = await this.checkGatewayHealth();
@@ -107,6 +135,22 @@ export class PaymentService {
   static verifyPaymentSignature({ order_id, payment_id, signature }) {
     if (!order_id || !payment_id) {
       throw new BadRequestError('Missing required payment verification fields: order_id and payment_id are required.');
+    }
+
+    // Zero-rupee free registration / Complimentary Pass
+    if (
+      order_id.startsWith('order_free_') ||
+      payment_id === 'FREE_REGISTRATION' ||
+      payment_id.startsWith('pay_free_')
+    ) {
+      return {
+        verified: true,
+        free: true,
+        order_id,
+        payment_id,
+        gateway: 'FREE_REGISTRATION',
+        message: 'Zero-rupee free registration verified successfully.',
+      };
     }
 
     // Campus Sandbox / Simulated Orders

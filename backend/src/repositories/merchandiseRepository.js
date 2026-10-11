@@ -5,7 +5,7 @@ export class MerchandiseRepository {
     const runner = client || { query };
     const res = await runner.query(
       `SELECT p.id as product_id, p.club_id, p.title as product_title, p.slug as product_slug,
-              p.description, p.image_urls, p.is_published,
+              p.description, p.image_urls, p.is_published, p.category, p.visual,
               pv.id as variant_id, pv.sku, pv.title as variant_title, pv.attributes_json,
               pv.available_stock, pv.reserved_stock,
               (pv.available_stock - pv.reserved_stock) as purchasable_stock,

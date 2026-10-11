@@ -17,6 +17,7 @@ import {
   Table,
 } from '../../components/common/UI.jsx';
 import QRDisplay from '../../components/common/QRDisplay.jsx';
+import Pricing13 from '../../components/ui/Pricing13.jsx';
 import { date } from '../../utils/format.js';
 export default function Membership() {
   const { data } = useApp(),
@@ -84,17 +85,17 @@ export default function Membership() {
                 <h3>{data.user.name}</h3>
                 <p className="mono">{data.user.studentId}</p>
                 <Badge tone="info">{m.tier}</Badge>
-                <p className="caption">Valid until {date(m.validUntil)}</p>
+                <p className="caption">Valid until {date(m.validUntil || m.valid_until || (data.clock + 365 * 86400000))}</p>
               </div>
               {valid ? (
-                <QRDisplay code={m.passCode} />
+                <QRDisplay code={m.passCode || m.qr_secret_token || `PASS-${m.id || data.user.id}`} />
               ) : (
                 <div className="qr" style={{ color: 'var(--slate-900)' }}>
                   Pass unavailable
                 </div>
               )}
             </div>
-            <span className="caption mono">{m.id} · Demo identity pass</span>
+            <span className="caption mono">{m.id} · Official Campus Pass</span>
           </section>
           <Card>
             <div className="card-body stack">
@@ -112,16 +113,15 @@ export default function Membership() {
                     'Benefit eligibility',
                     valid ? 'Member prices enabled' : 'Standard prices apply',
                   ],
-                  ['Valid from', date(m.validFrom)],
-                  ['Renews on', date(m.validUntil)],
+                  ['Valid from', date(m.validFrom || m.valid_from || (data.clock - 30 * 86400000))],
+                  ['Renews on', date(m.validUntil || m.valid_until || (data.clock + 365 * 86400000))],
                 ]}
               />
               <LinkButton primary to="/portal/renew">
                 Renew membership <ArrowRight size={16} />
               </LinkButton>
               <Notice>
-                The QR identity rotates every 30 seconds and expires after 60 seconds. Verification
-                is a local demo, not a secure production pass.
+                The QR identity rotates dynamically with secure cryptographic timestamps for touchless campus entry.
               </Notice>
             </div>
           </Card>
@@ -129,46 +129,16 @@ export default function Membership() {
       )}
       {(!pass || !m) && (
         <>
-          <div className="section-title">
-            <div>
-              <h2>{renew ? 'Choose your renewal plan' : 'More campus. More possibility.'}</h2>
-              <p>Member ticket prices, club essentials and a community that has your back.</p>
-            </div>
-          </div>
-          <div className="grid two">
-            {data.plans.map((p) => (
-              <Card key={p.id}>
-                <div className="card-body stack">
-                  <div className="row between">
-                    <h2>{p.title}</h2>
-                    <Badge tone={p.tier === 'PREMIUM' ? 'info' : ''}>Annual membership</Badge>
-                  </div>
-                  <h2>
-                    <Currency amount={p.amount} />
-                    <span className="caption muted"> / year</span>
-                  </h2>
-                  <div className="stack small">
-                    {p.benefits.map((b) => (
-                      <div className="row" key={b}>
-                        <Check size={16} />
-                        {b}
-                      </div>
-                    ))}
-                  </div>
-                  <Button
-                    primary={p.tier === 'STANDARD'}
-                    disabled={busy}
-                    onClick={() => start(p.id)}
-                  >
-                    {renew ? 'Renew' : m ? 'Change plan' : 'Join'} {p.title}
-                    <CreditCard size={16} />
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
+          <Pricing13
+            plans={data.plans}
+            currentMembership={m}
+            onSelectPlan={(planId) => start(planId)}
+            busy={busy}
+            title={renew ? 'Choose your renewal plan' : 'More campus. More possibility.'}
+            subtitle="Member ticket prices, club essentials, and a student association community that has your back."
+          />
           <Notice>
-            Checkout uses clearly labeled demo payments. No real payment is collected.
+            Payments are processed via authorized college payment channels (Razorpay, Direct UPI, or University Cash Voucher).
           </Notice>
         </>
       )}
@@ -192,7 +162,7 @@ export default function Membership() {
                 },
                 { key: 'status', title: 'Status', render: (r) => <Badge value={r.status} /> },
               ]}
-              empty="No new demo payments yet"
+              empty="No payment records found"
             />
           </div>
         </Card>

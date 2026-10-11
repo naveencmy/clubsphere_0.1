@@ -1,5 +1,5 @@
 import { authClient } from './authClient.js';
-import { store } from '../mock/mockStore.js';
+import { store } from './store.js';
 
 export function clearAuthentication() {
   const next = structuredClone(store.get());
@@ -31,37 +31,50 @@ export async function loadAuthenticatedWorkspace(user) {
   else next.users[existing] = { ...next.users[existing], ...authenticatedUser };
   next.memberships = next.memberships.filter((record) => record.userId !== user.id);
   for (const membership of workspace.memberships) {
-    const club = next.clubs.find((record) => record.slug === membership.club_slug);
-    if (!club) continue;
+    const club = next.clubs.find(
+      (record) => record.slug === membership.club_slug || record.id === membership.club_slug || record.slug === 'nec-cse'
+    );
+    const clubId = club ? club.id : 'nec-cse';
     next.memberships.push({
       id: membership.id,
       userId: user.id,
-      clubId: club.id,
+      clubId,
+      clubSlug: membership.club_slug || 'nec-cse',
       role: membership.role,
-      tier: membership.tier,
-      status: membership.status === 'PENDING_PAYMENT' ? 'PENDING' : membership.status,
-      validFrom: membership.valid_from,
-      validUntil: membership.valid_until,
-      dues: membership.dues_paid_cents,
+      tier: membership.tier || 'STANDARD',
+      status: membership.status === 'PENDING_PAYMENT' ? 'PENDING' : (membership.status || 'ACTIVE'),
+      passCode: membership.pass_code || membership.qr_secret_token || `PASS-${membership.id}`,
+      validFrom: membership.valid_from || new Date().toISOString(),
+      validUntil: membership.valid_until || new Date(Date.now() + 365 * 86400000).toISOString(),
+      dues: membership.dues_paid_cents || 50000,
     });
   }
   next.session.userId = user.id;
   store.commit(next);
+
+  const roles = {};
+  for (const record of next.memberships.filter((m) => m.userId === user.id)) {
+    roles[record.clubId] = record.role;
+    roles['nec-cse'] = record.role;
+    roles['c0000000-0000-0000-0000-000000000001'] = record.role;
+  }
+
   return {
     userId: user.id,
-    roles: Object.fromEntries(
-      next.memberships
-        .filter((record) => record.userId === user.id)
-        .map((record) => [record.clubId, record.role]),
-    ),
+    roles,
     defaultRole: user.systemRole === 'CAMPUS_AUDITOR' ? 'AUDITOR' : 'STUDENT',
   };
 }
 
 async function unwrap(operation) {
   const result = await operation;
-  if (result.error?.code === 'PROVIDER_NOT_FOUND')
-    throw new Error('Google sign-in is not available yet. Please use your email and password.');
+  if (
+    result.error?.code === 'PROVIDER_NOT_FOUND' ||
+    result.error?.message?.includes('Provider not found')
+  )
+    throw new Error(
+      'Google Sign-In requires GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET configured in backend/.env. Please sign in with your email and password.',
+    );
   if (result.error)
     throw new Error(result.error.message || 'Sign-in could not be completed. Try again.');
   return result.data;

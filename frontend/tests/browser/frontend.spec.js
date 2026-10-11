@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { createBrowserAuditSeed } from '../../src/mock/scenarios/browserAudit.js';
+import { createBrowserAuditSeed } from './helpers.js';
 import fs from 'node:fs';
 test.use({ trace: 'off' });
 const seed = createBrowserAuditSeed;

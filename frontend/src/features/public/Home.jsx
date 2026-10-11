@@ -1,14 +1,17 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, CalendarDays, CreditCard, Ticket, Users, MapPin } from 'lucide-react';
 import { useApp } from '../../app/providers/AppProvider.jsx';
 import { Avatar, Currency, LinkButton, ViewLink } from '../../components/common/UI.jsx';
 import ProductArt from '../../components/common/ProductArt.jsx';
 import EventSlideshow from './EventSlideshow.jsx';
+import ScrollBend from '../../components/ui/ScrollBend.jsx';
+import Pricing13 from '../../components/ui/Pricing13.jsx';
 import { date } from '../../utils/format.js';
 import '../../styles/landing.css';
 
 export default function Home() {
   const { data } = useApp();
+  const navigate = useNavigate();
 
   return (
     <div className="landing">
@@ -60,50 +63,13 @@ export default function Home() {
         </Link>
       </div>
 
-      <section className="landing-section" aria-labelledby="landing-events">
-        <div className="landing-section-heading">
-          <div>
-            <span className="eyebrow">Make time for something good</span>
-            <h2 id="landing-events">Coming up on campus</h2>
-          </div>
-          <ViewLink to="/events">All events</ViewLink>
-        </div>
-        <div className="landing-events">
-          {data.events.slice(0, 3).map((event) => (
-            <Link className="landing-event" to={`/events/${event.id}`} key={event.id}>
-              <time className="landing-event-date" dateTime={event.startsAt}>
-                <span>
-                  {new Intl.DateTimeFormat('en-IN', {
-                    month: 'short',
-                    timeZone: 'Asia/Kolkata',
-                  }).format(new Date(event.startsAt))}
-                </span>
-                <strong>
-                  {new Intl.DateTimeFormat('en-IN', {
-                    day: '2-digit',
-                    timeZone: 'Asia/Kolkata',
-                  }).format(new Date(event.startsAt))}
-                </strong>
-              </time>
-              <div className="landing-event-copy">
-                <span className="caption muted">{event.category}</span>
-                <h3>{event.title}</h3>
-                <p>
-                  <MapPin size={14} aria-hidden="true" />
-                  {event.venue}
-                </p>
-              </div>
-              <span className="landing-event-price">
-                From{' '}
-                <Currency
-                  amount={data.tiers.find((tier) => tier.eventId === event.id)?.publicPrice}
-                />
-              </span>
-              <ArrowRight size={18} aria-hidden="true" />
-            </Link>
-          ))}
-        </div>
-      </section>
+      {/* React Bits Pro: Scroll Bend Event Ribbon with Staggered Card Sizes */}
+      <ScrollBend
+        events={data.events}
+        tiers={data.tiers}
+        title="Coming up on campus"
+        eyebrow="Make time for something good"
+      />
 
       <section className="landing-section" aria-labelledby="landing-clubs">
         <div className="landing-section-heading">
@@ -129,45 +95,14 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="landing-membership" aria-labelledby="landing-membership">
-        <div className="landing-membership-copy">
-          <span className="eyebrow">More than a membership</span>
-          <h2 id="landing-membership">
-            One pass.
-            <br />A little more possibility.
-          </h2>
-          <p>
-            Your community, always within reach. Join a club and make the most of everything it has
-            to offer.
-          </p>
-          <LinkButton primary to="/membership">
-            Explore membership <ArrowRight size={16} aria-hidden="true" />
-          </LinkButton>
-        </div>
-        <div className="landing-benefits">
-          <div>
-            <CreditCard size={20} aria-hidden="true" />
-            <div>
-              <h3>Your digital member pass</h3>
-              <p>Keep your membership ready, wherever campus takes you.</p>
-            </div>
-          </div>
-          <div>
-            <Ticket size={20} aria-hidden="true" />
-            <div>
-              <h3>Member prices, more experiences</h3>
-              <p>Enjoy member savings on event tickets and club merchandise.</p>
-            </div>
-          </div>
-          <div>
-            <Users size={20} aria-hidden="true" />
-            <div>
-              <h3>A place to stay connected</h3>
-              <p>Official updates and opportunities from the people you know.</p>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* React Bits Pro: Pricing 13 Interactive Plan Picker with Live Detail Panel */}
+      <Pricing13
+        plans={data.plans}
+        currentMembership={data.membership}
+        onSelectPlan={() => navigate('/membership')}
+        title="One pass. A world of possibility."
+        subtitle="Your community, always within reach. Join a club and make the most of exclusive workshops, hackathons, and member rates."
+      />
 
       <section className="landing-section" aria-labelledby="landing-store">
         <div className="landing-section-heading">
@@ -180,7 +115,11 @@ export default function Home() {
         <div className="landing-products">
           {data.products.slice(0, 3).map((product) => (
             <Link className="landing-product" to={`/store/${product.id}`} key={product.id}>
-              <ProductArt kind={product.visual} />
+              <ProductArt
+                kind={product.visual}
+                image={product.image || product.images?.[0]}
+                title={product.title}
+              />
               <div>
                 <h3>{product.title}</h3>
                 <ArrowRight size={16} aria-hidden="true" />
@@ -189,7 +128,14 @@ export default function Home() {
                 From{' '}
                 <Currency
                   amount={
-                    data.variants.find((variant) => variant.productId === product.id)?.publicPrice
+                    data.variants.find((v) =>
+                      v.productId === product.id ||
+                      v.productId === product.slug ||
+                      v.productId === product.backendId ||
+                      (product.slug?.includes('hoodie') && (v.productId === 'hoodie' || v.sku?.includes('HOODIE'))) ||
+                      (product.slug?.includes('polo') && (v.productId === 'polo' || v.sku?.includes('POLO'))) ||
+                      (product.slug?.includes('badge') && (v.productId === 'badge' || v.sku?.includes('BADGE'))),
+                    )?.publicPrice || product.publicPrice || 45000
                   }
                 />
               </span>

@@ -1,9 +1,54 @@
-export default function ProductArt({ kind = 'hoodie' }) {
+export default function ProductArt({ kind = 'hoodie', image = null, title = '' }) {
+  if (image) {
+    return (
+      <div className="product-art with-photo" style={{ position: 'relative', overflow: 'hidden' }}>
+        <img
+          src={image}
+          alt={title || `${kind} product illustration`}
+          loading="lazy"
+          decoding="async"
+          style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '6px' }}
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = '/images/clubsphere-logo.png';
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 8,
+            right: 8,
+            width: 28,
+            height: 28,
+            borderRadius: '50%',
+            background: 'rgba(15, 23, 42, 0.85)',
+            border: '1px solid rgba(14, 165, 233, 0.4)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 3,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+          }}
+          title="ClubSphere Official Merchandise"
+        >
+          <img
+            src="/images/clubsphere-logo.png"
+            alt="ClubSphere Emblem"
+            loading="lazy"
+            decoding="async"
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="product-art">
       <svg viewBox="0 0 200 200" role="img" aria-label={`${kind} product illustration`}>
         <title>{kind} product illustration</title>
-        {kind === 'tote' ? (
+        {kind === 'tote' || kind === 'badge' ? (
           <>
             <path d="M58 67h84l9 101H49z" fill="#E2E8F0" stroke="#64748B" strokeWidth="2" />
             <path d="M77 68V48a23 23 0 0 1 46 0v20" fill="none" stroke="#334155" strokeWidth="5" />
@@ -31,23 +76,20 @@ export default function ProductArt({ kind = 'hoodie' }) {
         )}
         <circle
           cx="100"
-          cy={kind === 'tote' ? 111 : 110}
-          r="14"
-          fill="none"
-          stroke={kind === 'tote' ? '#334155' : '#E2E8F0'}
+          cy={kind === 'tote' || kind === 'badge' ? 111 : 110}
+          r="16"
+          fill="#0F172A"
+          stroke="#0EA5E9"
           strokeWidth="1.5"
         />
-        <text
-          x="100"
-          y={kind === 'tote' ? 115 : 114}
-          textAnchor="middle"
-          fill={kind === 'tote' ? '#334155' : '#E2E8F0'}
-          fontFamily="sans-serif"
-          fontSize="9"
-          fontWeight="600"
-        >
-          SKY
-        </text>
+        <image
+          href="/images/clubsphere-logo.png"
+          x="87"
+          y={kind === 'tote' || kind === 'badge' ? 98 : 97}
+          width="26"
+          height="26"
+          preserveAspectRatio="xMidYMid meet"
+        />
       </svg>
     </div>
   );

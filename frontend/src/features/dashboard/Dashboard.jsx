@@ -83,24 +83,32 @@ export default function Dashboard() {
               value={data.memberships.length}
               icon={Users}
               detail={`${data.memberships.filter((m) => m.status === 'ACTIVE').length} active memberships`}
+              to={`${root}/members`}
+              actionLabel="Manage members"
             />
             <Metric
               label="Upcoming events"
               value={data.events.filter((e) => new Date(e.startsAt) > data.clock).length}
               icon={CalendarDays}
-              detail="Published and planned experiences"
+              detail="Published & planned experiences"
+              to={`${root}/events`}
+              actionLabel="Event schedule"
             />
             <Metric
               label="Confirmed tickets"
               value={data.tickets.filter((t) => ['ISSUED', 'CHECKED_IN'].includes(t.status)).length}
               icon={Ticket}
               detail={`${data.tickets.filter((t) => t.status === 'CHECKED_IN').length} checked in`}
+              to={`${root}/bookings`}
+              actionLabel="Operations"
             />
             <Metric
               label="Open tasks"
               value={data.tasks.filter((t) => t.status !== 'DONE').length}
               icon={Columns3}
               detail={`${data.tasks.filter((t) => t.status === 'BLOCKED').length} need attention`}
+              to={`${root}/tasks`}
+              actionLabel="Task board"
             />
           </>
         ) : volunteer ? (
@@ -109,14 +117,34 @@ export default function Dashboard() {
               label="Assigned tasks"
               value={mine.filter((t) => t.status !== 'DONE').length}
               icon={Columns3}
+              detail={mine.filter((t) => t.status !== 'DONE').length ? 'Active deliverables' : 'All caught up'}
+              to="/portal/tasks"
+              actionLabel="My tasks"
             />
             <Metric
               label="Your shifts"
               value={data.shifts.filter((s) => s.userId === data.user.id).length}
               icon={CalendarDays}
+              detail="Volunteer schedule"
+              to="/portal/shifts"
+              actionLabel="Find shifts"
             />
-            <Metric label="Expense claims" value={data.expenses.length} icon={Receipt} />
-            <Metric label="Your tickets" value={ownTickets.length} icon={Ticket} />
+            <Metric
+              label="Expense claims"
+              value={data.expenses.length}
+              icon={Receipt}
+              detail="Claims & reimbursements"
+              to="/portal/expenses/new"
+              actionLabel="Submit claim"
+            />
+            <Metric
+              label="Your tickets"
+              value={ownTickets.length}
+              icon={Ticket}
+              detail="Event registrations"
+              to="/portal/tickets"
+              actionLabel="My tickets"
+            />
           </>
         ) : (
           <>
@@ -129,56 +157,35 @@ export default function Dashboard() {
                   ? `${Math.max(0, dayLeft)} days until renewal`
                   : 'Find a plan that fits you'
               }
+              to="/portal/pass"
+              actionLabel="Digital pass"
             />
             <Metric
               label="Your tickets"
               value={ownTickets.filter((t) => ['ISSUED', 'CHECKED_IN'].includes(t.status)).length}
               icon={Ticket}
               detail="Ready for your next experience"
+              to="/portal/tickets"
+              actionLabel="My tickets"
             />
             <Metric
               label="Your orders"
               value={ownOrders.length}
               icon={ShoppingBag}
               detail="Campus essentials, made for you"
+              to="/store"
+              actionLabel="Shop store"
             />
             <Metric
               label="Unread updates"
               value={data.notifications.filter((n) => !n.read).length}
               icon={Users}
               detail="The latest from your club"
+              to="/portal/announcements"
+              actionLabel="Announcements"
             />
           </>
         )}
-      </div>
-      <div className="quick-actions">
-        {(volunteer
-          ? [
-              ['My tasks', '/portal/tasks', Columns3],
-              ['Find a shift', '/portal/shifts', CalendarDays],
-              ['Submit an expense', '/portal/expenses/new', Receipt],
-              ['Fundraisers', '/portal/fundraisers', HeartHandshake],
-            ]
-          : manage
-            ? [
-                ['Manage members', `${root}/members`, Users],
-                ['Event operations', `${root}/bookings`, Ticket],
-                ['Expense approvals', `${root}/expenses`, Receipt],
-                ['Broadcast hub', `${root}/announcements`, Users],
-              ]
-            : [
-                ['Digital member pass', '/portal/pass', CreditCard],
-                ['My tickets', '/portal/tickets', Ticket],
-                ['Shop merchandise', '/store', ShoppingBag],
-                ['Latest announcements', '/portal/announcements', Users],
-              ]
-        ).map(([title, to, Icon]) => (
-          <Link className="quick-action" to={to} key={title}>
-            <Icon />
-            {title}
-            <ArrowRight size={14} />
-          </Link>
-        ))}
       </div>
       <div className="grid two">
         <Card

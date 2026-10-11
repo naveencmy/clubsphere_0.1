@@ -31,4 +31,14 @@ export class ClubController {
       next(err);
     }
   }
+
+  static async getClubMembers(req, res, next) {
+    try {
+      const target = req.params.slug || req.params.id || req.clubId;
+      const members = await ClubRepository.listMembers(target);
+      return sendSuccess(res, members, 'Club members and officers retrieved');
+    } catch (err) {
+      next(err);
+    }
+  }
 }

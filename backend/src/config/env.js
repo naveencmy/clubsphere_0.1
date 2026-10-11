@@ -13,8 +13,8 @@ const envSchema = z.object({
   STRIPE_SECRET_KEY: z.string().default('sk_test_placeholder_for_mock_and_dev'),
   STRIPE_WEBHOOK_SECRET: z.string().default('whsec_placeholder'),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
-  RAZORPAY_KEY_ID: z.string().default('rzp_test_TmAPu7Flpk7sJ4'),
-  RAZORPAY_KEY_SECRET: z.string().default('TLjk1r96J8nzVuwdzAcg9MIO'),
+  RAZORPAY_KEY_ID: z.string().default(''),
+  RAZORPAY_KEY_SECRET: z.string().default(''),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

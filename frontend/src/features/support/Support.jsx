@@ -3,7 +3,11 @@ import { Link, useParams, useLocation } from 'react-router-dom';
 import { useApp } from '../../app/providers/AppProvider.jsx';
 import { useAction } from '../../hooks/useAction.js';
 import { demoService, notificationService } from '../../services/serviceFactory.js';
-import { edgeCases } from '../../mock/scenarios/edgeCases.js';
+const edgeCases = [
+  ['grace', 'Grace period active'],
+  ['soldout', 'Events sold out'],
+  ['lowstock', 'Low inventory stock'],
+];
 import {
   Card,
   PageHeader,
@@ -215,7 +219,7 @@ export default function Support({ unauthorized = false }) {
         }
         description={
           unauthorized
-            ? 'Your current role cannot access this workflow. Use an authorized demo account to continue.'
+            ? 'Your current role cannot access this workflow. Sign in with an authorized officer or faculty account to continue.'
             : 'Find your way back to your campus community.'
         }
       />

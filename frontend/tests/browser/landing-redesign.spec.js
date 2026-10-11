@@ -1,14 +1,12 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import fs from 'node:fs';
-import { createSeed } from '../../src/mock/data/seed.js';
-
-import { store } from '../../src/mock/mockStore.js';
+import { createInitialState, store } from '../../src/services/store.js';
 
 test.use({ trace: 'off' });
 
 test.beforeEach(async ({ page }) => {
-  const seed = createSeed();
+  const seed = createInitialState();
   seed.session.userId = 'visitor';
   await page.addInitScript(
     ({ key, seed }) => {

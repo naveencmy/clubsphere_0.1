@@ -5,7 +5,9 @@ import { sendSuccess } from '../utils/response.js';
 export const createOrderSchema = z.object({
   amount: z.number({ required_error: 'Amount in paise is required' })
     .int('Amount must be an integer in paise')
-    .min(100, 'Minimum amount is 100 paise (₹1.00)'),
+    .refine((val) => val === 0 || val >= 100, {
+      message: 'Amount must be 0 (complimentary) or at least 100 paise (₹1.00)',
+    }),
   currency: z.string().default('INR').optional(),
   receipt: z.string().max(40).optional(),
   notes: z.record(z.any()).optional(),

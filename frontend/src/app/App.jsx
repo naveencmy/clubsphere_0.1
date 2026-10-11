@@ -77,18 +77,31 @@ class ErrorBoundary extends Component {
   render() {
     if (this.state.error)
       return (
-        <div className="page stack">
+        <div className="page stack" style={{ maxWidth: 640, margin: '4rem auto', textAlign: 'center', padding: '2rem' }}>
           <h1>We couldn’t render this view.</h1>
-          <p>{this.state.error.message}</p>
-          <button
-            className="btn primary"
-            onClick={() => {
-              this.setState({ error: null });
-              window.location.href = '/';
-            }}
-          >
-            Recover to home
-          </button>
+          <p className="muted" style={{ margin: '1rem 0' }}>
+            {this.state.error.message || 'An unexpected rendering error occurred. Please try reloading or returning home.'}
+          </p>
+          <div className="row center" style={{ gap: '1rem', justifyContent: 'center' }}>
+            <button
+              className="btn"
+              onClick={() => {
+                this.setState({ error: null });
+                window.location.reload();
+              }}
+            >
+              Reload view
+            </button>
+            <button
+              className="btn primary"
+              onClick={() => {
+                this.setState({ error: null });
+                window.location.href = '/';
+              }}
+            >
+              Recover to home
+            </button>
+          </div>
         </div>
       );
     return this.props.children;

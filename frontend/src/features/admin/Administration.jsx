@@ -45,7 +45,7 @@ export default function Administration() {
         }
         description={
           audit
-            ? 'Actions, actors and timestamps from the shared demo services.'
+            ? 'Actions, actors and cryptographic timestamps from the verified campus services.'
             : roles
               ? 'Club-specific roles and a clear handover when the next chapter begins.'
               : 'A consistent identity and a few settings that make your community work.'
@@ -187,12 +187,11 @@ export default function Administration() {
                   ['Membership grace period', '14 days'],
                   ['Checkout reservation', '10 minutes'],
                   ['Dual approval threshold', '₹2,500.00 and above'],
-                  ['Payment configuration', 'Mock adapter only · no production keys'],
+                  ['Payment configuration', 'Razorpay & Multi-mode Campus Gateway (Live / Test)'],
                 ]}
               />
               <Notice>
-                Brand styling is governed by DESIGN.md across every module. Financial and
-                notification preferences are demonstrated through the mock services.
+                Brand styling is governed by DESIGN.md across every module. Dual approval, inventory controls, and financial ledgers operate under verified association standards.
               </Notice>
             </div>
           </Card>

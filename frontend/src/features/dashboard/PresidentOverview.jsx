@@ -19,8 +19,16 @@ export default function PresidentOverview() {
           label="Operating cash"
           value={<Currency amount={data.financial.cash} />}
           icon={Wallet}
+          to={`${root}/finance`}
+          actionLabel="Financial statement"
         />
-        <Metric label="Awaiting your final approval" value={pending.length} icon={Receipt} />
+        <Metric
+          label="Awaiting your final approval"
+          value={pending.length}
+          icon={Receipt}
+          to={`${root}/approvals`}
+          actionLabel="Review approvals"
+        />
         <Metric
           label="Renewal attention"
           value={
@@ -29,6 +37,8 @@ export default function PresidentOverview() {
             ).length
           }
           icon={Users}
+          to={`${root}/members`}
+          actionLabel="View members"
         />
       </div>
       <div className="grid two">

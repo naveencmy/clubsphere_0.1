@@ -8,7 +8,7 @@ import {
   resubmitExpenseSchema,
 } from '../controllers/ledgerController.js';
 import { validate } from '../middleware/validate.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, optionalAuth } from '../middleware/auth.js';
 import { requireClubTenant, authorizeRole } from '../middleware/rbac.js';
 
 const router = Router();
@@ -27,12 +27,12 @@ router.post(
 );
 
 // Budgets & Treasurer Reporting
-router.get('/budgets', authenticate, LedgerController.getBudgets);
+router.get('/budgets', optionalAuth, LedgerController.getBudgets);
 router.get('/treasurer/summary', authenticate, authorizeRole(['TREASURER', 'ASSOCIATION_INCHARGE', 'ADMIN']), LedgerController.getTreasurerSummary);
 
 // Expense Reimbursement Workflow
-router.get('/expenses', authenticate, LedgerController.getExpenses);
-router.get('/expenses/:id', authenticate, LedgerController.getExpenseDetails);
+router.get('/expenses', optionalAuth, LedgerController.getExpenses);
+router.get('/expenses/:id', optionalAuth, LedgerController.getExpenseDetails);
 router.post(
   '/expenses',
   authenticate,

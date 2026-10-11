@@ -15,4 +15,4 @@ export {
   demoService,
   snapshot,
   ServiceError,
-} from '../mock/services/core.js';
+} from './coreServices.js';

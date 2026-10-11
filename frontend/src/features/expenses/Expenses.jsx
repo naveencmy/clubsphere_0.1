@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Receipt, Upload, ZoomIn } from 'lucide-react';
 import { useApp } from '../../app/providers/AppProvider.jsx';
@@ -17,6 +17,7 @@ import {
   Modal,
   Notice,
   Empty,
+  Loading,
 } from '../../components/common/UI.jsx';
 import RecordForm from '../../components/forms/RecordForm.jsx';
 import { date } from '../../utils/format.js';
@@ -34,10 +35,59 @@ export default function Expenses() {
     [decision, setDecision] = useState(null),
     [preview, setPreview] = useState(false),
     [zoom, setZoom] = useState(1),
-    [draft, setDraft] = useState(false);
+    [draft, setDraft] = useState(false),
+    [fetchedExpense, setFetchedExpense] = useState(null),
+    [loadingFetched, setLoadingFetched] = useState(false);
+
+  useEffect(() => {
+    if (id && !data.expenses.find((exp) => exp.id === id)) {
+      setLoadingFetched(true);
+      fetch(`/api/ledger/expenses/${id}`, {
+        headers: { 'x-club-slug': 'nec-cse' },
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((json) => {
+          if (json?.data) {
+            const exp = json.data;
+            setFetchedExpense({
+              id: exp.id,
+              clubId: 'nec-cse',
+              budgetId: exp.budget_id,
+              eventId: exp.event_id,
+              fundraiserId: exp.fundraiser_id,
+              userId: exp.claimant_user_id,
+              claimantName: exp.claimant_name,
+              title: exp.title,
+              description: exp.description,
+              purpose: exp.description || exp.title,
+              category: exp.category,
+              merchant: exp.merchant_name,
+              amount: exp.amount_cents,
+              receipt: exp.receipt_image_url,
+              status: exp.status,
+              disbursementMethod: exp.disbursement_method,
+              purchaseDate: exp.purchase_date || exp.created_at,
+              createdAt: exp.created_at,
+              updatedAt: exp.updated_at,
+              history: [
+                { action: 'SUBMITTED', status: 'SUBMITTED', at: exp.created_at, actorId: exp.claimant_user_id },
+                ...(exp.status !== 'SUBMITTED'
+                  ? [{ action: exp.status, status: exp.status, at: exp.updated_at || exp.created_at }]
+                  : []),
+              ],
+            });
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoadingFetched(false));
+    }
+  }, [id, data.expenses]);
+
   const isNew = location.pathname.endsWith('/new'),
     management = location.pathname.startsWith('/dashboard'),
-    e = id ? data.expenses.find((e) => e.id === id) : null;
+    storeExpense = id ? data.expenses.find((exp) => exp.id === id) : null,
+    e = storeExpense || fetchedExpense;
+
   async function fileSelected(file) {
     if (!file) return;
     if (
@@ -54,7 +104,11 @@ export default function Expenses() {
     };
     reader.readAsDataURL(file);
   }
-  if (id && !e) return <Empty title="Expense claim not found" />;
+
+  if (id && !e) {
+    if (loadingFetched) return <Loading />;
+    return <Empty title="Expense claim not found" description="The requested expense record could not be found." />;
+  }
   const fields = [
     { name: 'title', label: 'Expense title', required: true },
     { name: 'merchant', label: 'Merchant', required: true },
@@ -69,7 +123,7 @@ export default function Expenses() {
     {
       name: 'budgetId',
       label: 'Budget envelope',
-      options: data.budgetCatalog.map((b) => ({ value: b.id, label: b.title })),
+      options: (data.budgetCatalog || data.budgets || []).map((b) => ({ value: b.id, label: b.title })),
     },
     {
       name: 'eventId',
@@ -133,8 +187,7 @@ export default function Expenses() {
                 onChange={(ev) => fileSelected(ev.target.files[0])}
               />
               <p className="caption muted">
-                Drop an image or PDF here, or choose a file. Up to 3 MB. Stored locally in demo
-                browser storage.
+                Drop an image or PDF here, or choose a file. Up to 3 MB. Attached as official reimbursement proof.
               </p>
               {(receipt || e?.receipt) && <p>Receipt attached</p>}
               {fileError && <Notice tone="error">{fileError}</Notice>}
@@ -186,19 +239,19 @@ export default function Expenses() {
                 <Details
                   items={[
                     ['Reference', <span className="mono">{e.id}</span>],
-                    ['Claimant', data.users.find((u) => u.id === e.userId)?.name],
-                    ['Merchant', e.merchant],
-                    ['Purchase date', date(e.purchaseDate)],
+                    ['Claimant', data.users.find((u) => u.id === e.userId)?.name || e.claimantName || 'CSE Association Officer'],
+                    ['Merchant', e.merchant || e.merchantName || 'Campus Operations'],
+                    ['Purchase date', date(e.purchaseDate || e.createdAt)],
                     ['Amount', <Currency amount={e.amount} />],
-                    ['Category', e.category.replaceAll('_', ' ')],
-                    ['Budget', data.budgetCatalog.find((b) => b.id === e.budgetId)?.title],
+                    ['Category', (e.category || 'GENERAL').replaceAll('_', ' ')],
+                    ['Budget', (data.budgetCatalog || data.budgets || []).find((b) => b.id === e.budgetId)?.title || 'General Operations'],
                     [
                       'Approval policy',
                       e.amount >= 250000 ? 'Treasurer + Association In-charge' : 'Treasurer final approval',
                     ],
                   ]}
                 />
-                <p>{e.purpose}</p>
+                <p>{e.purpose || e.description}</p>
                 {e.reason && (
                   <Notice tone={e.status === 'REJECTED' ? 'error' : 'warning'}>
                     Reviewer feedback: {e.reason}
@@ -268,10 +321,15 @@ export default function Expenses() {
                 {e.receipt ? (
                   <>
                     <div className="receipt">
-                      {e.receipt.startsWith('data:application/pdf') ? (
+                      {e.receipt.startsWith('data:application/pdf') || e.receipt.endsWith('.pdf') ? (
                         <p>PDF receipt attached · open to inspect</p>
                       ) : (
-                        <img src={e.receipt} alt={`Receipt for ${e.title}`} />
+                        <img
+                          src={e.receipt}
+                          alt={`Receipt for ${e.title}`}
+                          loading="lazy"
+                          decoding="async"
+                        />
                       )}
                     </div>
                     <Button onClick={() => setPreview(true)}>
@@ -287,7 +345,18 @@ export default function Expenses() {
           </div>
           <Card title="Claim timeline">
             <div className="card-body">
-              <Timeline items={e.history} />
+              <Timeline
+                items={
+                  e.history && e.history.length > 0
+                    ? e.history
+                    : [
+                        { action: 'SUBMITTED', status: 'SUBMITTED', at: e.createdAt || e.purchaseDate },
+                        ...(e.status !== 'SUBMITTED'
+                          ? [{ action: e.status, status: e.status, at: e.updatedAt || e.createdAt }]
+                          : []),
+                      ]
+                }
+              />
             </div>
           </Card>
           <Notice>
@@ -375,13 +444,15 @@ export default function Expenses() {
               <span>{Math.round(zoom * 100)}%</span>
             </div>
             <div style={{ overflow: 'auto', maxHeight: '65vh' }}>
-              {e.receipt.startsWith('data:application/pdf') ? (
+              {e.receipt.startsWith('data:application/pdf') || e.receipt.endsWith('.pdf') ? (
                 <iframe className="receipt-preview" src={e.receipt} title="Expense receipt PDF" />
               ) : (
                 <img
                   className="receipt-preview"
                   src={e.receipt}
                   alt="Original expense receipt"
+                  loading="lazy"
+                  decoding="async"
                   style={{ width: `${zoom * 100}%`, maxWidth: 'none', height: 'auto' }}
                 />
               )}

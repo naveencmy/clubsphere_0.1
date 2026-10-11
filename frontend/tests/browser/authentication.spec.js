@@ -4,7 +4,14 @@ import fs from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import pg from '../../../backend/node_modules/pg/lib/index.js';
 import { config } from '../../../backend/src/config/env.js';
-import { createAuthTestAccount } from '../../src/mock/fixtures/authTestAccount.js';
+
+function createAuthTestAccount(suffix) {
+  return {
+    name: 'Authentication Test',
+    email: `clubsphere-auth-qa-${suffix}@example.test`,
+    password: `Auth-${suffix}-Pass!`,
+  };
+}
 
 const accounts = [];
 test.afterAll(async () => {

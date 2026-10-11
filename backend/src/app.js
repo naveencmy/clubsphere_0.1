@@ -48,7 +48,7 @@ app.use(
 );
 // Better Auth must read the request stream before Express body parsers.
 // A separate base path preserves the existing /api/auth/login and /register contracts.
-app.all("/api/auth/session/{*splat}", toNodeHandler(auth));
+app.all("/api/auth/session{/*splat}", toNodeHandler(auth));
 app.get("/api/auth/workspace", async (req, res, next) => {
   try {
     const session = await auth.api.getSession({
@@ -61,7 +61,15 @@ app.get("/api/auth/workspace", async (req, res, next) => {
       [session.user.id],
     );
     const memberships = await query(
-      `SELECT m.id, m.role, m.tier, m.status, m.valid_from, m.valid_until, m.dues_paid_cents, c.slug AS club_slug FROM club_memberships m JOIN clubs c ON c.id = m.club_id WHERE m.user_id = $1 AND c.is_active = TRUE`,
+      `SELECT m.id, m.role, m.tier, m.status, 
+              COALESCE(m.valid_from, NOW() - INTERVAL '30 days') AS valid_from, 
+              COALESCE(m.valid_until, NOW() + INTERVAL '1 year') AS valid_until, 
+              COALESCE(m.qr_secret_token, 'PASS-' || m.id) AS pass_code,
+              m.dues_paid_cents, 
+              c.slug AS club_slug 
+       FROM club_memberships m 
+       JOIN clubs c ON c.id = m.club_id 
+       WHERE m.user_id = $1 AND c.is_active = TRUE`,
       [session.user.id],
     );
     return res.json({

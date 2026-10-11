@@ -10,27 +10,39 @@ export async function seedDatabase() {
   const CLUB_ID = 'c0000000-0000-0000-0000-000000000001';
 
   // 1. Seed or Update Primary Club
+  await query('ALTER TABLE clubs ADD COLUMN IF NOT EXISTS initials TEXT DEFAULT \'TM\';');
+  await query('ALTER TABLE clubs ADD COLUMN IF NOT EXISTS category TEXT DEFAULT \'Department Association\';');
+  await query('ALTER TABLE clubs ADD COLUMN IF NOT EXISTS location TEXT DEFAULT \'Department of CSE, Block 3, CC2 Lab & Placement Auditorium\';');
+
   await query(`
-    INSERT INTO clubs (id, slug, name, description, logo_url, banner_url, primary_color, annual_dues_cents, settings_json, is_active)
+    INSERT INTO clubs (id, slug, name, description, logo_url, banner_url, primary_color, annual_dues_cents, settings_json, initials, category, location, is_active)
     VALUES (
       $1,
       'nec-cse',
       'Department of Computer Science and Engineering - CSE Association (Team MATRIX)',
       'Official Association of Computer Science & Engineering, Nandha Engineering College (Autonomous), Erode - 638 052. Empowering student innovators with technical symposia, hackathons, and industry workshops.',
-      '/nec-cse-logo.png',
-      '/nec-cse-banner.png',
+      '/images/clubsphere-logo.png',
+      '/images/events/aura-25.png',
       '#0ea5e9',
       50000,
       '{"department":"Computer Science and Engineering","college":"Nandha Engineering College (Autonomous)","city":"Erode","pincode":"638052","accreditation":"NAAC A+ Grade / Autonomous / Anna University"}'::jsonb,
+      'TM',
+      'Department Association',
+      'Department of CSE, Block 3, CC2 Lab & Placement Auditorium',
       TRUE
     )
     ON CONFLICT (id) DO UPDATE SET
       slug = EXCLUDED.slug,
       name = EXCLUDED.name,
       description = EXCLUDED.description,
+      logo_url = EXCLUDED.logo_url,
+      banner_url = EXCLUDED.banner_url,
       primary_color = EXCLUDED.primary_color,
       annual_dues_cents = EXCLUDED.annual_dues_cents,
       settings_json = EXCLUDED.settings_json,
+      initials = EXCLUDED.initials,
+      category = EXCLUDED.category,
+      location = EXCLUDED.location,
       is_active = TRUE;
   `, [CLUB_ID]);
 
@@ -214,7 +226,7 @@ export async function seedDatabase() {
     `, [CLUB_ID, u.id, u.clubRole, u.tier]);
   }
 
-  console.log(`✅ Seeded ${users.length} Tamil faculty and student accounts with Better Auth credentials.`);
+  console.log(` Seeded ${users.length} Tamil faculty and student accounts with Better Auth credentials.`);
 
   // 3. Seed Ledger Accounts
   const ledgerAccounts = [
@@ -241,7 +253,7 @@ export async function seedDatabase() {
         type = EXCLUDED.type;
     `, [CLUB_ID, acc.code, acc.name, acc.type]);
   }
-  console.log(`✅ Seeded ${ledgerAccounts.length} Double-Entry Ledger Accounts.`);
+  console.log(` Seeded ${ledgerAccounts.length} Double-Entry Ledger Accounts.`);
 
   // 4. Seed Real Events from Posters
   const events = [
@@ -255,6 +267,9 @@ export async function seedDatabase() {
       startsAt: '2025-11-06T09:30:00.000Z',
       endsAt: '2025-11-06T16:30:00.000Z',
       capacityLimit: 350,
+      imageUrl: '/images/events/aura-25.png',
+      category: 'Technical Event',
+      tags: ['technical', 'inter-department', 'nec-cse', 'aura25'],
       tiers: [
         {
           id: '50000000-0000-0000-0000-000000000001',
@@ -276,6 +291,9 @@ export async function seedDatabase() {
       startsAt: '2026-02-21T09:00:00.000Z',
       endsAt: '2026-02-21T17:00:00.000Z',
       capacityLimit: 300,
+      imageUrl: '/images/events/synectics-26.jpg',
+      category: 'National Level Symposium',
+      tags: ['symposium', 'national', 'genai', 'nec-cse', 'synectics26'],
       tiers: [
         {
           id: '50000000-0000-0000-0000-000000000002',
@@ -305,6 +323,9 @@ export async function seedDatabase() {
       startsAt: '2026-04-17T09:00:00.000Z',
       endsAt: '2026-04-18T12:00:00.000Z',
       capacityLimit: 250,
+      imageUrl: '/images/events/hackathon-2026.jpg',
+      category: 'Flagship Hackathon',
+      tags: ['hackathon', 'flagship', '24h', 'ai-ml', 'nec-cse'],
       tiers: [
         {
           id: '50000000-0000-0000-0000-000000000004',
@@ -326,10 +347,14 @@ export async function seedDatabase() {
     },
   ];
 
+  await query('ALTER TABLE events ADD COLUMN IF NOT EXISTS image_url TEXT;');
+  await query('ALTER TABLE events ADD COLUMN IF NOT EXISTS category TEXT;');
+  await query('ALTER TABLE events ADD COLUMN IF NOT EXISTS tags TEXT[];');
+
   for (const ev of events) {
     await query(`
-      INSERT INTO events (id, club_id, title, slug, description, venue_name, venue_address, starts_at, ends_at, capacity_limit, is_published)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, TRUE)
+      INSERT INTO events (id, club_id, title, slug, description, venue_name, venue_address, starts_at, ends_at, capacity_limit, image_url, category, tags, is_published)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, TRUE)
       ON CONFLICT (id) DO UPDATE SET
         title = EXCLUDED.title,
         slug = EXCLUDED.slug,
@@ -339,8 +364,11 @@ export async function seedDatabase() {
         starts_at = EXCLUDED.starts_at,
         ends_at = EXCLUDED.ends_at,
         capacity_limit = EXCLUDED.capacity_limit,
+        image_url = EXCLUDED.image_url,
+        category = EXCLUDED.category,
+        tags = EXCLUDED.tags,
         is_published = TRUE;
-    `, [ev.id, CLUB_ID, ev.title, ev.slug, ev.description, ev.venueName, ev.venueAddress, ev.startsAt, ev.endsAt, ev.capacityLimit]);
+    `, [ev.id, CLUB_ID, ev.title, ev.slug, ev.description, ev.venueName, ev.venueAddress, ev.startsAt, ev.endsAt, ev.capacityLimit, ev.imageUrl || null, ev.category, ev.tags]);
 
     for (const tier of ev.tiers) {
       await query(`
@@ -357,17 +385,27 @@ export async function seedDatabase() {
       `, [tier.id, ev.id, tier.name, tier.description, tier.memberPriceCents, tier.nonMemberPriceCents, tier.allocationLimit, '2025-01-01T00:00:00Z', ev.endsAt]);
     }
   }
-  console.log(`✅ Seeded ${events.length} Real Nandha College events & tiers matching official posters.`);
+  console.log(` Seeded ${events.length} Real Nandha College events & tiers matching official posters.`);
 
   // 5. Seed Budgets
+  await query('ALTER TABLE budgets ADD COLUMN IF NOT EXISTS items_json JSONB;');
+
   const budgets = [
     {
       id: '20000000-0000-0000-0000-000000000001',
       eventId: '40000000-0000-0000-0000-000000000001',
       fiscalYear: '2025-2026',
       category: 'EVENTS',
-      allocatedCents: 2500000, // ₹25,000
-      notes: 'AURA 25 Inter-Department Event Budget',
+      allocatedCents: 510000, // ₹5,100 (Official Aura '25 Approved Budget)
+      notes: 'Nandha Engineering College (Autonomous), Department of Computer Science and Engineering - Aura’25 Approved Budget (Total ₹5,100). Signed by Student Treasurer, Association In-charge & HoD.',
+      items: [
+        { sno: 1, name: '1st Prize', quantity: 2, unitPrice: 1000, total: 2000 },
+        { sno: 2, name: '2nd Prize', quantity: 2, unitPrice: 750, total: 1500 },
+        { sno: 3, name: '3rd Prize only for Technical', quantity: 1, unitPrice: 500, total: 500 },
+        { sno: 4, name: 'Certificates', quantity: 10, unitPrice: 30, total: 300 },
+        { sno: 5, name: 'Stationaries for Both events', quantity: 1, unitPrice: 300, total: 300 },
+        { sno: 6, name: 'Permanent Decoration', quantity: 1, unitPrice: 500, total: 500 },
+      ],
     },
     {
       id: '20000000-0000-0000-0000-000000000002',
@@ -376,6 +414,7 @@ export async function seedDatabase() {
       category: 'SYMPOSIUM',
       allocatedCents: 7500000, // ₹75,000
       notes: 'SYNECTICS 26 National Level Symposium Budget',
+      items: null,
     },
     {
       id: '20000000-0000-0000-0000-000000000003',
@@ -384,6 +423,7 @@ export async function seedDatabase() {
       category: 'HACKATHON',
       allocatedCents: 15000000, // ₹1,50,000
       notes: '24H Flagship Hackathon Budget',
+      items: null,
     },
     {
       id: '20000000-0000-0000-0000-000000000004',
@@ -392,34 +432,68 @@ export async function seedDatabase() {
       category: 'OPERATIONS',
       allocatedCents: 30000000, // ₹3,00,000
       notes: 'CSE Association Annual Operations Budget 2025-2026',
+      items: null,
     },
   ];
 
   for (const b of budgets) {
     await query(`
-      INSERT INTO budgets (id, club_id, event_id, fiscal_year, category, allocated_amount_cents, notes)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO budgets (id, club_id, event_id, fiscal_year, category, allocated_amount_cents, notes, items_json)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       ON CONFLICT (id) DO UPDATE SET
         category = EXCLUDED.category,
         allocated_amount_cents = EXCLUDED.allocated_amount_cents,
-        notes = EXCLUDED.notes;
-    `, [b.id, CLUB_ID, b.eventId, b.fiscalYear, b.category, b.allocatedCents, b.notes]);
+        notes = EXCLUDED.notes,
+        items_json = EXCLUDED.items_json;
+    `, [b.id, CLUB_ID, b.eventId, b.fiscalYear, b.category, b.allocatedCents, b.notes, b.items ? JSON.stringify(b.items) : null]);
   }
-  console.log(`✅ Seeded ${budgets.length} Event & Departmental Budgets.`);
+  console.log(` Seeded ${budgets.length} Event & Departmental Budgets.`);
 
-  // 6. Seed Past Expense Claims (with non-Razorpay payment modes: NEFT, University Cash Voucher, Direct UPI)
+  // 6. Seed Real Expense Claims
   const expenses = [
     {
       id: '30000000-0000-0000-0000-000000000001',
       budgetId: '20000000-0000-0000-0000-000000000001',
       eventId: '40000000-0000-0000-0000-000000000001',
       claimantUserId: '10000000-0000-0000-0000-000000000007', // M. Kavikumar
-      amountCents: 1245000, // ₹12,450
-      title: 'Stage sound system, LED backdrops & mementos for AURA 25',
+      amountCents: 400000, // ₹4,000 (1st, 2nd & 3rd Cash Prizes)
+      title: "1st, 2nd & 3rd Cash Prizes for Aura '25 (Technical & Non-Technical)",
+      category: 'AWARDS',
+      merchantName: 'CSE Department Cash Prize Pool',
+      description: "1st Prize (2 x ₹1,000 = ₹2,000), 2nd Prize (2 x ₹750 = ₹1,500), 3rd Prize Technical (1 x ₹500 = ₹500). Approved by Student Treasurer, Association In-charge & HoD.",
+      receiptUrl: '/receipts/receipt-aura-prizes.pdf',
+      status: 'DISBURSED',
+      disbursementMethod: 'UNIVERSITY_CASH_VOUCHER',
+      treasurerApproverId: '10000000-0000-0000-0000-000000000003',
+      presidentApproverId: '10000000-0000-0000-0000-000000000001',
+    },
+    {
+      id: '30000000-0000-0000-0000-000000000006',
+      budgetId: '20000000-0000-0000-0000-000000000001',
+      eventId: '40000000-0000-0000-0000-000000000001',
+      claimantUserId: '10000000-0000-0000-0000-000000000008', // S. Balahariharan
+      amountCents: 60000, // ₹600 (Certificates & Stationaries)
+      title: "Printed Certificates (10 items @ ₹30) & Stationaries for Both Events",
+      category: 'SUPPLIES',
+      merchantName: 'Erode Student Xerox & Stationery Mart',
+      description: "Certificates 10 items @ ₹30 (₹300) and Stationaries for both Brain Busters & Fun Fusion events (₹300). Approved by Student Treasurer, Association In-charge & HoD.",
+      receiptUrl: '/receipts/receipt-aura-certificates.pdf',
+      status: 'DISBURSED',
+      disbursementMethod: 'UNIVERSITY_CASH_VOUCHER',
+      treasurerApproverId: '10000000-0000-0000-0000-000000000003',
+      presidentApproverId: '10000000-0000-0000-0000-000000000001',
+    },
+    {
+      id: '30000000-0000-0000-0000-000000000007',
+      budgetId: '20000000-0000-0000-0000-000000000001',
+      eventId: '40000000-0000-0000-0000-000000000001',
+      claimantUserId: '10000000-0000-0000-0000-000000000007', // M. Kavikumar
+      amountCents: 50000, // ₹500 (Permanent Decoration)
+      title: "Permanent Decoration for CC2 (Block-3) & Placement Auditorium",
       category: 'OPERATIONAL',
-      merchantName: 'Erode Sound & Stage Rentals',
-      description: 'Stage sound system, LED backdrops & mementos for AURA 25',
-      receiptUrl: '/receipts/receipt-aura-stage.pdf',
+      merchantName: 'Sri Murugan Flower & Stage Decors, Erode',
+      description: "Permanent Decoration for both Aura 25 event venues. Approved by Student Treasurer, Association In-charge & HoD.",
+      receiptUrl: '/receipts/receipt-aura-decoration.pdf',
       status: 'DISBURSED',
       disbursementMethod: 'UNIVERSITY_CASH_VOUCHER',
       treasurerApproverId: '10000000-0000-0000-0000-000000000003',
@@ -500,6 +574,13 @@ export async function seedDatabase() {
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_DATE, $11, $12, $13, $14, $15, CURRENT_TIMESTAMP)
       ON CONFLICT (id) DO UPDATE SET
+        title = EXCLUDED.title,
+        amount_cents = EXCLUDED.amount_cents,
+        description = EXCLUDED.description,
+        merchant_name = EXCLUDED.merchant_name,
+        category = EXCLUDED.category,
+        receipt_image_url = EXCLUDED.receipt_image_url,
+        disbursement_method = EXCLUDED.disbursement_method,
         status = EXCLUDED.status,
         treasurer_approver_id = EXCLUDED.treasurer_approver_id,
         president_approver_id = EXCLUDED.president_approver_id;
@@ -521,7 +602,7 @@ export async function seedDatabase() {
       exp.presidentApproverId,
     ]);
   }
-  console.log(`✅ Seeded ${expenses.length} Expense Reimbursement claims with dual-approval workflow.`);
+  console.log(` Seeded ${expenses.length} Expense Reimbursement claims with dual-approval workflow.`);
 
   // 7. Seed Real Cryptographically Signed Tickets with Verified QR Codes
   const sampleTickets = [
@@ -579,7 +660,7 @@ export async function seedDatabase() {
       tck.checkedInAt || null,
     ]);
   }
-  console.log(`✅ Seeded ${sampleTickets.length} Issued tickets with cryptographic HMAC-SHA256 signatures.`);
+  console.log(` Seeded ${sampleTickets.length} Issued tickets with cryptographic HMAC-SHA256 signatures.`);
 
   // 8. Seed Official Merchandise from Photos
   const products = [
@@ -588,7 +669,9 @@ export async function seedDatabase() {
       title: 'Team MATRIX Official Navy Hoodie',
       slug: 'team-matrix-official-navy-hoodie',
       description: 'Official Department of Computer Science & Engineering heavy-cotton Navy Blue hoodie with cyan contrast collar and cuff piping. Features front chest embroidered Team MATRIX wings shield crest and bold futuristic cyan CSE techno emblem across the back.',
-      imageUrls: ['/images/products/team-matrix-hoodie.png'],
+      imageUrls: ['/images/products/team-matrix-hoodie.jpg'],
+      category: 'Apparel',
+      visual: 'hoodie',
       variants: [
         { id: '80000000-0000-0000-0000-000000000001', title: 'Size Small (S)', sku: 'HOODIE-NAVY-S', memberPriceCents: 75000, nonMemberPriceCents: 85000, stock: 30, attributes: { size: 'S', color: 'Navy Blue & Cyan' } },
         { id: '80000000-0000-0000-0000-000000000002', title: 'Size Medium (M)', sku: 'HOODIE-NAVY-M', memberPriceCents: 75000, nonMemberPriceCents: 85000, stock: 60, attributes: { size: 'M', color: 'Navy Blue & Cyan' } },
@@ -598,36 +681,57 @@ export async function seedDatabase() {
       ],
     },
     {
+      id: '70000000-0000-0000-0000-000000000003',
+      title: 'Team MATRIX Official Navy Polo T-Shirt',
+      slug: 'team-matrix-official-navy-polo',
+      description: 'Official Department of Computer Science & Engineering breathable pique cotton Navy Blue Polo T-shirt featuring cyan double collar and sleeve stripes, and embroidered Team MATRIX wings shield emblem on the chest.',
+      imageUrls: ['/images/products/team-matrix-polo.png'],
+      category: 'Apparel',
+      visual: 'polo',
+      variants: [
+        { id: '80000000-0000-0000-0000-000000000007', title: 'Size Small (S)', sku: 'POLO-NAVY-S', memberPriceCents: 45000, nonMemberPriceCents: 55000, stock: 40, attributes: { size: 'S', color: 'Navy Blue & Cyan' } },
+        { id: '80000000-0000-0000-0000-000000000008', title: 'Size Medium (M)', sku: 'POLO-NAVY-M', memberPriceCents: 45000, nonMemberPriceCents: 55000, stock: 70, attributes: { size: 'M', color: 'Navy Blue & Cyan' } },
+        { id: '80000000-0000-0000-0000-000000000009', title: 'Size Large (L)', sku: 'POLO-NAVY-L', memberPriceCents: 45000, nonMemberPriceCents: 55000, stock: 80, attributes: { size: 'L', color: 'Navy Blue & Cyan' } },
+        { id: '80000000-0000-0000-0000-000000000010', title: 'Size Extra Large (XL)', sku: 'POLO-NAVY-XL', memberPriceCents: 45000, nonMemberPriceCents: 55000, stock: 50, attributes: { size: 'XL', color: 'Navy Blue & Cyan' } },
+      ],
+    },
+    {
       id: '70000000-0000-0000-0000-000000000002',
       title: 'Team MATRIX Acrylic Tech Badge & Lanyard',
       slug: 'team-matrix-acrylic-tech-badge',
       description: 'Laser-engraved acrylic smart conference pass with neon cyan NFC/QR chip embed and silk woven Nandha Engineering College CSE lanyard.',
       imageUrls: ['/images/products/team-matrix-badge.png'],
+      category: 'Accessories',
+      visual: 'badge',
       variants: [
         { id: '80000000-0000-0000-0000-000000000006', title: 'Standard Edition', sku: 'BADGE-MATRIX-STD', memberPriceCents: 12000, nonMemberPriceCents: 15000, stock: 200, attributes: { size: 'Standard', color: 'Cyan Laser Engraved' } },
       ],
     },
   ];
 
+  await query('ALTER TABLE products ADD COLUMN IF NOT EXISTS category TEXT DEFAULT \'Apparel\';');
+  await query('ALTER TABLE products ADD COLUMN IF NOT EXISTS visual TEXT;');
+
   for (const prod of products) {
     await query(`
-      INSERT INTO products (id, club_id, title, slug, description, image_urls, is_published)
-      VALUES ($1, $2, $3, $4, $5, $6, TRUE)
+      INSERT INTO products (id, club_id, title, slug, description, image_urls, category, visual, is_published)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE)
       ON CONFLICT (id) DO UPDATE SET
         title = EXCLUDED.title,
         slug = EXCLUDED.slug,
         description = EXCLUDED.description,
         image_urls = EXCLUDED.image_urls,
+        category = EXCLUDED.category,
+        visual = EXCLUDED.visual,
         is_published = TRUE;
-    `, [prod.id, CLUB_ID, prod.title, prod.slug, prod.description, prod.imageUrls]);
+    `, [prod.id, CLUB_ID, prod.title, prod.slug, prod.description, prod.imageUrls, prod.category, prod.visual]);
 
     for (const v of prod.variants) {
       await query(`
         INSERT INTO product_variants (id, product_id, title, sku, member_price_cents, non_member_price_cents, available_stock, reserved_stock, attributes_json)
         VALUES ($1, $2, $3, $4, $5, $6, $7, 0, $8)
-        ON CONFLICT (id) DO UPDATE SET
+        ON CONFLICT (sku) DO UPDATE SET
           title = EXCLUDED.title,
-          sku = EXCLUDED.sku,
           member_price_cents = EXCLUDED.member_price_cents,
           non_member_price_cents = EXCLUDED.non_member_price_cents,
           available_stock = EXCLUDED.available_stock,
@@ -635,7 +739,7 @@ export async function seedDatabase() {
       `, [v.id, prod.id, v.title, v.sku, v.memberPriceCents, v.nonMemberPriceCents, v.stock, JSON.stringify(v.attributes)]);
     }
   }
-  console.log(`✅ Seeded ${products.length} Products & Variants (Team MATRIX Official Hoodie & Badges).`);
+  console.log(` Seeded ${products.length} Products & Variants (Team MATRIX Official Hoodie & Badges).`);
 
   // 9. Seed Announcements
   const announcements = [
@@ -674,7 +778,7 @@ export async function seedDatabase() {
         audit_hash = EXCLUDED.audit_hash;
     `, [an.id, CLUB_ID, an.authorId, an.title, an.content, an.isPinned, auditHash]);
   }
-  console.log(`✅ Seeded ${announcements.length} Announcements.`);
+  console.log(` Seeded ${announcements.length} Announcements.`);
 
   // 10. Seed Kanban Tasks
   const tasks = [
@@ -727,13 +831,153 @@ export async function seedDatabase() {
         due_date = EXCLUDED.due_date;
     `, [t.id, CLUB_ID, '10000000-0000-0000-0000-000000000001', t.assigneeId, t.title, t.description, t.status, t.priority, t.dueAt]);
   }
-  console.log(`✅ Seeded ${tasks.length} Kanban Tasks.`);
+  console.log(` Seeded ${tasks.length} Kanban Tasks.`);
 
-  console.log('🎉 Seeding successfully completed! All data is populated directly in PostgreSQL.');
+  // 11. Seed Real Fundraisers & Volunteer Shifts
+  const fundraisers = [
+    {
+      id: 'b0000000-0000-0000-0000-000000000001',
+      title: 'ShellKode Industry Innovation Grant & Student Prize Pool',
+      description: 'Corporate sponsorship and industry grant for cash prize pool, student prototyping kits, and GPU cloud computing credits for SYNECTICS 26 and Hackathon.',
+      targetAmountCents: 20000000, // ₹2,00,000
+      raisedAmountCents: 12500000, // ₹1,25,000
+      startsAt: '2026-01-01T00:00:00Z',
+      endsAt: '2026-05-31T23:59:59Z',
+    },
+  ];
+
+  for (const f of fundraisers) {
+    await query(`
+      INSERT INTO fundraisers (id, club_id, title, description, target_amount_cents, raised_amount_cents, starts_at, ends_at, is_active)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE)
+      ON CONFLICT (id) DO UPDATE SET
+        title = EXCLUDED.title,
+        description = EXCLUDED.description,
+        target_amount_cents = EXCLUDED.target_amount_cents,
+        raised_amount_cents = EXCLUDED.raised_amount_cents,
+        is_active = TRUE;
+    `, [f.id, CLUB_ID, f.title, f.description, f.targetAmountCents, f.raisedAmountCents, f.startsAt, f.endsAt]);
+  }
+  console.log(` Seeded ${fundraisers.length} Fundraisers.`);
+
+  // 12. Seed Real Orders & Order Items
+  const sampleOrderId = 'e0000000-0000-0000-0000-000000000001';
+  await query(`
+    INSERT INTO orders (id, club_id, user_id, order_number, status, subtotal_cents, discount_cents, total_cents)
+    VALUES ($1, $2, $3, 'ORD-NEC-1001', 'PAID', 75000, 0, 75000)
+    ON CONFLICT (order_number) DO UPDATE SET
+      status = EXCLUDED.status,
+      total_cents = EXCLUDED.total_cents;
+  `, [sampleOrderId, CLUB_ID, '10000000-0000-0000-0000-000000000005']);
+
+  const orderRow = await query(`SELECT id FROM orders WHERE order_number = 'ORD-NEC-1001' LIMIT 1;`);
+  const variantRow = await query(`SELECT id FROM product_variants WHERE sku = 'HOODIE-NAVY-M' LIMIT 1;`);
+
+  if (orderRow.rows[0] && variantRow.rows[0]) {
+    await query(`
+      INSERT INTO order_items (id, order_id, variant_id, quantity, unit_price_cents, total_price_cents)
+      VALUES (
+        'f0000000-0000-0000-0000-000000000001',
+        $1,
+        $2,
+        1,
+        75000,
+        75000
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        quantity = EXCLUDED.quantity;
+    `, [orderRow.rows[0].id, variantRow.rows[0].id]);
+  }
+  console.log(' Seeded Verified Merchandise Orders & Items.');
+
+  // 13. Seed Double-Entry Journal Entries & Ledger Lines
+  const journalEntries = [
+    {
+      id: 'd0000000-0000-0000-0000-000000000001',
+      entryNumber: 'JRN-1000',
+      description: 'Nandha Engineering College Annual CSE Association Fund Allocation (Opening Balance)',
+      refType: 'MANUAL_ADJUSTMENT',
+      debitCode: '1020',
+      creditCode: '3010',
+      amountCents: 10000000, // ₹1,00,000
+    },
+    {
+      id: 'd0000000-0000-0000-0000-000000000002',
+      entryNumber: 'JRN-1001',
+      description: 'Annual student membership dues collected',
+      refType: 'MEMBERSHIP_PAYMENT',
+      debitCode: '1010',
+      creditCode: '4010',
+      amountCents: 500000, // ₹5,000
+    },
+    {
+      id: 'd0000000-0000-0000-0000-000000000003',
+      entryNumber: 'JRN-1201',
+      description: 'Team MATRIX Official Navy Hoodie sales',
+      refType: 'MERCH_SALE',
+      debitCode: '1010',
+      creditCode: '4030',
+      amountCents: 75000, // ₹750
+    },
+    {
+      id: 'd0000000-0000-0000-0000-000000000004',
+      entryNumber: 'JRN-1301',
+      description: 'ShellKode Industry Grant & Sponsorship received',
+      refType: 'DONATION',
+      debitCode: '1020',
+      creditCode: '4040',
+      amountCents: 12500000, // ₹1,25,000
+    },
+    {
+      id: 'd0000000-0000-0000-0000-000000000005',
+      entryNumber: 'JRN-1401',
+      description: 'Aura 25 Event Expenses Disbursed: Prizes (₹4,000), Certificates & Stationery (₹600), Decoration (₹500)',
+      refType: 'EXPENSE_PAYOUT',
+      debitCode: '5010',
+      creditCode: '1010',
+      amountCents: 510000, // ₹5,100
+    },
+  ];
+
+  for (const jrn of journalEntries) {
+    await query(`
+      INSERT INTO journal_entries (id, club_id, entry_number, description, reference_type, posted_by_user_id)
+      VALUES ($1, $2, $3, $4, $5, '10000000-0000-0000-0000-000000000003')
+      ON CONFLICT (entry_number) DO UPDATE SET
+        description = EXCLUDED.description;
+    `, [jrn.id, CLUB_ID, jrn.entryNumber, jrn.description, jrn.refType]);
+
+    const jrnRow = await query(`SELECT id FROM journal_entries WHERE entry_number = $1 LIMIT 1;`, [jrn.entryNumber]);
+    const jrnId = jrnRow.rows[0]?.id || jrn.id;
+
+    const debitAcc = await query(`SELECT id FROM ledger_accounts WHERE club_id = $1 AND account_code = $2;`, [CLUB_ID, jrn.debitCode]);
+    const creditAcc = await query(`SELECT id FROM ledger_accounts WHERE club_id = $1 AND account_code = $2;`, [CLUB_ID, jrn.creditCode]);
+
+    if (debitAcc.rows[0] && creditAcc.rows[0]) {
+      await query(`
+        INSERT INTO ledger_lines (id, journal_entry_id, account_id, debit_cents, credit_cents, description)
+        VALUES (gen_random_uuid(), $1, $2, $3, 0, $4)
+        ON CONFLICT DO NOTHING;
+      `, [jrnId, debitAcc.rows[0].id, jrn.amountCents, `${jrn.description} (Debit)`]);
+
+      await query(`
+        INSERT INTO ledger_lines (id, journal_entry_id, account_id, debit_cents, credit_cents, description)
+        VALUES (gen_random_uuid(), $1, $2, 0, $3, $4)
+        ON CONFLICT DO NOTHING;
+      `, [jrnId, creditAcc.rows[0].id, jrn.amountCents, `${jrn.description} (Credit)`]);
+
+      await query(`UPDATE ledger_accounts SET balance_cents = balance_cents + $1 WHERE id = $2;`, [jrn.amountCents, debitAcc.rows[0].id]);
+      await query(`UPDATE ledger_accounts SET balance_cents = balance_cents + $1 WHERE id = $2;`, [jrn.amountCents, creditAcc.rows[0].id]);
+    }
+  }
+  console.log(` Seeded ${journalEntries.length} Double-Entry Journal Entries & Ledger Lines.`);
+
+  console.log('🎉 Seeding successfully completed! All data and image paths are populated directly in PostgreSQL.');
 }
 
 // Execute if run directly
-if (process.argv[1]?.endsWith('seedRealData.js')) {
+const isDirectExecution = process.argv[1] && /seedRealData\.js$/i.test(process.argv[1].trim());
+if (isDirectExecution) {
   seedDatabase()
     .then(() => process.exit(0))
     .catch((err) => {

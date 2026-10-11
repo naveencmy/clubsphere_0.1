@@ -73,7 +73,23 @@ export class CollaborationService {
     const announcement = await CollaborationRepository.findAnnouncementById(announcementId);
     if (!announcement) throw new NotFoundError(`Announcement '${announcementId}' not found.`);
 
-    const revisions = await CollaborationRepository.findRevisions(announcementId);
+    let revisions = await CollaborationRepository.findRevisions(announcementId);
+    if (!revisions || revisions.length === 0) {
+      revisions = [
+        {
+          id: `rev-1-${announcement.id}`,
+          announcement_id: announcement.id,
+          revision_number: 1,
+          title: announcement.title,
+          content: announcement.content_markdown || announcement.content,
+          content_markdown: announcement.content_markdown || announcement.content,
+          edited_by_user_id: announcement.author_id,
+          edited_at: announcement.published_at || announcement.created_at,
+          revision_hash: announcement.audit_hash,
+          editor_name: announcement.author_name,
+        },
+      ];
+    }
     return { announcement, revisions };
   }
 

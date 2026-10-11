@@ -80,23 +80,36 @@ export default function EventSlideshow({ events, tiers }) {
           aria-roledescription="slide"
           aria-label={`${activeIndex + 1} of ${events.length}`}
         >
-          <div className="landing-slide-poster" aria-hidden="true">
-            <CalendarDays className="landing-slide-calendar" strokeWidth={1} />
-            <div className="landing-slide-date">
-              <span>
-                {new Intl.DateTimeFormat('en-IN', {
-                  month: 'long',
-                  timeZone: 'Asia/Kolkata',
-                }).format(new Date(event.startsAt))}
-              </span>
-              <strong>
-                {new Intl.DateTimeFormat('en-IN', {
-                  day: '2-digit',
-                  timeZone: 'Asia/Kolkata',
-                }).format(new Date(event.startsAt))}
-              </strong>
-            </div>
-            <span className="landing-slide-category">{event.category}</span>
+          <div className="landing-slide-poster" aria-hidden="true" style={{ overflow: 'hidden', position: 'relative' }}>
+            {event.imageUrl ? (
+              <img
+                src={event.imageUrl}
+                alt={event.title}
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', borderRadius: 'inherit' }}
+              />
+            ) : (
+              <>
+                <CalendarDays className="landing-slide-calendar" strokeWidth={1} />
+                <div className="landing-slide-date">
+                  <span>
+                    {new Intl.DateTimeFormat('en-IN', {
+                      month: 'long',
+                      timeZone: 'Asia/Kolkata',
+                    }).format(new Date(event.startsAt))}
+                  </span>
+                  <strong>
+                    {new Intl.DateTimeFormat('en-IN', {
+                      day: '2-digit',
+                      timeZone: 'Asia/Kolkata',
+                    }).format(new Date(event.startsAt))}
+                  </strong>
+                </div>
+                <span className="landing-slide-category">{event.category}</span>
+              </>
+            )}
           </div>
           <div className="landing-slide-copy">
             <h2>{event.title}</h2>

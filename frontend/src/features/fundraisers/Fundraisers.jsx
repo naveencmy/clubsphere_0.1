@@ -94,7 +94,7 @@ export default function Fundraisers() {
                         setDonation({ fundraiserId: f.id, idempotencyKey: crypto.randomUUID() })
                       }
                     >
-                      Record demo donation
+                      Record contribution
                     </Button>
                     {manager && (
                       <>
@@ -178,29 +178,28 @@ export default function Fundraisers() {
       })}
       {!data.fundraisers.length && <Empty title="The next good cause starts with you" />}
       {donation && (
-        <Modal title="Record a demo donation" onClose={() => setDonation(null)}>
+        <Modal title="Record a campaign contribution" onClose={() => setDonation(null)}>
           <Notice>
-            No real money is collected. The donation updates this campaign and the shared financial
-            ledger once.
+            The contribution updates this campaign and posts a double-entry transaction to the financial ledger.
           </Notice>
           <RecordForm
             fields={[
               {
                 name: 'amount',
-                label: 'Donation amount (₹)',
+                label: 'Contribution amount (₹)',
                 type: 'number',
                 step: '.01',
                 required: true,
               },
             ]}
             onCancel={() => setDonation(null)}
-            submitLabel="Confirm demo donation"
+            submitLabel="Confirm contribution"
             onSubmit={async (v) => {
               await fundraiserService.donate({
                 ...donation,
                 amount: Math.round(Number(v.amount) * 100),
               });
-              toast('Demo donation recorded');
+              toast('Campaign contribution recorded');
               setDonation(null);
             }}
           />

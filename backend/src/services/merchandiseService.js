@@ -36,6 +36,8 @@ export class MerchandiseService {
           slug: row.product_slug || row.slug,
           description: row.description,
           imageUrls: row.image_urls || [],
+          category: row.category,
+          visual: row.visual,
           variants: [],
         });
       }

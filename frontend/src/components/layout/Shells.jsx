@@ -23,6 +23,9 @@ import {
   LogOut,
   ClipboardList,
   History,
+  ChevronsUpDown,
+  Check,
+  Building2,
 } from 'lucide-react';
 import { useApp } from '../../app/providers/AppProvider.jsx';
 import { useAction } from '../../hooks/useAction.js';
@@ -32,12 +35,268 @@ import { managerRoles, financeRoles, staffRoles } from '../../services/permissio
 import { Avatar, Button, LinkButton, Loading } from '../common/UI.jsx';
 export function Brand() {
   return (
-    <Link to="/" className="brand">
-      <span className="brand-mark">
-        <CircleDot />
-      </span>
-      ClubSphere<span className="sr-only"> home</span>
+    <Link to="/" className="brand" style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+      <img
+        src="/images/clubsphere-logo.png"
+        alt="ClubSphere Emblem"
+        loading="eager"
+        decoding="async"
+        fetchPriority="high"
+        style={{ width: 30, height: 30, objectFit: 'contain' }}
+        onError={(e) => {
+          e.currentTarget.style.display = 'none';
+        }}
+      />
+      <span style={{ fontWeight: 700, letterSpacing: '-0.02em' }}>ClubSphere</span>
+      <span className="sr-only"> home</span>
     </Link>
+  );
+}
+
+export function WorkspaceIdentity({ data, busy, run, navigate }) {
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const activeClub = data?.club;
+  const multiClub = Array.isArray(data?.clubs) && data.clubs.length > 1;
+
+  // Clean, professional title formatting for the campus club / department
+  const clubTitle = activeClub?.initials
+    ? `${activeClub.initials} · CSE Association`
+    : (activeClub?.name?.includes('MATRIX') ? 'CSE Association · MATRIX' : (activeClub?.name || 'ClubSphere Workspace'));
+
+  const deptTag = activeClub?.settings?.department || 'Computer Science & Engineering';
+
+  return (
+    <div className="workspace-identity-container" style={{ position: 'relative', padding: '0 16px 18px' }}>
+      {multiClub ? (
+        <button
+          type="button"
+          className="workspace-switcher-btn"
+          disabled={busy}
+          onClick={() => setSwitcherOpen(!switcherOpen)}
+          aria-expanded={switcherOpen}
+          aria-haspopup="listbox"
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 12px',
+            background: 'var(--slate-50, #f8fafc)',
+            border: '1px solid var(--slate-200, #e2e8f0)',
+            borderRadius: '10px',
+            cursor: 'pointer',
+            textAlign: 'left',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                fontSize: '0.825rem',
+                flexShrink: 0,
+                boxShadow: '0 2px 5px rgba(14, 165, 233, 0.2)',
+              }}
+            >
+              {activeClub?.initials || 'CS'}
+            </div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div
+                style={{
+                  fontWeight: 600,
+                  fontSize: '0.825rem',
+                  color: 'var(--slate-900, #0f172a)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  lineHeight: 1.25,
+                }}
+                title={activeClub?.name}
+              >
+                {clubTitle}
+              </div>
+              <div
+                style={{
+                  fontSize: '0.7rem',
+                  color: 'var(--slate-500, #64748b)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  marginTop: 2,
+                }}
+              >
+                {deptTag}
+              </div>
+            </div>
+          </div>
+          <ChevronsUpDown size={15} style={{ color: 'var(--slate-400, #94a3b8)', flexShrink: 0, marginLeft: 6 }} />
+        </button>
+      ) : (
+        <div
+          className="workspace-badge-card"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '10px 12px',
+            background: 'linear-gradient(135deg, rgba(14,165,233,0.06) 0%, rgba(37,99,235,0.03) 100%)',
+            border: '1px solid rgba(14,165,233,0.18)',
+            borderRadius: '10px',
+          }}
+        >
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 700,
+              fontSize: '0.825rem',
+              flexShrink: 0,
+              boxShadow: '0 2px 5px rgba(14, 165, 233, 0.25)',
+            }}
+          >
+            {activeClub?.initials || 'CS'}
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div
+              style={{
+                fontWeight: 600,
+                fontSize: '0.825rem',
+                color: 'var(--slate-900, #0f172a)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                lineHeight: 1.25,
+              }}
+              title={activeClub?.name}
+            >
+              {clubTitle}
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                marginTop: 2,
+              }}
+            >
+              <span
+                style={{
+                  display: 'inline-block',
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: '#10b981',
+                }}
+              />
+              <span
+                style={{
+                  fontSize: '0.7rem',
+                  fontWeight: 500,
+                  color: 'var(--slate-500, #64748b)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {deptTag}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Popover switcher if multiple clubs */}
+      {multiClub && switcherOpen && (
+        <div
+          className="workspace-switcher-menu"
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 16,
+            right: 16,
+            zIndex: 50,
+            background: '#ffffff',
+            borderRadius: '10px',
+            border: '1px solid var(--slate-200, #e2e8f0)',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
+            padding: '6px',
+            marginTop: 4,
+          }}
+        >
+          <div
+            style={{
+              padding: '6px 8px',
+              fontSize: '0.675rem',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              color: 'var(--slate-400, #94a3b8)',
+            }}
+          >
+            Available Clubs
+          </div>
+          {data.clubs.map((c) => {
+            const isSelected = c.id === data.session.clubId;
+            return (
+              <button
+                key={c.id}
+                type="button"
+                onClick={async () => {
+                  setSwitcherOpen(false);
+                  if (!isSelected) {
+                    await run(() => authService.switchClub(c.id), 'Active club changed');
+                    navigate('/portal/dashboard');
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '8px 10px',
+                  borderRadius: '6px',
+                  background: isSelected ? 'rgba(14,165,233,0.08)' : 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'background 0.15s ease',
+                }}
+              >
+                <div style={{ minWidth: 0, flex: 1, marginRight: 8 }}>
+                  <div
+                    style={{
+                      fontSize: '0.8rem',
+                      fontWeight: isSelected ? 600 : 500,
+                      color: isSelected ? '#0284c7' : 'var(--slate-700, #334155)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {c.name}
+                  </div>
+                </div>
+                {isSelected && <Check size={14} style={{ color: '#0284c7', flexShrink: 0 }} />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 export function PublicShell() {
@@ -128,7 +387,7 @@ export function PortalShell() {
               ],
               ['Volunteer shifts', '/portal/shifts', CalendarDays],
               ['Expense claims', manage ? `${root}/expenses` : '/portal/expenses', Receipt],
-              ['Door scanner', `/scanner/${data.events[0]?.id || 'gala'}`, ScanLine],
+              ['Door scanner', `/scanner/${data.events[0]?.id || 'synectics-26'}`, ScanLine],
             ],
           },
         ]
@@ -193,26 +452,7 @@ export function PortalShell() {
         <div className="sidebar-brand">
           <Brand />
         </div>
-        <div className="club-select">
-          <label className="sr-only" htmlFor="active-club">
-            Active club
-          </label>
-          <select
-            id="active-club"
-            value={data.session.clubId}
-            disabled={busy}
-            onChange={async (e) => {
-              await run(() => authService.switchClub(e.target.value), 'Active club changed');
-              navigate('/portal/dashboard');
-            }}
-          >
-            {data.clubs.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <WorkspaceIdentity data={data} busy={busy} run={run} navigate={navigate} />
         <nav className="sidebar-nav">
           {groups.map((g) => (
             <div key={g.name}>
