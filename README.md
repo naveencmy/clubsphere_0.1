@@ -1,6 +1,12 @@
 <div align="center">
 
-# 🌐 ClubSphere (v1.0.0 Production)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="frontend/public/images/clubsphere-logo.png">
+  <source media="(prefers-color-scheme: light)" srcset="frontend/public/images/clubsphere-logo-light.png">
+  <img alt="ClubSphere Logo" src="frontend/public/images/clubsphere-logo.png" width="120" height="120" />
+</picture>
+
+# ClubSphere (v1.0.0 Production)
 ### The Enterprise Digital Operating System for Collegiate Student Organizations
 
 [![Docker](https://img.shields.io/badge/Docker-29.8+-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
