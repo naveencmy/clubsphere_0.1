@@ -1,0 +1,51 @@
+name: ClubSphere Production Release & Delivery
+
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release-package:
+    name: Build & Package Production Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build Optimized Production Bundle
+        working-directory: frontend
+        run: npm run build
+
+      - name: Create Production Release Archive
+        run: |
+          tar -czvf clubsphere-frontend-bundle.tar.gz -C frontend/dist .
+          tar -czvf clubsphere-backend-source.tar.gz -C backend package.json package-lock.json src public
+
+      - name: Attach Assets to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            clubsphere-frontend-bundle.tar.gz
+            clubsphere-backend-source.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

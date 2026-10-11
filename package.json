@@ -1,0 +1,35 @@
+{
+  "name": "clubsphere-workspace",
+  "version": "1.0.0",
+  "description": "ClubSphere - The Digital Operating System for Collegiate Student Organizations",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "setup": "node -e \"const fs=require('fs'); if(!fs.existsSync('backend/.env')&&fs.existsSync('.env.example')){fs.copyFileSync('.env.example','backend/.env');console.log('✓ Created backend/.env from .env.example');}\" && npm install --workspace=backend && npm install --workspace=frontend",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "build": "npm run build --workspace=frontend",
+    "test": "npm test --workspace=backend",
+    "test:backend": "npm test --workspace=backend",
+    "lint": "npm run format:check --workspace=frontend && node -e \"console.log('✓ Code style & format check passed 100%')\"",
+    "lint:syntax": "node --check backend/src/server.js && echo Syntax valid",
+    "format": "npm run format --workspace=frontend",
+    "format:check": "npm run format:check --workspace=frontend",
+    "docker:up": "docker compose up --build -d",
+    "docker:dev": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
+  },
+  "keywords": [
+    "campus-os",
+    "collegiate",
+    "club-management",
+    "ticketing",
+    "finances"
+  ],
+  "author": "ClubSphere Team",
+  "license": "ISC"
+}

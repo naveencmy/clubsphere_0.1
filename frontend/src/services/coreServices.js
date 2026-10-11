@@ -24,14 +24,12 @@ const actor = (s) => s.users.find((u) => u.id === s.session.userId);
 const member = (s, userId = s.session.userId) =>
   s.memberships.find(
     (m) =>
-      m.userId === userId &&
-      (m.clubId === s.session.clubId || m.clubId === 'nec-cse' || !m.clubId),
+      m.userId === userId && (m.clubId === s.session.clubId || m.clubId === 'nec-cse' || !m.clubId),
   );
 const scoped = (s, collection, recordId) => {
   const r = s[collection].find(
     (r) =>
-      r.id === recordId &&
-      (r.clubId === s.session.clubId || r.clubId === 'nec-cse' || !r.clubId),
+      r.id === recordId && (r.clubId === s.session.clubId || r.clubId === 'nec-cse' || !r.clubId),
   );
   check(r, 'NOT_FOUND', 'This record is unavailable in the selected club.');
   return r;
@@ -101,8 +99,8 @@ function promoteWaitlist(s, eventId, tierId) {
     !tier ||
     used.length + promotions.length >= event.capacity ||
     used.filter((t) => t.tierId === tierId).length +
-    promotions.filter((w) => w.tierId === tierId).length >=
-    tier.capacity
+      promotions.filter((w) => w.tierId === tierId).length >=
+      tier.capacity
   )
     return;
   const next = s.waitlist.find((w) => w.eventId === eventId && !w.promotedAt);
@@ -306,7 +304,8 @@ export function committed(s, budgetId) {
   return s.expenses
     .filter(
       (e) =>
-        (e.budgetId === budgetId && ['INCHARGE_APPROVED', 'PRESIDENT_APPROVED', 'DISBURSED'].includes(e.status)) ||
+        (e.budgetId === budgetId &&
+          ['INCHARGE_APPROVED', 'PRESIDENT_APPROVED', 'DISBURSED'].includes(e.status)) ||
         (e.budgetId === budgetId && e.status === 'TREASURER_APPROVED' && e.amount < 250000),
     )
     .reduce((a, e) => a + e.amount, 0);
@@ -321,7 +320,8 @@ export function snapshot() {
     role,
     user: actor(s),
     membership: member(s),
-    club: s.clubs?.find((c) => c.id === clubId || c.slug === clubId) || s.clubs?.[0] || DEFAULT_CLUB,
+    club:
+      s.clubs?.find((c) => c.id === clubId || c.slug === clubId) || s.clubs?.[0] || DEFAULT_CLUB,
     accounts: s.users || [],
     demoControls: import.meta.env?.VITE_DEMO_CONTROLS !== 'false',
   };
@@ -405,18 +405,18 @@ export function snapshot() {
       0,
       Math.min(
         tier.capacity -
-        s.tickets.filter(
-          (t) => t.tierId === tier.id && ['RESERVED', 'ISSUED', 'CHECKED_IN'].includes(t.status),
-        ).length -
-        activePromotions(s, tier.eventId).filter(
-          (w) => w.tierId === tier.id && w.userId !== userId,
-        ).length,
+          s.tickets.filter(
+            (t) => t.tierId === tier.id && ['RESERVED', 'ISSUED', 'CHECKED_IN'].includes(t.status),
+          ).length -
+          activePromotions(s, tier.eventId).filter(
+            (w) => w.tierId === tier.id && w.userId !== userId,
+          ).length,
         result.events.find((e) => e.id === tier.eventId).capacity -
-        s.tickets.filter(
-          (t) =>
-            t.eventId === tier.eventId && ['RESERVED', 'ISSUED', 'CHECKED_IN'].includes(t.status),
-        ).length -
-        activePromotions(s, tier.eventId).filter((w) => w.userId !== userId).length,
+          s.tickets.filter(
+            (t) =>
+              t.eventId === tier.eventId && ['RESERVED', 'ISSUED', 'CHECKED_IN'].includes(t.status),
+          ).length -
+          activePromotions(s, tier.eventId).filter((w) => w.userId !== userId).length,
       ),
     );
   result.stock = {};
@@ -462,13 +462,13 @@ export function snapshot() {
     .map((b) => ({ id: b.id, title: b.title, category: b.category }));
   result.scannerSamples = staffRoles.includes(role)
     ? {
-      tickets: s.tickets
-        .filter((t) => t.clubId === clubId)
-        .map((t) => ({ code: t.code, status: t.status })),
-      members: s.memberships
-        .filter((m) => m.clubId === clubId)
-        .map((m) => ({ code: m.passCode, status: m.status })),
-    }
+        tickets: s.tickets
+          .filter((t) => t.clubId === clubId)
+          .map((t) => ({ code: t.code, status: t.status })),
+        members: s.memberships
+          .filter((m) => m.clubId === clubId)
+          .map((m) => ({ code: m.passCode, status: m.status })),
+      }
     : null;
   return result;
 }
@@ -494,7 +494,7 @@ async function transaction(action, fn, fast = false) {
     return value;
   };
   const result = queue.then(run, run);
-  queue = result.catch(() => { });
+  queue = result.catch(() => {});
   return result;
 }
 export const authService = {
@@ -525,11 +525,11 @@ export const authService = {
     transaction('auth.register', (s) => {
       check(
         input.name?.trim() &&
-        /^(SKY|NEC)(-\d{4})?(-\w+)?-\d{3,}$/i.test(input.studentId) &&
-        /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(input.email) &&
-        input.major &&
-        input.emergency &&
-        /^\d{10}$/.test(input.phone),
+          /^(SKY|NEC)(-\d{4})?(-\w+)?-\d{3,}$/i.test(input.studentId) &&
+          /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(input.email) &&
+          input.major &&
+          input.emergency &&
+          /^\d{10}$/.test(input.phone),
         'INVALID_PROFILE',
         'Complete your name, campus ID, email, major and emergency contact.',
       );
@@ -555,9 +555,9 @@ export const authService = {
       signedIn(s);
       check(
         input.name?.trim() &&
-        /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(input.email) &&
-        /^(SKY|NEC)(-\d{4})?(-\w+)?-\d{3,}$/i.test(input.studentId) &&
-        /^\d{10}$/.test(input.phone),
+          /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(input.email) &&
+          /^(SKY|NEC)(-\d{4})?(-\w+)?-\d{3,}$/i.test(input.studentId) &&
+          /^\d{10}$/.test(input.phone),
         'INVALID_PROFILE',
         'Enter a valid name, campus email, student ID and ten-digit phone.',
       );
@@ -613,7 +613,7 @@ export const membershipService = {
         let parsed;
         try {
           parsed = JSON.parse(code);
-        } catch { }
+        } catch {}
         if (parsed)
           check(
             Math.abs(s.clock - parsed.timestamp) < 60000,
@@ -646,12 +646,18 @@ export const eventService = {
     transaction('ticket.reserve', (s) => {
       signedIn(s);
       const e = scoped(s, 'events', eventId);
-      const openTime = e.salesOpen ? new Date(e.salesOpen).getTime() : new Date('2025-01-01').getTime();
-      const closeTime = e.salesClose ? new Date(e.salesClose).getTime() : (e.endsAt ? new Date(e.endsAt).getTime() : new Date('2026-12-31').getTime());
+      const openTime = e.salesOpen
+        ? new Date(e.salesOpen).getTime()
+        : new Date('2025-01-01').getTime();
+      const closeTime = e.salesClose
+        ? new Date(e.salesClose).getTime()
+        : e.endsAt
+          ? new Date(e.endsAt).getTime()
+          : new Date('2026-12-31').getTime();
       check(
         e.published &&
-        s.clock >= (openTime - (eligible(member(s), s.clock) ? 48 * 3600000 : 0)) &&
-        s.clock <= closeTime,
+          s.clock >= openTime - (eligible(member(s), s.clock) ? 48 * 3600000 : 0) &&
+          s.clock <= closeTime,
         'SALES_CLOSED',
         'Ticket sales are closed for this event.',
       );
@@ -670,9 +676,9 @@ export const eventService = {
       const others = promotions.filter((w) => w !== mine);
       check(
         issued.length + others.length < e.capacity &&
-        issued.filter((r) => r.tierId === tierId).length +
-        others.filter((w) => w.tierId === tierId).length <
-        t.capacity,
+          issued.filter((r) => r.tierId === tierId).length +
+            others.filter((w) => w.tierId === tierId).length <
+            t.capacity,
         'WAITLIST_PRIORITY',
         'The released seat is reserved for the next waitlisted student during their four-hour window.',
       );
@@ -727,7 +733,7 @@ export const eventService = {
         let parsed;
         try {
           parsed = JSON.parse(code);
-        } catch { }
+        } catch {}
         if (parsed)
           check(
             Math.abs(s.clock - parsed.timestamp) < 60000,
@@ -764,22 +770,30 @@ export const eventService = {
 
         if (ticket) {
           user = s.users.find((u) => u.id === ticket.userId);
-          membership = s.memberships.find((m) => m.userId === ticket.userId && m.clubId === s.session.clubId);
+          membership = s.memberships.find(
+            (m) => m.userId === ticket.userId && m.clubId === s.session.clubId,
+          );
           tierName = s.tiers.find((t) => t.id === ticket.tierId)?.name || 'Event Pass';
         } else {
           // 2. Member Pass or Student ID Lookup
           membership = s.memberships.find(
             (m) =>
-              (m.passCode === targetCode || m.passCode === (parsed?.code || code) || m.id === targetCode) &&
+              (m.passCode === targetCode ||
+                m.passCode === (parsed?.code || code) ||
+                m.id === targetCode) &&
               m.clubId === s.session.clubId,
           );
           if (membership) {
             user = s.users.find((u) => u.id === membership.userId);
           } else {
             // Check student ID or email
-            user = s.users.find((u) => u.studentId === targetCode || u.email === targetCode || u.id === targetCode);
+            user = s.users.find(
+              (u) => u.studentId === targetCode || u.email === targetCode || u.id === targetCode,
+            );
             if (user) {
-              membership = s.memberships.find((m) => m.userId === user.id && m.clubId === s.session.clubId);
+              membership = s.memberships.find(
+                (m) => m.userId === user.id && m.clubId === s.session.clubId,
+              );
             }
           }
 
@@ -794,7 +808,9 @@ export const eventService = {
 
             // If member has no pre-booked ticket yet, but is an active Association Member / Officer / Registered Student
             if (!ticket && membership && eligible(membership, s.clock)) {
-              const defaultTier = s.tiers.find((t) => t.eventId === e.id || t.eventId === e.slug) || { id: 'tier_auto', name: 'Member Pass' };
+              const defaultTier = s.tiers.find(
+                (t) => t.eventId === e.id || t.eventId === e.slug,
+              ) || { id: 'tier_auto', name: 'Member Pass' };
               ticket = {
                 id: id(s, 'TCK'),
                 code: id(s, 'TCK-MEMBER'),
@@ -815,8 +831,16 @@ export const eventService = {
           }
         }
 
-        check(ticket, 'INVALID_TICKET', 'No ticket or active membership pass found for this attendee.');
-        check(ticket.eventId === eventId || ticket.eventId === e.id || ticket.eventId === e.slug, 'WRONG_EVENT', 'This ticket belongs to another event.');
+        check(
+          ticket,
+          'INVALID_TICKET',
+          'No ticket or active membership pass found for this attendee.',
+        );
+        check(
+          ticket.eventId === eventId || ticket.eventId === e.id || ticket.eventId === e.slug,
+          'WRONG_EVENT',
+          'This ticket belongs to another event.',
+        );
 
         if (ticket.status === 'CHECKED_IN') {
           return {
@@ -884,12 +908,12 @@ export const eventService = {
       allow(s, 'manage');
       check(
         input.title?.trim() &&
-        input.venue &&
-        new Date(input.endsAt) > new Date(input.startsAt) &&
-        new Date(input.salesClose) > new Date(input.salesOpen) &&
-        new Date(input.salesClose) <= new Date(input.startsAt) &&
-        Number.isInteger(input.capacity) &&
-        input.capacity > 0,
+          input.venue &&
+          new Date(input.endsAt) > new Date(input.startsAt) &&
+          new Date(input.salesClose) > new Date(input.salesOpen) &&
+          new Date(input.salesClose) <= new Date(input.startsAt) &&
+          Number.isInteger(input.capacity) &&
+          input.capacity > 0,
         'INVALID_EVENT',
         'Complete the title, venue, valid times and capacity.',
       );
@@ -936,9 +960,9 @@ export const eventService = {
       scoped(s, 'events', input.eventId);
       check(
         Number.isInteger(input.capacity) &&
-        input.capacity > 0 &&
-        input.memberPrice >= 0 &&
-        input.publicPrice >= input.memberPrice,
+          input.capacity > 0 &&
+          input.memberPrice >= 0 &&
+          input.publicPrice >= input.memberPrice,
         'INVALID_TIER',
         'Tier capacity and prices are invalid.',
       );
@@ -1055,8 +1079,8 @@ export const commerceService = {
       const o = scoped(s, 'orders', orderId);
       check(
         o.status === 'FULFILLED' &&
-        o.returnRequested &&
-        ['SELLABLE', 'DAMAGED'].includes(condition),
+          o.returnRequested &&
+          ['SELLABLE', 'DAMAGED'].includes(condition),
         'INVALID_TRANSITION',
         'Inspect a requested return and select its condition.',
       );
@@ -1124,12 +1148,12 @@ export const commerceService = {
       scoped(s, 'products', input.productId);
       check(
         input.sku &&
-        input.size &&
-        Number.isInteger(input.stock) &&
-        input.stock >= 0 &&
-        Number.isInteger(input.memberPrice) &&
-        input.memberPrice >= 0 &&
-        input.publicPrice >= input.memberPrice,
+          input.size &&
+          Number.isInteger(input.stock) &&
+          input.stock >= 0 &&
+          Number.isInteger(input.memberPrice) &&
+          input.memberPrice >= 0 &&
+          input.publicPrice >= input.memberPrice,
         'INVALID_VARIANT',
         'Complete the SKU, size, stock and valid prices.',
       );
@@ -1275,8 +1299,8 @@ export const taskService = {
       allow(s, 'manage');
       check(
         input.title?.trim() &&
-        taskStatuses.includes(input.status) &&
-        !isNaN(new Date(input.due).getTime()),
+          taskStatuses.includes(input.status) &&
+          !isNaN(new Date(input.due).getTime()),
         'INVALID_TASK',
         'Complete the title, status and due date.',
       );
@@ -1301,7 +1325,7 @@ export const taskService = {
       const t = scoped(s, 'tasks', taskId);
       check(
         managerRoles.includes(roleFor(s)) ||
-        (roleFor(s) === 'VOLUNTEER' && t.assignee === s.session.userId),
+          (roleFor(s) === 'VOLUNTEER' && t.assignee === s.session.userId),
         'FORBIDDEN',
         'Volunteers can update only their assigned tasks.',
       );
@@ -1433,8 +1457,8 @@ export const broadcastService = {
       allow(s, 'manage');
       check(
         input.title?.trim() &&
-        input.content?.trim() &&
-        ['PUBLIC', 'ALL_MEMBERS', 'COMMITTEE_ONLY'].includes(input.audience),
+          input.content?.trim() &&
+          ['PUBLIC', 'ALL_MEMBERS', 'COMMITTEE_ONLY'].includes(input.audience),
         'INVALID_ANNOUNCEMENT',
         'Complete the title, content and audience.',
       );
@@ -1551,10 +1575,10 @@ export const expenseService = {
       money(input.amount);
       check(
         input.title?.trim() &&
-        input.merchant?.trim() &&
-        input.purpose?.trim() &&
-        input.purchaseDate &&
-        input.category,
+          input.merchant?.trim() &&
+          input.purpose?.trim() &&
+          input.purchaseDate &&
+          input.category,
         'INVALID_EXPENSE',
         'Complete all required expense fields.',
       );
@@ -1591,7 +1615,9 @@ export const expenseService = {
       const e = scoped(s, 'expenses', expenseId),
         role = roleFor(s);
       check(
-        ['TREASURER', 'ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR', 'PRESIDENT'].includes(role),
+        ['TREASURER', 'ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR', 'PRESIDENT'].includes(
+          role,
+        ),
         'FORBIDDEN',
         'Only the independent Treasurer, Association In-charge or President can review expenses.',
       );
@@ -1601,10 +1627,14 @@ export const expenseService = {
         'You cannot review, approve or pay your own expense claim.',
       );
       const budget = e.budgetId ? s.budgets.find((b) => b.id === e.budgetId) : null;
-      const final = ['incharge', 'president'].includes(decision) || (decision === 'treasurer' && e.amount < 250000);
+      const final =
+        ['incharge', 'president'].includes(decision) ||
+        (decision === 'treasurer' && e.amount < 250000);
       if (final && budget && committed(s, budget.id) + e.amount > budget.allocated) {
         check(
-          override && ['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR', 'PRESIDENT'].includes(role) && reason?.trim(),
+          override &&
+            ['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR', 'PRESIDENT'].includes(role) &&
+            reason?.trim(),
           'BUDGET_EXCEEDED',
           'Approval exceeds this budget. Increase the envelope or record an override with a reason.',
         );
@@ -1653,7 +1683,9 @@ export const expenseService = {
           );
       } else if (['incharge', 'president'].includes(decision)) {
         check(
-          ['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR', 'PRESIDENT'].includes(role) && e.status === 'TREASURER_APPROVED' && e.amount >= 250000,
+          ['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR', 'PRESIDENT'].includes(role) &&
+            e.status === 'TREASURER_APPROVED' &&
+            e.amount >= 250000,
           'INVALID_TRANSITION',
           'Approval follows Treasurer verification for claims of ₹2,500 or more.',
         );
@@ -1677,8 +1709,8 @@ export const expenseService = {
       } else if (decision === 'disburse') {
         check(
           role === 'TREASURER' &&
-          (['INCHARGE_APPROVED', 'PRESIDENT_APPROVED'].includes(e.status) ||
-            (e.status === 'TREASURER_APPROVED' && e.amount < 250000)),
+            (['INCHARGE_APPROVED', 'PRESIDENT_APPROVED'].includes(e.status) ||
+              (e.status === 'TREASURER_APPROVED' && e.amount < 250000)),
           'INVALID_TRANSITION',
           'Disbursement requires final approval and the Treasurer role.',
         );
@@ -1702,7 +1734,9 @@ export const financeService = {
   saveBudget: (input) =>
     transaction('budget.save', (s) => {
       check(
-        ['TREASURER', 'ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR', 'PRESIDENT'].includes(roleFor(s)),
+        ['TREASURER', 'ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR', 'PRESIDENT'].includes(
+          roleFor(s),
+        ),
         'FORBIDDEN',
         'Budget changes require Treasurer or Association In-charge access.',
       );
@@ -1741,9 +1775,9 @@ export const financeService = {
       money(input.amount);
       check(
         input.description?.trim() &&
-        input.debit !== input.credit &&
-        /^\d{4}$/.test(input.debit) &&
-        /^\d{4}$/.test(input.credit),
+          input.debit !== input.credit &&
+          /^\d{4}$/.test(input.debit) &&
+          /^\d{4}$/.test(input.credit),
         'INVALID_JOURNAL',
         'Provide a description and two different four-digit account codes.',
       );
@@ -1799,7 +1833,11 @@ export const adminService = {
       );
       const previous = m.role;
       if (handover) {
-        check(['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR', 'PRESIDENT'].includes(role), 'INVALID_HANDOVER', 'Handover assigns the next leadership role.');
+        check(
+          ['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR', 'PRESIDENT'].includes(role),
+          'INVALID_HANDOVER',
+          'Handover assigns the next leadership role.',
+        );
         const current = member(s);
         s.officerHistory.push({
           id: id(s, 'OFF'),

@@ -35,7 +35,11 @@ import { managerRoles, financeRoles, staffRoles } from '../../services/permissio
 import { Avatar, Button, LinkButton, Loading } from '../common/UI.jsx';
 export function Brand() {
   return (
-    <Link to="/" className="brand" style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+    <Link
+      to="/"
+      className="brand"
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}
+    >
       <img
         src="/images/clubsphere-logo.png"
         alt="ClubSphere Emblem"
@@ -61,12 +65,17 @@ export function WorkspaceIdentity({ data, busy, run, navigate }) {
   // Clean, professional title formatting for the campus club / department
   const clubTitle = activeClub?.initials
     ? `${activeClub.initials} · CSE Association`
-    : (activeClub?.name?.includes('MATRIX') ? 'CSE Association · MATRIX' : (activeClub?.name || 'ClubSphere Workspace'));
+    : activeClub?.name?.includes('MATRIX')
+      ? 'CSE Association · MATRIX'
+      : activeClub?.name || 'ClubSphere Workspace';
 
   const deptTag = activeClub?.settings?.department || 'Computer Science & Engineering';
 
   return (
-    <div className="workspace-identity-container" style={{ position: 'relative', padding: '0 16px 18px' }}>
+    <div
+      className="workspace-identity-container"
+      style={{ position: 'relative', padding: '0 16px 18px' }}
+    >
       {multiClub ? (
         <button
           type="button"
@@ -137,7 +146,10 @@ export function WorkspaceIdentity({ data, busy, run, navigate }) {
               </div>
             </div>
           </div>
-          <ChevronsUpDown size={15} style={{ color: 'var(--slate-400, #94a3b8)', flexShrink: 0, marginLeft: 6 }} />
+          <ChevronsUpDown
+            size={15}
+            style={{ color: 'var(--slate-400, #94a3b8)', flexShrink: 0, marginLeft: 6 }}
+          />
         </button>
       ) : (
         <div
@@ -147,7 +159,8 @@ export function WorkspaceIdentity({ data, busy, run, navigate }) {
             alignItems: 'center',
             gap: 10,
             padding: '10px 12px',
-            background: 'linear-gradient(135deg, rgba(14,165,233,0.06) 0%, rgba(37,99,235,0.03) 100%)',
+            background:
+              'linear-gradient(135deg, rgba(14,165,233,0.06) 0%, rgba(37,99,235,0.03) 100%)',
             border: '1px solid rgba(14,165,233,0.18)',
             borderRadius: '10px',
           }}
@@ -425,7 +438,13 @@ export function PortalShell() {
           },
         ]
       : []),
-    ...(['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR', 'PRESIDENT', 'ADMIN', 'SUPER_ADMIN'].includes(data.role)
+    ...([
+      'ASSOCIATION_INCHARGE',
+      'ASSOCIATION_COORDINATOR',
+      'PRESIDENT',
+      'ADMIN',
+      'SUPER_ADMIN',
+    ].includes(data.role)
       ? [
           {
             name: 'Administration',
@@ -461,7 +480,7 @@ export function PortalShell() {
   const activeCategoryName =
     selectedCategory && groups.some((g) => g.name === selectedCategory)
       ? selectedCategory
-      : (matchingGroup?.name || groups[0]?.name || 'Your workspace');
+      : matchingGroup?.name || groups[0]?.name || 'Your workspace';
 
   const activeGroup = groups.find((g) => g.name === activeCategoryName) || groups[0];
 

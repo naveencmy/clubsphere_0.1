@@ -46,7 +46,9 @@
 }
 
 .jelly-radio__chip:focus-visible .jelly-radio__skin {
-  box-shadow: 0 0 0 2px #38bdf8, 0 0 0 4px rgba(56, 189, 248, 0.3);
+  box-shadow:
+    0 0 0 2px #38bdf8,
+    0 0 0 4px rgba(56, 189, 248, 0.3);
 }
 
 .jelly-radio__chip[data-on='true'] {
@@ -114,7 +116,9 @@
   background: var(--jr-active);
   color: var(--jr-active-text);
   border-color: transparent;
-  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.18), 0 1px 2px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 3px 10px rgba(15, 23, 42, 0.18),
+    0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .jelly-radio__icon {

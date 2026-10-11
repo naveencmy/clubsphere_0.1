@@ -50,18 +50,27 @@ export default function Events() {
       <Empty title="Event not found" action={<LinkButton to="/events">Browse events</LinkButton>} />
     );
   const allTiers = (data.tiers || []).filter(
-    (t) => t.eventId === e?.id || t.eventId === e?.slug || t.eventId === e?.backendId || t.backendEventId === e?.backendId,
+    (t) =>
+      t.eventId === e?.id ||
+      t.eventId === e?.slug ||
+      t.eventId === e?.backendId ||
+      t.backendEventId === e?.backendId,
   );
-  const tiers = allTiers.length > 0 ? allTiers : (e?.tiers && e.tiers.length > 0 ? e.tiers : [
-    {
-      id: `tier_${e?.id || 'event'}_std`,
-      eventId: e?.id,
-      name: 'General Registration Pass',
-      memberPrice: 0,
-      publicPrice: 0,
-      capacity: e?.capacity || 350,
-    }
-  ]);
+  const tiers =
+    allTiers.length > 0
+      ? allTiers
+      : e?.tiers && e.tiers.length > 0
+        ? e.tiers
+        : [
+            {
+              id: `tier_${e?.id || 'event'}_std`,
+              eventId: e?.id,
+              name: 'General Registration Pass',
+              memberPrice: 0,
+              publicPrice: 0,
+              capacity: e?.capacity || 350,
+            },
+          ];
   const valid = eligible(data.membership, data.clock);
   const promotion = data.waitlist?.find(
     (w) =>
@@ -76,9 +85,7 @@ export default function Events() {
       return;
     }
     const chosenTierId = tierId || promotion?.tierId || tiers[0]?.id;
-    const t = await run(() =>
-      eventService.reserve({ eventId: e.id, tierId: chosenTierId }),
-    );
+    const t = await run(() => eventService.reserve({ eventId: e.id, tierId: chosenTierId }));
     if (t) navigate(`/checkout/ticket/${t.id}`);
   }
   if (e)
@@ -128,9 +135,10 @@ export default function Events() {
               )}
               {tiers.map((t) => {
                 const effectivePrice = valid ? t.memberPrice : t.publicPrice;
-                const remainingSeats = (data.availability && data.availability[t.id] != null)
-                  ? data.availability[t.id]
-                  : (t.capacity || 100);
+                const remainingSeats =
+                  data.availability && data.availability[t.id] != null
+                    ? data.availability[t.id]
+                    : t.capacity || 100;
                 return (
                   <label className="radio-row" key={t.id}>
                     <input
@@ -172,8 +180,14 @@ export default function Events() {
                 Seats are held for 10 minutes during checkout.
               </Notice>
               {(() => {
-                const activeTier = tiers.find((t) => (tierId || promotion?.tierId || tiers[0]?.id) === t.id);
-                const activePrice = activeTier ? (valid ? activeTier.memberPrice : activeTier.publicPrice) : 0;
+                const activeTier = tiers.find(
+                  (t) => (tierId || promotion?.tierId || tiers[0]?.id) === t.id,
+                );
+                const activePrice = activeTier
+                  ? valid
+                    ? activeTier.memberPrice
+                    : activeTier.publicPrice
+                  : 0;
                 return (
                   <Button primary disabled={busy || !tiers.length} onClick={reserve}>
                     {activePrice === 0 ? 'Claim Free Pass' : 'Reserve ticket'} <Ticket size={16} />
@@ -270,7 +284,7 @@ export function EventEditor() {
   const presets = [
     { label: "Aura '25", url: '/images/events/aura-25.png' },
     { label: "Synectics '26", url: '/images/events/synectics-26.jpg' },
-    { label: "24h Hackathon", url: '/images/events/hackathon-2026.jpg' },
+    { label: '24h Hackathon', url: '/images/events/hackathon-2026.jpg' },
   ];
 
   function handleFileSelected(file) {
@@ -401,18 +415,11 @@ export function EventEditor() {
                 <div className="poster-preview-box">
                   <img src={posterUrl} alt="Event Poster Preview" className="poster-preview-img" />
                   <div className="poster-preview-overlay">
-                    <Button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
+                    <Button type="button" onClick={() => fileInputRef.current?.click()}>
                       <Upload size={14} style={{ marginRight: 6 }} />
                       Change image
                     </Button>
-                    <Button
-                      type="button"
-                      danger
-                      onClick={() => setPosterUrl('')}
-                    >
+                    <Button type="button" danger onClick={() => setPosterUrl('')}>
                       <Trash2 size={14} style={{ marginRight: 6 }} />
                       Remove
                     </Button>
@@ -611,7 +618,8 @@ export function Tickets() {
                 ]}
               />
               <Notice>
-                Official cryptographically signed QR ticket. The scanner verifies ticket validity and prevents duplicate admission.
+                Official cryptographically signed QR ticket. The scanner verifies ticket validity
+                and prevents duplicate admission.
               </Notice>
               {t.status === 'RESERVED' && (
                 <LinkButton primary to={`/checkout/ticket/${t.id}`}>

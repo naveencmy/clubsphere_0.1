@@ -18,37 +18,60 @@ export async function syncFromBackend(clubSlug = 'nec-cse', token = null) {
     }
 
     // 1. Fetch club info
-    const clubRes = await fetch(`${API_BASE}/clubs/slug/${clubSlug}`, { headers, credentials: 'include' }).catch(() => null);
+    const clubRes = await fetch(`${API_BASE}/clubs/slug/${clubSlug}`, {
+      headers,
+      credentials: 'include',
+    }).catch(() => null);
     const clubData = clubRes && clubRes.ok ? (await clubRes.json()).data : null;
 
     // 1b. Fetch all clubs from backend
-    const allClubsRes = await fetch(`${API_BASE}/clubs`, { headers, credentials: 'include' }).catch(() => null);
+    const allClubsRes = await fetch(`${API_BASE}/clubs`, { headers, credentials: 'include' }).catch(
+      () => null,
+    );
     const allClubsData = allClubsRes && allClubsRes.ok ? (await allClubsRes.json()).data : null;
 
     // 1c. Fetch club members & officers from backend
-    const membersRes = await fetch(`${API_BASE}/clubs/slug/${clubSlug}/members`, { headers, credentials: 'include' }).catch(() => null);
+    const membersRes = await fetch(`${API_BASE}/clubs/slug/${clubSlug}/members`, {
+      headers,
+      credentials: 'include',
+    }).catch(() => null);
     const membersData = membersRes && membersRes.ok ? (await membersRes.json()).data : null;
 
     // 2. Fetch events
-    const eventsRes = await fetch(`${API_BASE}/events`, { headers, credentials: 'include' }).catch(() => null);
+    const eventsRes = await fetch(`${API_BASE}/events`, { headers, credentials: 'include' }).catch(
+      () => null,
+    );
     const eventsData = eventsRes && eventsRes.ok ? (await eventsRes.json()).data : null;
 
     // 3. Fetch merchandise catalog
-    const catalogRes = await fetch(`${API_BASE}/store/catalog`, { headers, credentials: 'include' }).catch(() => null);
+    const catalogRes = await fetch(`${API_BASE}/store/catalog`, {
+      headers,
+      credentials: 'include',
+    }).catch(() => null);
     const catalogData = catalogRes && catalogRes.ok ? (await catalogRes.json()).data : null;
 
     // 4. Fetch announcements, tasks, fundraisers, budgets, and expenses from backend
-    const [announcementsRes, tasksRes, fundraisersRes, budgetsRes, expensesRes] = await Promise.all([
-      fetch(`${API_BASE}/collaboration/announcements`, { headers, credentials: 'include' }).catch(() => null),
-      fetch(`${API_BASE}/collaboration/tasks`, { headers, credentials: 'include' }).catch(() => null),
-      fetch(`${API_BASE}/collaboration/fundraisers`, { headers, credentials: 'include' }).catch(() => null),
-      fetch(`${API_BASE}/ledger/budgets`, { headers, credentials: 'include' }).catch(() => null),
-      fetch(`${API_BASE}/ledger/expenses`, { headers, credentials: 'include' }).catch(() => null),
-    ]);
+    const [announcementsRes, tasksRes, fundraisersRes, budgetsRes, expensesRes] = await Promise.all(
+      [
+        fetch(`${API_BASE}/collaboration/announcements`, { headers, credentials: 'include' }).catch(
+          () => null,
+        ),
+        fetch(`${API_BASE}/collaboration/tasks`, { headers, credentials: 'include' }).catch(
+          () => null,
+        ),
+        fetch(`${API_BASE}/collaboration/fundraisers`, { headers, credentials: 'include' }).catch(
+          () => null,
+        ),
+        fetch(`${API_BASE}/ledger/budgets`, { headers, credentials: 'include' }).catch(() => null),
+        fetch(`${API_BASE}/ledger/expenses`, { headers, credentials: 'include' }).catch(() => null),
+      ],
+    );
 
-    const announcementsData = announcementsRes && announcementsRes.ok ? (await announcementsRes.json()).data : null;
+    const announcementsData =
+      announcementsRes && announcementsRes.ok ? (await announcementsRes.json()).data : null;
     const tasksData = tasksRes && tasksRes.ok ? (await tasksRes.json()).data : null;
-    const fundraisersData = fundraisersRes && fundraisersRes.ok ? (await fundraisersRes.json()).data : null;
+    const fundraisersData =
+      fundraisersRes && fundraisersRes.ok ? (await fundraisersRes.json()).data : null;
     const budgetsData = budgetsRes && budgetsRes.ok ? (await budgetsRes.json()).data : null;
     const expensesData = expensesRes && expensesRes.ok ? (await expensesRes.json()).data : null;
 
@@ -95,31 +118,32 @@ export async function syncFromBackend(clubSlug = 'nec-cse', token = null) {
         const evSlug = ev.slug || ev.id;
         const existing = existingMap.get(evSlug) || existingMap.get(ev.id);
         const rawTiers = Array.isArray(ev.tiers) ? ev.tiers : [];
-        const evTiers = rawTiers.length > 0
-          ? rawTiers.map((t) => ({
-            id: t.id,
-            eventId: evSlug,
-            backendEventId: ev.id,
-            name: t.name,
-            title: t.name,
-            description: t.description,
-            memberPrice: t.member_price_cents ?? t.memberPriceCents ?? 0,
-            publicPrice: t.non_member_price_cents ?? t.nonMemberPriceCents ?? 0,
-            capacity: t.allocation_limit ?? ev.capacity_limit ?? 350,
-          }))
-          : [
-            {
-              id: `tier_${evSlug}_std`,
-              eventId: evSlug,
-              backendEventId: ev.id,
-              name: 'Standard Registration Delegate Pass',
-              title: 'Standard Registration Delegate Pass',
-              description: 'Full day access, participant kit, and certificate of participation',
-              memberPrice: 0,
-              publicPrice: 0,
-              capacity: ev.capacity_limit ?? 350,
-            },
-          ];
+        const evTiers =
+          rawTiers.length > 0
+            ? rawTiers.map((t) => ({
+                id: t.id,
+                eventId: evSlug,
+                backendEventId: ev.id,
+                name: t.name,
+                title: t.name,
+                description: t.description,
+                memberPrice: t.member_price_cents ?? t.memberPriceCents ?? 0,
+                publicPrice: t.non_member_price_cents ?? t.nonMemberPriceCents ?? 0,
+                capacity: t.allocation_limit ?? ev.capacity_limit ?? 350,
+              }))
+            : [
+                {
+                  id: `tier_${evSlug}_std`,
+                  eventId: evSlug,
+                  backendEventId: ev.id,
+                  name: 'Standard Registration Delegate Pass',
+                  title: 'Standard Registration Delegate Pass',
+                  description: 'Full day access, participant kit, and certificate of participation',
+                  memberPrice: 0,
+                  publicPrice: 0,
+                  capacity: ev.capacity_limit ?? 350,
+                },
+              ];
 
         return {
           id: evSlug,
@@ -129,14 +153,19 @@ export async function syncFromBackend(clubSlug = 'nec-cse', token = null) {
           title: existing?.title || ev.title,
           slug: evSlug,
           description: existing?.description || ev.description,
-          venue: existing?.venue || ev.venue_name || ev.venue_address || 'CC2 (Block-3) & Placement Auditorium',
-          published: existing?.published ?? (ev.is_published ?? true),
+          venue:
+            existing?.venue ||
+            ev.venue_name ||
+            ev.venue_address ||
+            'CC2 (Block-3) & Placement Auditorium',
+          published: existing?.published ?? ev.is_published ?? true,
           startsAt: existing?.startsAt || ev.starts_at,
           endsAt: existing?.endsAt || ev.ends_at,
           imageUrl: existing?.imageUrl || ev.image_url || '/images/events/aura-25.png',
           category: existing?.category || ev.category || 'Technical Event',
           salesOpen: existing?.salesOpen || ev.sales_open_at || '2025-01-01T00:00:00.000Z',
-          salesClose: existing?.salesClose || ev.sales_close_at || ev.ends_at || '2026-12-31T23:59:59.000Z',
+          salesClose:
+            existing?.salesClose || ev.sales_close_at || ev.ends_at || '2026-12-31T23:59:59.000Z',
           capacity: existing?.capacity || ev.capacity_limit || 350,
           tags: existing?.tags || ev.tags || ['Symposium', 'Coding', 'Gaming'],
           tiers: evTiers,
@@ -144,7 +173,9 @@ export async function syncFromBackend(clubSlug = 'nec-cse', token = null) {
       });
 
       const mappedIds = new Set(mapped.map((m) => m.id));
-      const localOnly = (s.events || []).filter((e) => !mappedIds.has(e.id) && !mappedIds.has(e.slug));
+      const localOnly = (s.events || []).filter(
+        (e) => !mappedIds.has(e.id) && !mappedIds.has(e.slug),
+      );
       s.events = [...mapped, ...localOnly];
       const allTiers = mapped.flatMap((m) => m.tiers);
       if (allTiers.length > 0) {
@@ -280,7 +311,8 @@ export async function syncFromBackend(clubSlug = 'nec-cse', token = null) {
             at: a.published_at || a.created_at,
             authorId: a.author_id,
             authorName: a.author_name,
-            hash: a.audit_hash || '84d7ae4affc2b859eb93824473b76b163ce6f57564d2b0aa07d189473ab22d1d',
+            hash:
+              a.audit_hash || '84d7ae4affc2b859eb93824473b76b163ce6f57564d2b0aa07d189473ab22d1d',
           });
         }
       }
@@ -349,14 +381,27 @@ export async function syncFromBackend(clubSlug = 'nec-cse', token = null) {
             actorId: e.claimant_user_id,
           });
         }
-        if (['UNDER_REVIEW', 'TREASURER_APPROVED', 'INCHARGE_APPROVED', 'PRESIDENT_APPROVED', 'DISBURSED'].includes(e.status)) {
+        if (
+          [
+            'UNDER_REVIEW',
+            'TREASURER_APPROVED',
+            'INCHARGE_APPROVED',
+            'PRESIDENT_APPROVED',
+            'DISBURSED',
+          ].includes(e.status)
+        ) {
           history.push({
             action: 'UNDER_REVIEW',
             status: 'UNDER_REVIEW',
             at: e.created_at,
           });
         }
-        if (e.treasurer_approved_at || ['TREASURER_APPROVED', 'INCHARGE_APPROVED', 'PRESIDENT_APPROVED', 'DISBURSED'].includes(e.status)) {
+        if (
+          e.treasurer_approved_at ||
+          ['TREASURER_APPROVED', 'INCHARGE_APPROVED', 'PRESIDENT_APPROVED', 'DISBURSED'].includes(
+            e.status,
+          )
+        ) {
           history.push({
             action: 'TREASURER_APPROVED',
             status: 'TREASURER_APPROVED',
@@ -364,7 +409,10 @@ export async function syncFromBackend(clubSlug = 'nec-cse', token = null) {
             actorId: e.treasurer_approver_id,
           });
         }
-        if (e.president_approved_at || ['INCHARGE_APPROVED', 'PRESIDENT_APPROVED', 'DISBURSED'].includes(e.status)) {
+        if (
+          e.president_approved_at ||
+          ['INCHARGE_APPROVED', 'PRESIDENT_APPROVED', 'DISBURSED'].includes(e.status)
+        ) {
           history.push({
             action: 'INCHARGE_APPROVED',
             status: 'INCHARGE_APPROVED',
@@ -482,7 +530,13 @@ export async function recordManualGatewayPayment(paymentData) {
 /**
  * Validates door QR check-in via backend gateway
  */
-export async function checkInGatewayDoor({ eventId, rawQrString, ticketCode, station = 'DOOR-01', token = null }) {
+export async function checkInGatewayDoor({
+  eventId,
+  rawQrString,
+  ticketCode,
+  station = 'DOOR-01',
+  token = null,
+}) {
   const headers = {
     'Content-Type': 'application/json',
     'x-club-slug': 'nec-cse',
@@ -549,4 +603,3 @@ export async function getAnnouncementHistory(announcementId) {
     return null;
   }
 }
-

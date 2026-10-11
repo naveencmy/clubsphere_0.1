@@ -13,7 +13,8 @@
     "pretest:auth": "npm run build",
     "test:auth": "playwright test --config playwright.auth.config.js",
     "format": "prettier --write src tests *.js *.json index.html",
-    "format:check": "prettier --check src tests *.js *.json index.html"
+    "format:check": "prettier --check src tests *.js *.json index.html",
+    "lint": "prettier --check src tests *.js *.json index.html"
   },
   "dependencies": {
     "@fontsource/inter": "^5.1.0",

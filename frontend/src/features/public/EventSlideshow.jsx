@@ -80,7 +80,11 @@ export default function EventSlideshow({ events, tiers }) {
           aria-roledescription="slide"
           aria-label={`${activeIndex + 1} of ${events.length}`}
         >
-          <div className="landing-slide-poster" aria-hidden="true" style={{ overflow: 'hidden', position: 'relative' }}>
+          <div
+            className="landing-slide-poster"
+            aria-hidden="true"
+            style={{ overflow: 'hidden', position: 'relative' }}
+          >
             {event.imageUrl ? (
               <img
                 src={event.imageUrl}
@@ -88,7 +92,13 @@ export default function EventSlideshow({ events, tiers }) {
                 loading="eager"
                 decoding="async"
                 fetchPriority="high"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', borderRadius: 'inherit' }}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  display: 'block',
+                  borderRadius: 'inherit',
+                }}
               />
             ) : (
               <>

@@ -8,6 +8,7 @@
     "start": "node src/server.js",
     "dev": "nodemon",
     "seed": "node src/config/seedRealData.js",
+    "lint": "node --check src/server.js",
     "test": "node --test"
   },
   "keywords": [],

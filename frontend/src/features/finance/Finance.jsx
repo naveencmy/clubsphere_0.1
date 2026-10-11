@@ -91,7 +91,8 @@ export default function Finance({ dashboard = false }) {
   if (!f)
     return (
       <Notice tone="error">
-        Financial reporting is restricted to the Treasurer, Association In-charge and read-only Auditor.
+        Financial reporting is restricted to the Treasurer, Association In-charge and read-only
+        Auditor.
       </Notice>
     );
   const rows = data.journal
@@ -567,7 +568,9 @@ export function Budgets() {
   const { data, toast } = useApp();
   const [edit, setEdit] = useState(null),
     [year, setYear] = useState(data.club.fiscalYear);
-  const writable = ['TREASURER', 'ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(data.role);
+  const writable = ['TREASURER', 'ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(
+    data.role,
+  );
   return (
     <div className="stack">
       <PageHeader
@@ -591,7 +594,8 @@ export function Budgets() {
       </div>
       <Notice>
         Budget remaining is an allocation, not available cash. Expenses commit only at final
-        approval. Overspending requires a recorded Association In-charge override or an increased envelope.
+        approval. Overspending requires a recorded Association In-charge override or an increased
+        envelope.
       </Notice>
       <div className="grid three">
         {data.budgets
@@ -625,9 +629,24 @@ export function Budgets() {
                     ]}
                   />
                   {b.items && Array.isArray(b.items) && b.items.length > 0 && (
-                    <div style={{ marginTop: 12, borderTop: '1px solid var(--border-subtle, #e2e8f0)', paddingTop: 10 }}>
-                      <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Approved Line Items:</h4>
-                      <table style={{ width: '100%', fontSize: 12, textAlign: 'left', borderCollapse: 'collapse' }}>
+                    <div
+                      style={{
+                        marginTop: 12,
+                        borderTop: '1px solid var(--border-subtle, #e2e8f0)',
+                        paddingTop: 10,
+                      }}
+                    >
+                      <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+                        Approved Line Items:
+                      </h4>
+                      <table
+                        style={{
+                          width: '100%',
+                          fontSize: 12,
+                          textAlign: 'left',
+                          borderCollapse: 'collapse',
+                        }}
+                      >
                         <thead>
                           <tr style={{ color: 'var(--text-muted, #64748b)' }}>
                             <th>Item</th>
@@ -637,9 +656,14 @@ export function Budgets() {
                         </thead>
                         <tbody>
                           {b.items.map((it, idx) => (
-                            <tr key={idx} style={{ borderBottom: '1px solid var(--border-subtle, #f1f5f9)' }}>
+                            <tr
+                              key={idx}
+                              style={{ borderBottom: '1px solid var(--border-subtle, #f1f5f9)' }}
+                            >
                               <td style={{ padding: '4px 0' }}>{it.name}</td>
-                              <td style={{ textAlign: 'center', padding: '4px 0' }}>{it.quantity}</td>
+                              <td style={{ textAlign: 'center', padding: '4px 0' }}>
+                                {it.quantity}
+                              </td>
                               <td style={{ textAlign: 'right', padding: '4px 0' }}>₹{it.total}</td>
                             </tr>
                           ))}

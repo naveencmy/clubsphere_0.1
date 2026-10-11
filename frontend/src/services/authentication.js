@@ -32,7 +32,10 @@ export async function loadAuthenticatedWorkspace(user) {
   next.memberships = next.memberships.filter((record) => record.userId !== user.id);
   for (const membership of workspace.memberships) {
     const club = next.clubs.find(
-      (record) => record.slug === membership.club_slug || record.id === membership.club_slug || record.slug === 'nec-cse'
+      (record) =>
+        record.slug === membership.club_slug ||
+        record.id === membership.club_slug ||
+        record.slug === 'nec-cse',
     );
     const clubId = club ? club.id : 'nec-cse';
     next.memberships.push({
@@ -42,7 +45,7 @@ export async function loadAuthenticatedWorkspace(user) {
       clubSlug: membership.club_slug || 'nec-cse',
       role: membership.role,
       tier: membership.tier || 'STANDARD',
-      status: membership.status === 'PENDING_PAYMENT' ? 'PENDING' : (membership.status || 'ACTIVE'),
+      status: membership.status === 'PENDING_PAYMENT' ? 'PENDING' : membership.status || 'ACTIVE',
       passCode: membership.pass_code || membership.qr_secret_token || `PASS-${membership.id}`,
       validFrom: membership.valid_from || new Date().toISOString(),
       validUntil: membership.valid_until || new Date(Date.now() + 365 * 86400000).toISOString(),

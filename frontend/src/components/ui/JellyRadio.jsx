@@ -14,7 +14,7 @@ const spring = (k, m, bounce) => ({
 
 const Chip = forwardRef(function Chip({ mv, children, ...rest }, ref) {
   const transform = useTransform(
-    () => `translateX(${mv.x.get()}px) scale(${mv.sx.get()}, ${mv.sy.get()})`
+    () => `translateX(${mv.x.get()}px) scale(${mv.sx.get()}, ${mv.sy.get()})`,
   );
   return (
     <motion.button ref={ref} style={{ transform }} {...rest}>
@@ -51,7 +51,7 @@ export default function JellyRadio({
   const current = value !== undefined ? value : inner;
   const at = Math.max(
     0,
-    list.findIndex((it) => it.value === current)
+    list.findIndex((it) => it.value === current),
   );
   const reduce = useReducedMotion();
   const groupRef = useRef(null);
@@ -60,7 +60,17 @@ export default function JellyRadio({
   const mvs = useRef([]);
   const applied = useRef(at);
   const cfg = useRef({});
-  cfg.current = { swell, barge, shrink, jelly, bounce, stagger, stiffness, reduce, count: list.length };
+  cfg.current = {
+    swell,
+    barge,
+    shrink,
+    jelly,
+    bounce,
+    stagger,
+    stiffness,
+    reduce,
+    count: list.length,
+  };
   const [h, font, px] = SIZES[size] ?? SIZES.md;
   const itemsKey = list.map((it) => it.value).join('|');
 
@@ -146,7 +156,7 @@ export default function JellyRadio({
         mv?.sx?.destroy?.();
         mv?.sy?.destroy?.();
       }),
-    []
+    [],
   );
 
   const commit = (i, instant) => {

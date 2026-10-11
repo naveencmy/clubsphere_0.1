@@ -70,9 +70,20 @@ export default function Expenses() {
               createdAt: exp.created_at,
               updatedAt: exp.updated_at,
               history: [
-                { action: 'SUBMITTED', status: 'SUBMITTED', at: exp.created_at, actorId: exp.claimant_user_id },
+                {
+                  action: 'SUBMITTED',
+                  status: 'SUBMITTED',
+                  at: exp.created_at,
+                  actorId: exp.claimant_user_id,
+                },
                 ...(exp.status !== 'SUBMITTED'
-                  ? [{ action: exp.status, status: exp.status, at: exp.updated_at || exp.created_at }]
+                  ? [
+                      {
+                        action: exp.status,
+                        status: exp.status,
+                        at: exp.updated_at || exp.created_at,
+                      },
+                    ]
                   : []),
               ],
             });
@@ -107,7 +118,12 @@ export default function Expenses() {
 
   if (id && !e) {
     if (loadingFetched) return <Loading />;
-    return <Empty title="Expense claim not found" description="The requested expense record could not be found." />;
+    return (
+      <Empty
+        title="Expense claim not found"
+        description="The requested expense record could not be found."
+      />
+    );
   }
   const fields = [
     { name: 'title', label: 'Expense title', required: true },
@@ -123,7 +139,10 @@ export default function Expenses() {
     {
       name: 'budgetId',
       label: 'Budget envelope',
-      options: (data.budgetCatalog || data.budgets || []).map((b) => ({ value: b.id, label: b.title })),
+      options: (data.budgetCatalog || data.budgets || []).map((b) => ({
+        value: b.id,
+        label: b.title,
+      })),
     },
     {
       name: 'eventId',
@@ -187,7 +206,8 @@ export default function Expenses() {
                 onChange={(ev) => fileSelected(ev.target.files[0])}
               />
               <p className="caption muted">
-                Drop an image or PDF here, or choose a file. Up to 3 MB. Attached as official reimbursement proof.
+                Drop an image or PDF here, or choose a file. Up to 3 MB. Attached as official
+                reimbursement proof.
               </p>
               {(receipt || e?.receipt) && <p>Receipt attached</p>}
               {fileError && <Notice tone="error">{fileError}</Notice>}
@@ -239,15 +259,26 @@ export default function Expenses() {
                 <Details
                   items={[
                     ['Reference', <span className="mono">{e.id}</span>],
-                    ['Claimant', data.users.find((u) => u.id === e.userId)?.name || e.claimantName || 'CSE Association Officer'],
+                    [
+                      'Claimant',
+                      data.users.find((u) => u.id === e.userId)?.name ||
+                        e.claimantName ||
+                        'CSE Association Officer',
+                    ],
                     ['Merchant', e.merchant || e.merchantName || 'Campus Operations'],
                     ['Purchase date', date(e.purchaseDate || e.createdAt)],
                     ['Amount', <Currency amount={e.amount} />],
                     ['Category', (e.category || 'GENERAL').replaceAll('_', ' ')],
-                    ['Budget', (data.budgetCatalog || data.budgets || []).find((b) => b.id === e.budgetId)?.title || 'General Operations'],
+                    [
+                      'Budget',
+                      (data.budgetCatalog || data.budgets || []).find((b) => b.id === e.budgetId)
+                        ?.title || 'General Operations',
+                    ],
                     [
                       'Approval policy',
-                      e.amount >= 250000 ? 'Treasurer + Association In-charge' : 'Treasurer final approval',
+                      e.amount >= 250000
+                        ? 'Treasurer + Association In-charge'
+                        : 'Treasurer final approval',
                     ],
                   ]}
                 />
@@ -262,58 +293,65 @@ export default function Expenses() {
                     Correct & resubmit
                   </Button>
                 )}
-                {e.userId === data.user.id && ['TREASURER', 'ASSOCIATION_INCHARGE'].includes(data.role) && (
-                  <Notice tone="warning">
-                    You cannot approve your own claim. Ask an independent officer to review.
-                  </Notice>
-                )}
-                {['TREASURER', 'ASSOCIATION_INCHARGE'].includes(data.role) && e.userId !== data.user.id && (
-                  <div className="row">
-                    {e.status === 'SUBMITTED' && (
-                      <Button
-                        primary
-                        disabled={busy}
-                        onClick={() =>
-                          run(
-                            () => expenseService.decision({ expenseId: e.id, decision: 'review' }),
-                            'Claim opened for review',
-                          )
-                        }
-                      >
-                        Begin review
-                      </Button>
-                    )}
-                    {e.status === 'UNDER_REVIEW' && (
-                      <>
-                        <Button disabled={busy} onClick={() => setDecision('correction')}>
-                          Request correction
+                {e.userId === data.user.id &&
+                  ['TREASURER', 'ASSOCIATION_INCHARGE'].includes(data.role) && (
+                    <Notice tone="warning">
+                      You cannot approve your own claim. Ask an independent officer to review.
+                    </Notice>
+                  )}
+                {['TREASURER', 'ASSOCIATION_INCHARGE'].includes(data.role) &&
+                  e.userId !== data.user.id && (
+                    <div className="row">
+                      {e.status === 'SUBMITTED' && (
+                        <Button
+                          primary
+                          disabled={busy}
+                          onClick={() =>
+                            run(
+                              () =>
+                                expenseService.decision({ expenseId: e.id, decision: 'review' }),
+                              'Claim opened for review',
+                            )
+                          }
+                        >
+                          Begin review
                         </Button>
-                        <Button danger disabled={busy} onClick={() => setDecision('reject')}>
-                          Reject claim
-                        </Button>
-                        {data.role === 'TREASURER' && (
-                          <Button primary disabled={busy} onClick={() => setDecision('treasurer')}>
-                            Treasurer approval
+                      )}
+                      {e.status === 'UNDER_REVIEW' && (
+                        <>
+                          <Button disabled={busy} onClick={() => setDecision('correction')}>
+                            Request correction
+                          </Button>
+                          <Button danger disabled={busy} onClick={() => setDecision('reject')}>
+                            Reject claim
+                          </Button>
+                          {data.role === 'TREASURER' && (
+                            <Button
+                              primary
+                              disabled={busy}
+                              onClick={() => setDecision('treasurer')}
+                            >
+                              Treasurer approval
+                            </Button>
+                          )}
+                        </>
+                      )}
+                      {e.status === 'TREASURER_APPROVED' &&
+                        e.amount >= 250000 &&
+                        data.role === 'ASSOCIATION_INCHARGE' && (
+                          <Button primary disabled={busy} onClick={() => setDecision('president')}>
+                            Association In-charge final approval
                           </Button>
                         )}
-                      </>
-                    )}
-                    {e.status === 'TREASURER_APPROVED' &&
-                      e.amount >= 250000 &&
-                      data.role === 'ASSOCIATION_INCHARGE' && (
-                        <Button primary disabled={busy} onClick={() => setDecision('president')}>
-                          Association In-charge final approval
-                        </Button>
-                      )}
-                    {(['INCHARGE_APPROVED', 'PRESIDENT_APPROVED'].includes(e.status) ||
-                      (e.status === 'TREASURER_APPROVED' && e.amount < 250000)) &&
-                      data.role === 'TREASURER' && (
-                        <Button primary disabled={busy} onClick={() => setDecision('disburse')}>
-                          Record disbursement
-                        </Button>
-                      )}
-                  </div>
-                )}
+                      {(['INCHARGE_APPROVED', 'PRESIDENT_APPROVED'].includes(e.status) ||
+                        (e.status === 'TREASURER_APPROVED' && e.amount < 250000)) &&
+                        data.role === 'TREASURER' && (
+                          <Button primary disabled={busy} onClick={() => setDecision('disburse')}>
+                            Record disbursement
+                          </Button>
+                        )}
+                    </div>
+                  )}
               </div>
             </Card>
             <Card title="Receipt proof">
@@ -321,7 +359,8 @@ export default function Expenses() {
                 {e.receipt ? (
                   <>
                     <div className="receipt">
-                      {e.receipt.startsWith('data:application/pdf') || e.receipt.endsWith('.pdf') ? (
+                      {e.receipt.startsWith('data:application/pdf') ||
+                      e.receipt.endsWith('.pdf') ? (
                         <p>PDF receipt attached · open to inspect</p>
                       ) : (
                         <img
@@ -350,7 +389,11 @@ export default function Expenses() {
                   e.history && e.history.length > 0
                     ? e.history
                     : [
-                        { action: 'SUBMITTED', status: 'SUBMITTED', at: e.createdAt || e.purchaseDate },
+                        {
+                          action: 'SUBMITTED',
+                          status: 'SUBMITTED',
+                          at: e.createdAt || e.purchaseDate,
+                        },
                         ...(e.status !== 'SUBMITTED'
                           ? [{ action: e.status, status: e.status, at: e.updatedAt || e.createdAt }]
                           : []),
@@ -492,15 +535,18 @@ export default function Expenses() {
               },
               ...(decision === 'president'
                 ? [
-                  {
-                    name: 'override',
-                    label: 'Budget override',
-                    options: [
-                      { value: 'false', label: 'Enforce allocated budget' },
-                      { value: 'true', label: 'Association In-charge override · reason required' },
-                    ],
-                  },
-                ]
+                    {
+                      name: 'override',
+                      label: 'Budget override',
+                      options: [
+                        { value: 'false', label: 'Enforce allocated budget' },
+                        {
+                          value: 'true',
+                          label: 'Association In-charge override · reason required',
+                        },
+                      ],
+                    },
+                  ]
                 : []),
             ]}
             onCancel={() => setDecision(null)}

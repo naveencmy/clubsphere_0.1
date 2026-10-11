@@ -180,7 +180,8 @@ export default function Fundraisers() {
       {donation && (
         <Modal title="Record a campaign contribution" onClose={() => setDonation(null)}>
           <Notice>
-            The contribution updates this campaign and posts a double-entry transaction to the financial ledger.
+            The contribution updates this campaign and posts a double-entry transaction to the
+            financial ledger.
           </Notice>
           <RecordForm
             fields={[

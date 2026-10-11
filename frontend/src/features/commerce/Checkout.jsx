@@ -37,7 +37,7 @@ import {
 function removeStuckRazorpayArtifacts() {
   if (typeof document === 'undefined') return;
   const elements = document.querySelectorAll(
-    '.razorpay-container, .razorpay-backdrop, iframe[name^="rzp"], div[id*="razorpay"]'
+    '.razorpay-container, .razorpay-backdrop, iframe[name^="rzp"], div[id*="razorpay"]',
   );
   elements.forEach((el) => {
     try {
@@ -102,11 +102,11 @@ export default function Checkout() {
   const isFree = Number(amount) === 0;
   const remaining = record.reservedUntil
     ? Math.max(
-      0,
-      Math.ceil(
-        (new Date(record.reservedUntil).getTime() - data.clock - (Date.now() - started)) / 1000,
-      ),
-    )
+        0,
+        Math.ceil(
+          (new Date(record.reservedUntil).getTime() - data.clock - (Date.now() - started)) / 1000,
+        ),
+      )
     : null;
 
   const destination =
@@ -341,19 +341,27 @@ export default function Checkout() {
             <div className="card-body stack">
               <Notice tone="positive">
                 <CheckCircle size={16} style={{ verticalAlign: 'middle', color: '#10b981' }} />
-                This event tier is completely complimentary (0 ₹). No payment gateway fee, credit card, or UPI transaction is required.
+                This event tier is completely complimentary (0 ₹). No payment gateway fee, credit
+                card, or UPI transaction is required.
               </Notice>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 0' }}>
                 <Badge tone="info" value="0 ₹ Free Tier" />
-                <span className="caption muted">Immediate digital pass & QR admission issuance</span>
+                <span className="caption muted">
+                  Immediate digital pass & QR admission issuance
+                </span>
               </div>
 
               <Button
                 primary
                 disabled={busy || result?.status === 'SUCCEEDED'}
                 onClick={claimFree}
-                style={{ width: '100%', padding: '12px 16px', fontSize: '0.95rem', fontWeight: 600 }}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  fontSize: '0.95rem',
+                  fontWeight: 600,
+                }}
               >
                 {busy
                   ? 'Confirming Registration…'
@@ -405,7 +413,8 @@ export default function Checkout() {
               {paymentMode === 'razorpay' ? (
                 <div className="stack">
                   <Notice>
-                    <ShieldCheck size={16} style={{ verticalAlign: 'middle' }} /> Supports Google Pay, PhonePe, Paytm, Debit / Credit Cards, Netbanking & UPI QR.
+                    <ShieldCheck size={16} style={{ verticalAlign: 'middle' }} /> Supports Google
+                    Pay, PhonePe, Paytm, Debit / Credit Cards, Netbanking & UPI QR.
                   </Notice>
                   {gatewayInfo && (
                     <div className="row" style={{ alignItems: 'center', gap: 8, padding: '4px 0' }}>
@@ -416,7 +425,9 @@ export default function Checkout() {
                           borderRadius: '50%',
                           backgroundColor: gatewayInfo.authenticated ? '#10b981' : '#0284c7',
                           display: 'inline-block',
-                          boxShadow: gatewayInfo.authenticated ? '0 0 6px #10b981' : '0 0 6px #0284c7',
+                          boxShadow: gatewayInfo.authenticated
+                            ? '0 0 6px #10b981'
+                            : '0 0 6px #0284c7',
                         }}
                       />
                       <span className="caption muted" style={{ fontSize: '0.82rem' }}>
@@ -439,7 +450,8 @@ export default function Checkout() {
               ) : (
                 <div className="stack">
                   <Notice>
-                    <FileText size={16} style={{ verticalAlign: 'middle' }} /> University Cash Voucher, NEFT Bank Transfer, or Direct UPI receipt reference.
+                    <FileText size={16} style={{ verticalAlign: 'middle' }} /> University Cash
+                    Voucher, NEFT Bank Transfer, or Direct UPI receipt reference.
                   </Notice>
                   <input
                     className="input"
@@ -457,86 +469,88 @@ export default function Checkout() {
                 </div>
               )}
 
-            {result && (
-              <Notice tone={result.status === 'SUCCEEDED' ? '' : 'warning'}>
-                <Badge value={result.status} />
-                <p>{result.message}</p>
-              </Notice>
-            )}
+              {result && (
+                <Notice tone={result.status === 'SUCCEEDED' ? '' : 'warning'}>
+                  <Badge value={result.status} />
+                  <p>{result.message}</p>
+                </Notice>
+              )}
 
-            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 8 }}>
-              <div className="row" style={{ alignItems: 'center', gap: 8 }}>
-                <ShieldCheck size={14} style={{ color: '#10b981' }} />
-                <span className="caption muted" style={{ fontSize: '0.82rem' }}>
-                  All transactions are end-to-end encrypted and verified against the campus ledger.
-                </span>
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 8 }}>
+                <div className="row" style={{ alignItems: 'center', gap: 8 }}>
+                  <ShieldCheck size={14} style={{ color: '#10b981' }} />
+                  <span className="caption muted" style={{ fontSize: '0.82rem' }}>
+                    All transactions are end-to-end encrypted and verified against the campus
+                    ledger.
+                  </span>
+                </div>
               </div>
-            </div>
 
-            {result?.status === 'SUCCEEDED' && (
-              <LinkButton primary to={destination}>
-                <CheckCircle size={16} />
-                {kind === 'ticket'
-                  ? 'View ticket pass'
-                  : kind === 'order'
-                    ? 'View merchandise order'
-                    : 'View membership pass'}
-              </LinkButton>
-            )}
-            <LinkButton to="/portal/dashboard">Return to workspace</LinkButton>
-          </div>
-        </Card>
-      )}
+              {result?.status === 'SUCCEEDED' && (
+                <LinkButton primary to={destination}>
+                  <CheckCircle size={16} />
+                  {kind === 'ticket'
+                    ? 'View ticket pass'
+                    : kind === 'order'
+                      ? 'View merchandise order'
+                      : 'View membership pass'}
+                </LinkButton>
+              )}
+              <LinkButton to="/portal/dashboard">Return to workspace</LinkButton>
+            </div>
+          </Card>
+        )}
       </div>
 
       {/* Embedded Secure Campus Payment Modal */}
       {showModal && (
-        <Modal
-          title="ClubSphere Secure Payment Gateway"
-          onClose={() => setShowModal(false)}
-        >
+        <Modal title="ClubSphere Secure Payment Gateway" onClose={() => setShowModal(false)}>
           <div className="stack" style={{ gap: 16 }}>
-            <div className="row between" style={{ background: 'var(--panel-card)', padding: '12px 16px', borderRadius: 8 }}>
+            <div
+              className="row between"
+              style={{ background: 'var(--panel-card)', padding: '12px 16px', borderRadius: 8 }}
+            >
               <div>
                 <strong style={{ fontSize: '1.1rem' }}>{data.club.name}</strong>
-                <p className="caption muted">{kind === 'ticket' ? 'Event Registration' : kind === 'order' ? 'Team MATRIX Merchandise' : 'Membership Pass'}</p>
+                <p className="caption muted">
+                  {kind === 'ticket'
+                    ? 'Event Registration'
+                    : kind === 'order'
+                      ? 'Team MATRIX Merchandise'
+                      : 'Membership Pass'}
+                </p>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <span className="caption muted">Amount</span>
-                <h3 style={{ margin: 0, color: 'var(--primary)' }}><Currency amount={amount} /></h3>
+                <h3 style={{ margin: 0, color: 'var(--primary)' }}>
+                  <Currency amount={amount} />
+                </h3>
               </div>
             </div>
 
-            <div className="row" style={{ gap: 6, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>
-              <Button
-                primary={modalTab === 'upi'}
-                onClick={() => setModalTab('upi')}
-              >
+            <div
+              className="row"
+              style={{ gap: 6, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}
+            >
+              <Button primary={modalTab === 'upi'} onClick={() => setModalTab('upi')}>
                 <Wallet size={15} /> UPI & QR
               </Button>
-              <Button
-                primary={modalTab === 'card'}
-                onClick={() => setModalTab('card')}
-              >
+              <Button primary={modalTab === 'card'} onClick={() => setModalTab('card')}>
                 <CreditCard size={15} /> Cards
               </Button>
-              <Button
-                primary={modalTab === 'netbanking'}
-                onClick={() => setModalTab('netbanking')}
-              >
+              <Button primary={modalTab === 'netbanking'} onClick={() => setModalTab('netbanking')}>
                 <Receipt size={15} /> Net Banking
               </Button>
-              <Button
-                primary={modalTab === 'voucher'}
-                onClick={() => setModalTab('voucher')}
-              >
+              <Button primary={modalTab === 'voucher'} onClick={() => setModalTab('voucher')}>
                 <FileText size={15} /> Voucher
               </Button>
             </div>
 
             {modalTab === 'upi' && (
               <div className="stack" style={{ gap: 12 }}>
-                <p style={{ margin: 0, fontSize: '0.9rem' }}>Select your preferred UPI application or scan QR code:</p>
+                <p style={{ margin: 0, fontSize: '0.9rem' }}>
+                  Select your preferred UPI application or scan QR code:
+                </p>
                 <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
                   {['Google Pay', 'PhonePe', 'Paytm', 'BHIM UPI'].map((app) => (
                     <Button
@@ -550,7 +564,9 @@ export default function Checkout() {
                   ))}
                 </div>
                 <div>
-                  <label className="caption muted" style={{ display: 'block', marginBottom: 4 }}>Virtual Payment Address (VPA)</label>
+                  <label className="caption muted" style={{ display: 'block', marginBottom: 4 }}>
+                    Virtual Payment Address (VPA)
+                  </label>
                   <input
                     className="input"
                     value={upiId}
@@ -559,7 +575,8 @@ export default function Checkout() {
                   />
                 </div>
                 <Notice>
-                  <QrCode size={16} style={{ verticalAlign: 'middle' }} /> Instant payment confirmation with real-time settlement notification.
+                  <QrCode size={16} style={{ verticalAlign: 'middle' }} /> Instant payment
+                  confirmation with real-time settlement notification.
                 </Notice>
               </div>
             )}
@@ -567,7 +584,9 @@ export default function Checkout() {
             {modalTab === 'card' && (
               <div className="stack" style={{ gap: 12 }}>
                 <div>
-                  <label className="caption muted" style={{ display: 'block', marginBottom: 4 }}>Card Number</label>
+                  <label className="caption muted" style={{ display: 'block', marginBottom: 4 }}>
+                    Card Number
+                  </label>
                   <input
                     className="input mono"
                     value={cardNumber}
@@ -576,7 +595,9 @@ export default function Checkout() {
                 </div>
                 <div className="grid two" style={{ gap: 8 }}>
                   <div>
-                    <label className="caption muted" style={{ display: 'block', marginBottom: 4 }}>Expiry (MM/YY)</label>
+                    <label className="caption muted" style={{ display: 'block', marginBottom: 4 }}>
+                      Expiry (MM/YY)
+                    </label>
                     <input
                       className="input mono"
                       value={cardExpiry}
@@ -584,7 +605,9 @@ export default function Checkout() {
                     />
                   </div>
                   <div>
-                    <label className="caption muted" style={{ display: 'block', marginBottom: 4 }}>CVV</label>
+                    <label className="caption muted" style={{ display: 'block', marginBottom: 4 }}>
+                      CVV
+                    </label>
                     <input
                       className="input mono"
                       value={cardCvv}
@@ -593,19 +616,19 @@ export default function Checkout() {
                   </div>
                 </div>
                 <div>
-                  <label className="caption muted" style={{ display: 'block', marginBottom: 4 }}>Cardholder Name</label>
-                  <input
-                    className="input"
-                    value={data.user.name}
-                    readOnly
-                  />
+                  <label className="caption muted" style={{ display: 'block', marginBottom: 4 }}>
+                    Cardholder Name
+                  </label>
+                  <input className="input" value={data.user.name} readOnly />
                 </div>
               </div>
             )}
 
             {modalTab === 'netbanking' && (
               <div className="stack" style={{ gap: 12 }}>
-                <p style={{ margin: 0, fontSize: '0.9rem' }}>Choose your institution or banking partner:</p>
+                <p style={{ margin: 0, fontSize: '0.9rem' }}>
+                  Choose your institution or banking partner:
+                </p>
                 <select
                   className="input"
                   value={selectedBank}
@@ -619,24 +642,22 @@ export default function Checkout() {
                   <option>Indian Overseas Bank (IOB)</option>
                   <option>Punjab National Bank</option>
                 </select>
-                <Notice>
-                  Direct student fee portal integration for campus transactions.
-                </Notice>
+                <Notice>Direct student fee portal integration for campus transactions.</Notice>
               </div>
             )}
 
             {modalTab === 'voucher' && (
               <div className="stack" style={{ gap: 12 }}>
-                <p style={{ margin: 0, fontSize: '0.9rem' }}>University Cash Voucher or Institutional Allocation:</p>
+                <p style={{ margin: 0, fontSize: '0.9rem' }}>
+                  University Cash Voucher or Institutional Allocation:
+                </p>
                 <input
                   className="input mono"
                   value={voucherNumber}
                   onChange={(e) => setVoucherNumber(e.target.value)}
                   placeholder="VCHR-2026-NEC-CSE-001"
                 />
-                <Notice>
-                  Verified against Department Treasurer Ledger account.
-                </Notice>
+                <Notice>Verified against Department Treasurer Ledger account.</Notice>
               </div>
             )}
 

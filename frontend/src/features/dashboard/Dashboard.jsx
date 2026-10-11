@@ -51,7 +51,9 @@ export default function Dashboard() {
           {manage ? 'Create an event' : 'Explore events'}
         </LinkButton>
       </PageHeader>
-      {['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(data.role) && <PresidentOverview />}
+      {['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(data.role) && (
+        <PresidentOverview />
+      )}
       <section className="welcome">
         <div className="stack small">
           <span className="eyebrow">{data.club.fiscalYear} · YOUR COMMUNITY</span>
@@ -117,7 +119,11 @@ export default function Dashboard() {
               label="Assigned tasks"
               value={mine.filter((t) => t.status !== 'DONE').length}
               icon={Columns3}
-              detail={mine.filter((t) => t.status !== 'DONE').length ? 'Active deliverables' : 'All caught up'}
+              detail={
+                mine.filter((t) => t.status !== 'DONE').length
+                  ? 'Active deliverables'
+                  : 'All caught up'
+              }
               to="/portal/tasks"
               actionLabel="My tasks"
             />

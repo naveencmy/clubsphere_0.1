@@ -128,9 +128,14 @@ export default function Announcements() {
           <Markdown content={a.content} />
           <footer className="announcement-footer">
             <div className="row">
-              <Avatar name={a.authorName || a.author || data.users.find((u) => u.id === a.authorId)?.name} />
+              <Avatar
+                name={a.authorName || a.author || data.users.find((u) => u.id === a.authorId)?.name}
+              />
               <span className="caption muted">
-                {a.authorName || a.author || data.users.find((u) => u.id === a.authorId)?.name || 'CSE Association Faculty & Leads'}
+                {a.authorName ||
+                  a.author ||
+                  data.users.find((u) => u.id === a.authorId)?.name ||
+                  'CSE Association Faculty & Leads'}
                 {a.updatedAt && (
                   <>
                     {' '}
@@ -152,28 +157,32 @@ export default function Announcements() {
               {management && (
                 <>
                   <Button onClick={() => setEdit(a)}>Edit</Button>
-                  {a.status === 'DRAFT' && ['TREASURER', 'ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(data.role) && (
-                    <Button
-                      disabled={busy}
-                      onClick={() => run(() => broadcastService.review(a.id), 'Draft reviewed')}
-                    >
-                      Review draft
-                    </Button>
-                  )}
-                  {a.status !== 'PUBLISHED' && ['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(data.role) && (
-                    <Button
-                      primary
-                      disabled={busy}
-                      onClick={() =>
-                        run(
-                          () => broadcastService.publish(a.id),
-                          'Announcement published; member delivery notifications queued',
-                        )
-                      }
-                    >
-                      Publish announcement
-                    </Button>
-                  )}
+                  {a.status === 'DRAFT' &&
+                    ['TREASURER', 'ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(
+                      data.role,
+                    ) && (
+                      <Button
+                        disabled={busy}
+                        onClick={() => run(() => broadcastService.review(a.id), 'Draft reviewed')}
+                      >
+                        Review draft
+                      </Button>
+                    )}
+                  {a.status !== 'PUBLISHED' &&
+                    ['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(data.role) && (
+                      <Button
+                        primary
+                        disabled={busy}
+                        onClick={() =>
+                          run(
+                            () => broadcastService.publish(a.id),
+                            'Announcement published; member delivery notifications queued',
+                          )
+                        }
+                      >
+                        Publish announcement
+                      </Button>
+                    )}
                   {['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(data.role) && (
                     <Button
                       disabled={busy}
@@ -249,7 +258,8 @@ export default function Announcements() {
                   >
                     <div>
                       <div className="caption muted">
-                        Target Audience: <strong>{activeAnnouncement.audience?.replaceAll('_', ' ')}</strong>
+                        Target Audience:{' '}
+                        <strong>{activeAnnouncement.audience?.replaceAll('_', ' ')}</strong>
                       </div>
                       <div className="caption muted">
                         Broadcast Officer:{' '}
@@ -342,9 +352,12 @@ export default function Announcements() {
         <Modal title="Member delivery dispatch report" onClose={() => setDeliveries(null)}>
           <div className="stack">
             <Notice>
-              Email dispatch logs track queued and delivered statuses for registered student members.
+              Email dispatch logs track queued and delivered statuses for registered student
+              members.
             </Notice>
-            {['TREASURER', 'ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(data.role) && (
+            {['TREASURER', 'ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(
+              data.role,
+            ) && (
               <Button
                 primary
                 disabled={busy}

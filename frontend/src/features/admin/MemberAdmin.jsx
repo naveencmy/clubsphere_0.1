@@ -79,7 +79,9 @@ export default function MemberAdmin() {
                     {b}
                   </p>
                 ))}
-                {['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(data.role) && <Button onClick={() => setEdit(p)}>Edit plan</Button>}
+                {['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(data.role) && (
+                  <Button onClick={() => setEdit(p)}>Edit plan</Button>
+                )}
               </div>
             </Card>
           ))}
@@ -107,11 +109,12 @@ export default function MemberAdmin() {
                 ['Verification code', <span className="mono">{m.passCode}</span>],
               ]}
             />
-            {['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(data.role) && m.status !== 'REVOKED' && (
-              <Button danger onClick={() => setRevoke(m.id)}>
-                Revoke membership
-              </Button>
-            )}
+            {['ASSOCIATION_INCHARGE', 'ASSOCIATION_COORDINATOR'].includes(data.role) &&
+              m.status !== 'REVOKED' && (
+                <Button danger onClick={() => setRevoke(m.id)}>
+                  Revoke membership
+                </Button>
+              )}
           </div>
         </Card>
       ) : (

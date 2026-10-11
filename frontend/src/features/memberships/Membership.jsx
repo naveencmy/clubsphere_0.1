@@ -85,10 +85,14 @@ export default function Membership() {
                 <h3>{data.user.name}</h3>
                 <p className="mono">{data.user.studentId}</p>
                 <Badge tone="info">{m.tier}</Badge>
-                <p className="caption">Valid until {date(m.validUntil || m.valid_until || (data.clock + 365 * 86400000))}</p>
+                <p className="caption">
+                  Valid until {date(m.validUntil || m.valid_until || data.clock + 365 * 86400000)}
+                </p>
               </div>
               {valid ? (
-                <QRDisplay code={m.passCode || m.qr_secret_token || `PASS-${m.id || data.user.id}`} />
+                <QRDisplay
+                  code={m.passCode || m.qr_secret_token || `PASS-${m.id || data.user.id}`}
+                />
               ) : (
                 <div className="qr" style={{ color: 'var(--slate-900)' }}>
                   Pass unavailable
@@ -113,15 +117,16 @@ export default function Membership() {
                     'Benefit eligibility',
                     valid ? 'Member prices enabled' : 'Standard prices apply',
                   ],
-                  ['Valid from', date(m.validFrom || m.valid_from || (data.clock - 30 * 86400000))],
-                  ['Renews on', date(m.validUntil || m.valid_until || (data.clock + 365 * 86400000))],
+                  ['Valid from', date(m.validFrom || m.valid_from || data.clock - 30 * 86400000)],
+                  ['Renews on', date(m.validUntil || m.valid_until || data.clock + 365 * 86400000)],
                 ]}
               />
               <LinkButton primary to="/portal/renew">
                 Renew membership <ArrowRight size={16} />
               </LinkButton>
               <Notice>
-                The QR identity rotates dynamically with secure cryptographic timestamps for touchless campus entry.
+                The QR identity rotates dynamically with secure cryptographic timestamps for
+                touchless campus entry.
               </Notice>
             </div>
           </Card>
@@ -138,7 +143,8 @@ export default function Membership() {
             subtitle="Member ticket prices, club essentials, and a student association community that has your back."
           />
           <Notice>
-            Payments are processed via authorized college payment channels (Razorpay, Direct UPI, or University Cash Voucher).
+            Payments are processed via authorized college payment channels (Razorpay, Direct UPI, or
+            University Cash Voucher).
           </Notice>
         </>
       )}

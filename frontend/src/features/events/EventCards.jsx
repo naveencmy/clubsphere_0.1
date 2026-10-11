@@ -20,9 +20,7 @@ export function EventArt({ event }) {
   return (
     <div className={`event-art ${event.visual || 'meet'}`}>
       <span className="art-category">{event.category || 'Event'} · Nandha Campus</span>
-      <span className="art-title">
-        {event.title}
-      </span>
+      <span className="art-title">{event.title}</span>
       <Icon aria-hidden="true" />
     </div>
   );

@@ -16,18 +16,21 @@
 [![Vite](https://img.shields.io/badge/Vite-6.0-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Nginx](https://img.shields.io/badge/Nginx-Alpine-009639?style=for-the-badge&logo=nginx&logoColor=white)](https://nginx.org/)
 [![Better Auth](https://img.shields.io/badge/Better_Auth-PostgreSQL_Adapter-FF4F00?style=for-the-badge)](https://better-auth.com/)
-[![Razorpay](https://img.shields.io/badge/Razorpay-Direct_Gateway-0C2340?style=for-the-badge&logo=razorpay&logoColor=white)](https://razorpay.com/)
+[![CI/CD Automation](https://github.com/naveencmy/ClubSphere_0.1/actions/workflows/ci.yml/badge.svg)](https://github.com/naveencmy/ClubSphere_0.1/actions/workflows/ci.yml)
+[![Lint Passed](https://img.shields.io/badge/Lint-Passing-brightgreen?style=for-the-badge&logo=prettier)](QUICKSTART.md)
 
 <p align="center">
   <strong>Unifying memberships, sub-200ms rapid door QR ticketing verification, merchandise e-commerce drops, volunteer task pipelines, cryptographic broadcasts, and automated double-entry financial accounting.</strong>
 </p>
 
+[Quickstart (Any Machine)](QUICKSTART.md) •
 [Architecture Blueprint](documents/TECHNICAL_ARCHITECTURE_DATABASE_SECURITY_BLUEPRINT.md) •
 [PRD & Specifications](documents/PRD_TECHNICAL_SPECIFICATION_CLUBSPHERE.md) •
 [Design System (DESIGN.md)](documents/DESIGN.md) •
 [Database DDL](documents/schema.sql) •
 [Backend API](backend/README.md) •
-[Frontend Guide](frontend/README.md)
+[Frontend Guide](frontend/README.md) •
+[Demo Video Script & Flow](documents/DEMO_VIDEO_SCRIPT_AND_FLOW.md)
 
 </div>
 

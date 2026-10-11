@@ -128,14 +128,20 @@ export default function Home() {
                 From{' '}
                 <Currency
                   amount={
-                    data.variants.find((v) =>
-                      v.productId === product.id ||
-                      v.productId === product.slug ||
-                      v.productId === product.backendId ||
-                      (product.slug?.includes('hoodie') && (v.productId === 'hoodie' || v.sku?.includes('HOODIE'))) ||
-                      (product.slug?.includes('polo') && (v.productId === 'polo' || v.sku?.includes('POLO'))) ||
-                      (product.slug?.includes('badge') && (v.productId === 'badge' || v.sku?.includes('BADGE'))),
-                    )?.publicPrice || product.publicPrice || 45000
+                    data.variants.find(
+                      (v) =>
+                        v.productId === product.id ||
+                        v.productId === product.slug ||
+                        v.productId === product.backendId ||
+                        (product.slug?.includes('hoodie') &&
+                          (v.productId === 'hoodie' || v.sku?.includes('HOODIE'))) ||
+                        (product.slug?.includes('polo') &&
+                          (v.productId === 'polo' || v.sku?.includes('POLO'))) ||
+                        (product.slug?.includes('badge') &&
+                          (v.productId === 'badge' || v.sku?.includes('BADGE'))),
+                    )?.publicPrice ||
+                    product.publicPrice ||
+                    45000
                   }
                 />
               </span>

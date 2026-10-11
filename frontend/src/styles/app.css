@@ -456,7 +456,7 @@ small,
   background: var(--surface);
 }
 
-.public-footer>div {
+.public-footer > div {
   max-width: 1136px;
   margin: auto;
 }
@@ -898,7 +898,10 @@ small,
   flex-direction: column;
   gap: 14px;
   position: relative;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+  transition:
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.2s ease;
 }
 
 .metric-interactive {
@@ -911,7 +914,9 @@ small,
   text-decoration: none;
   transform: translateY(-2px);
   border-color: var(--primary-subtle, #d2e3fc);
-  box-shadow: 0 10px 25px -5px rgba(26, 115, 232, 0.08), 0 4px 10px -2px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 10px 25px -5px rgba(26, 115, 232, 0.08),
+    0 4px 10px -2px rgba(0, 0, 0, 0.04);
 }
 
 .metric-top {
@@ -942,7 +947,10 @@ small,
   background: var(--slate-50);
   border-radius: 8px;
   color: var(--slate-700);
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .metric-interactive:hover .metric-icon {
@@ -1079,7 +1087,9 @@ small,
   border-radius: 12px;
   padding: 16px;
   margin-top: 16px;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
 }
 
 .poster-upload-section.drag-active {
@@ -1458,18 +1468,18 @@ tbody tr:last-child td {
   overflow: hidden;
 }
 
-.progress>span {
+.progress > span {
   display: block;
   height: 100%;
   background: var(--primary);
   border-radius: 9999px;
 }
 
-.progress.warning>span {
+.progress.warning > span {
   background: var(--warning);
 }
 
-.progress.danger>span {
+.progress.danger > span {
   background: var(--danger);
 }
 
@@ -1921,7 +1931,6 @@ tbody tr:last-child td {
 }
 
 @keyframes laser-scan {
-
   0%,
   100% {
     top: 8px;
@@ -2041,7 +2050,6 @@ tbody tr:last-child td {
 }
 
 @media (max-width: 767px) {
-
   button,
   .btn,
   input:not([type='checkbox']):not([type='radio']),
@@ -2341,7 +2349,7 @@ tbody tr:last-child td {
     gap: 4px;
   }
 
-  .public-header-inner>.row {
+  .public-header-inner > .row {
     gap: 8px;
   }
 
@@ -2364,7 +2372,6 @@ tbody tr:last-child td {
 }
 
 @media (prefers-reduced-motion: reduce) {
-
   *,
   *::before,
   *::after {
@@ -2378,20 +2385,19 @@ tbody tr:last-child td {
   }
 }
 
-.demo-strip>span>svg {
+.demo-strip > span > svg {
   display: inline-block;
 }
 
-.demo-strip>.row {
+.demo-strip > .row {
   flex-wrap: nowrap;
 }
 
-.demo-strip>.row label {
+.demo-strip > .row label {
   white-space: nowrap;
 }
 
 @media (max-width: 767px) {
-
   a,
   summary {
     min-height: 48px;
@@ -2407,7 +2413,7 @@ tbody tr:last-child td {
     width: 100%;
   }
 
-  .demo-strip>.row {
+  .demo-strip > .row {
     flex-wrap: wrap;
   }
 
@@ -2452,7 +2458,7 @@ tbody tr:last-child td {
   border-radius: 0;
 }
 
-.progress.success>span {
+.progress.success > span {
   background: var(--success);
 }
 
@@ -2470,7 +2476,7 @@ tbody tr:last-child td {
     display: none !important;
   }
 
-  .topbar-right>.caption {
+  .topbar-right > .caption {
     display: none;
   }
 

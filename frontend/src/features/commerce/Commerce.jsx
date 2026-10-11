@@ -36,7 +36,7 @@ export default function Commerce() {
     document.body.style.position = '';
     document.documentElement.style.overflow = '';
     const stuckOverlays = document.querySelectorAll(
-      '.razorpay-container, .razorpay-backdrop, iframe[name^="rzp"], div[id*="razorpay"]'
+      '.razorpay-container, .razorpay-backdrop, iframe[name^="rzp"], div[id*="razorpay"]',
     );
     stuckOverlays.forEach((el) => {
       try {
@@ -47,13 +47,18 @@ export default function Commerce() {
     });
   }, []);
   const valid = eligible(data.membership, data.clock),
-    product = id ? data.products.find((p) => p.id === id || p.slug === id || p.backendId === id) : null;
+    product = id
+      ? data.products.find((p) => p.id === id || p.slug === id || p.backendId === id)
+      : null;
   const list = product
     ? [product]
     : data.products.filter((p) => p.title.toLowerCase().includes(search.toLowerCase()));
   if (id && !product) return <Empty title="Product not found" />;
   function add(p, v) {
-    const currentStock = (data.stock && data.stock[v.id] != null) ? data.stock[v.id] : (v.availableStock ?? v.stock ?? 50);
+    const currentStock =
+      data.stock && data.stock[v.id] != null
+        ? data.stock[v.id]
+        : (v.availableStock ?? v.stock ?? 50);
     if (currentStock < 1) {
       toast('This variant is out of stock', true);
       return;
@@ -100,21 +105,26 @@ export default function Commerce() {
       )}
       <div className={`grid ${product ? 'two' : 'three'}`}>
         {list.map((p) => {
-          const variants = (
-            (p.variants && p.variants.length > 0)
+          const variants =
+            p.variants && p.variants.length > 0
               ? p.variants
               : data.variants.filter(
                   (v) =>
                     v.productId === p.id ||
                     v.productId === p.slug ||
                     v.productId === p.backendId ||
-                    (p.slug?.includes('hoodie') && (v.productId === 'hoodie' || v.sku?.includes('HOODIE'))) ||
-                    (p.slug?.includes('polo') && (v.productId === 'polo' || v.sku?.includes('POLO'))) ||
-                    (p.slug?.includes('badge') && (v.productId === 'badge' || v.sku?.includes('BADGE'))),
-                )
-          );
+                    (p.slug?.includes('hoodie') &&
+                      (v.productId === 'hoodie' || v.sku?.includes('HOODIE'))) ||
+                    (p.slug?.includes('polo') &&
+                      (v.productId === 'polo' || v.sku?.includes('POLO'))) ||
+                    (p.slug?.includes('badge') &&
+                      (v.productId === 'badge' || v.sku?.includes('BADGE'))),
+                );
           const v = variants.find((v) => v.id === sizes[p.id]) || variants[0];
-          const stockCount = (data.stock && data.stock[v?.id] != null) ? data.stock[v.id] : (v?.availableStock ?? v?.stock ?? 50);
+          const stockCount =
+            data.stock && data.stock[v?.id] != null
+              ? data.stock[v.id]
+              : (v?.availableStock ?? v?.stock ?? 50);
           const variantColor = v?.color || v?.attributes?.color || 'Navy Blue & Cyan';
           return (
             <Card className="product-card" key={p.id}>
@@ -131,11 +141,7 @@ export default function Commerce() {
                       <h3>
                         <Currency amount={valid ? v.memberPrice : v.publicPrice} />
                       </h3>
-                      <Badge
-                        tone={
-                          stockCount < 1 ? 'danger' : stockCount < 5 ? 'warning' : ''
-                        }
-                      >
+                      <Badge tone={stockCount < 1 ? 'danger' : stockCount < 5 ? 'warning' : ''}>
                         {stockCount} in stock
                       </Badge>
                     </div>
@@ -149,14 +155,30 @@ export default function Commerce() {
                       </Badge>
                     )}
                     <div className="field" style={{ margin: '12px 0 16px' }}>
-                      <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#475569', marginBottom: 6, display: 'block' }}>
+                      <label
+                        style={{
+                          fontSize: '0.8125rem',
+                          fontWeight: 600,
+                          color: '#475569',
+                          marginBottom: 6,
+                          display: 'block',
+                        }}
+                      >
                         Size & Variant · <span style={{ color: '#0284c7' }}>{variantColor}</span>
                       </label>
                       <div style={{ overflowX: 'auto', padding: '2px 0' }}>
                         <JellyRadio
                           items={variants.map((varItem) => {
-                            const vStock = (data.stock && data.stock[varItem.id] != null) ? data.stock[varItem.id] : (varItem.availableStock ?? varItem.stock ?? 50);
-                            const vSize = varItem.size || varItem.attributes?.size || varItem.label || varItem.title || 'Standard';
+                            const vStock =
+                              data.stock && data.stock[varItem.id] != null
+                                ? data.stock[varItem.id]
+                                : (varItem.availableStock ?? varItem.stock ?? 50);
+                            const vSize =
+                              varItem.size ||
+                              varItem.attributes?.size ||
+                              varItem.label ||
+                              varItem.title ||
+                              'Standard';
                             return {
                               value: varItem.id,
                               label: `${vSize} (${vStock})`,
@@ -408,9 +430,7 @@ export function Orders() {
                   {o.condition?.toLowerCase() || 'condition not yet recorded'}.
                 </Notice>
               )}
-              {o.refundStatus && (
-                <Notice>Refund completed. Financial reversal recorded.</Notice>
-              )}
+              {o.refundStatus && <Notice>Refund completed. Financial reversal recorded.</Notice>}
               {actions(o)}
             </div>
           </Card>

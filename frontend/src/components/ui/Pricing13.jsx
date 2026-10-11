@@ -23,8 +23,10 @@ export default function Pricing13({
   subtitle = 'Unlock member ticket discounts, exclusive technical workshops, and official digital campus credentials.',
   className = '',
 }) {
-  const [selectedPlanId, setSelectedPlanId] = useState(
-    () => currentMembership?.tier === 'PREMIUM' ? (plans.find((p) => p.tier === 'PREMIUM')?.id || plans[0]?.id) : plans[0]?.id
+  const [selectedPlanId, setSelectedPlanId] = useState(() =>
+    currentMembership?.tier === 'PREMIUM'
+      ? plans.find((p) => p.tier === 'PREMIUM')?.id || plans[0]?.id
+      : plans[0]?.id,
   );
   const [billingCycle, setBillingCycle] = useState('annual');
 
@@ -161,7 +163,8 @@ export default function Pricing13({
                 <div className="pricing-13-savings-banner">
                   <Zap size={18} />
                   <span>
-                    Estimated Student Annual Savings: <strong>{estimatedSavings}</strong> on tickets & gear
+                    Estimated Student Annual Savings: <strong>{estimatedSavings}</strong> on tickets
+                    & gear
                   </span>
                 </div>
 

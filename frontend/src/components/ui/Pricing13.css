@@ -85,7 +85,9 @@
 .pricing-13-plan-item--active {
   border-color: #0284c7;
   background: #f0f9ff;
-  box-shadow: 0 0 0 1px #0284c7, 0 12px 24px -4px rgba(2, 132, 199, 0.12);
+  box-shadow:
+    0 0 0 1px #0284c7,
+    0 12px 24px -4px rgba(2, 132, 199, 0.12);
 }
 
 .pricing-13-plan-top {
@@ -157,7 +159,9 @@
   border-radius: 24px;
   border: 1px solid rgba(226, 232, 240, 0.95);
   padding: 2.25rem;
-  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.08), 0 20px 40px -15px rgba(15, 23, 42, 0.04);
+  box-shadow:
+    0 10px 30px -5px rgba(15, 23, 42, 0.08),
+    0 20px 40px -15px rgba(15, 23, 42, 0.04);
 }
 
 .pricing-13-panel-header {

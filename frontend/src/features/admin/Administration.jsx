@@ -96,8 +96,8 @@ export default function Administration() {
       ) : roles ? (
         <>
           <Notice>
-            Leadership handover preserves officer
-            history and changes the outgoing Association In-charge to Member.
+            Leadership handover preserves officer history and changes the outgoing Association
+            In-charge to Member.
           </Notice>
           <Table
             rows={data.memberships}
@@ -191,7 +191,8 @@ export default function Administration() {
                 ]}
               />
               <Notice>
-                Brand styling is governed by DESIGN.md across every module. Dual approval, inventory controls, and financial ledgers operate under verified association standards.
+                Brand styling is governed by DESIGN.md across every module. Dual approval, inventory
+                controls, and financial ledgers operate under verified association standards.
               </Notice>
             </div>
           </Card>

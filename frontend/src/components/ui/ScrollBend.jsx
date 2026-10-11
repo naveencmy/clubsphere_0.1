@@ -1,6 +1,13 @@
 import { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useScroll, useVelocity, useSpring, useTransform, useReducedMotion } from 'motion/react';
+import {
+  motion,
+  useScroll,
+  useVelocity,
+  useSpring,
+  useTransform,
+  useReducedMotion,
+} from 'motion/react';
 import { ArrowLeft, ArrowRight, Calendar, MapPin, Sparkles, Ticket } from 'lucide-react';
 import { Currency } from '../common/UI.jsx';
 import './ScrollBend.css';
@@ -113,7 +120,8 @@ export default function ScrollBend({
           {events.map((event, idx) => {
             const sizeType = SIZE_VARIANTS[idx % SIZE_VARIANTS.length];
             const eventTier = tiers.find((t) => t.eventId === event.id || t.eventId === event.slug);
-            const isFeatured = idx === 0 || event.category === 'HACKATHON' || event.title.includes('SYNECTICS');
+            const isFeatured =
+              idx === 0 || event.category === 'HACKATHON' || event.title.includes('SYNECTICS');
             const startDate = new Date(event.startsAt || Date.now());
             const monthName = new Intl.DateTimeFormat('en-IN', {
               month: 'short',

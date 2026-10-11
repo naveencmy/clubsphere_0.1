@@ -4,7 +4,11 @@
   padding: 3rem 0 4.5rem;
   overflow: hidden;
   user-select: none;
-  background: radial-gradient(circle at 50% 20%, rgba(241, 245, 249, 0.9) 0%, rgba(255, 255, 255, 0) 75%);
+  background: radial-gradient(
+    circle at 50% 20%,
+    rgba(241, 245, 249, 0.9) 0%,
+    rgba(255, 255, 255, 0) 75%
+  );
 }
 
 .scroll-bend-header {
@@ -132,16 +136,22 @@
   background: #ffffff;
   border-radius: 24px;
   border: 1px solid rgba(226, 232, 240, 0.95);
-  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.04), 0 20px 40px -10px rgba(15, 23, 42, 0.08);
+  box-shadow:
+    0 4px 12px -2px rgba(15, 23, 42, 0.04),
+    0 20px 40px -10px rgba(15, 23, 42, 0.08);
   overflow: hidden;
   text-decoration: none;
   color: inherit;
-  transition: border-color 220ms ease, box-shadow 220ms ease;
+  transition:
+    border-color 220ms ease,
+    box-shadow 220ms ease;
 }
 
 .scroll-bend-card:hover {
   border-color: rgba(2, 132, 199, 0.5);
-  box-shadow: 0 16px 36px -6px rgba(2, 132, 199, 0.16), 0 28px 56px -12px rgba(15, 23, 42, 0.12);
+  box-shadow:
+    0 16px 36px -6px rgba(2, 132, 199, 0.16),
+    0 28px 56px -12px rgba(15, 23, 42, 0.12);
 }
 
 /* Staggered & Varied Size Configurations (Light Theme) */
@@ -193,7 +203,12 @@
 .scroll-bend-card-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.04) 0%, rgba(15, 23, 42, 0.25) 55%, rgba(15, 23, 42, 0.8) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.04) 0%,
+    rgba(15, 23, 42, 0.25) 55%,
+    rgba(15, 23, 42, 0.8) 100%
+  );
   pointer-events: none;
 }
 
@@ -336,10 +351,27 @@
 }
 
 @media (max-width: 640px) {
-  .scroll-bend-card--poster { width: 280px; height: 410px; }
-  .scroll-bend-card--landscape { width: 310px; height: 350px; }
-  .scroll-bend-card--square { width: 290px; height: 350px; }
-  .scroll-bend-card--tall { width: 260px; height: 390px; }
-  .scroll-bend-card--wide { width: 320px; height: 350px; }
-  .scroll-bend-title { font-size: 1.625rem; }
+  .scroll-bend-card--poster {
+    width: 280px;
+    height: 410px;
+  }
+  .scroll-bend-card--landscape {
+    width: 310px;
+    height: 350px;
+  }
+  .scroll-bend-card--square {
+    width: 290px;
+    height: 350px;
+  }
+  .scroll-bend-card--tall {
+    width: 260px;
+    height: 390px;
+  }
+  .scroll-bend-card--wide {
+    width: 320px;
+    height: 350px;
+  }
+  .scroll-bend-title {
+    font-size: 1.625rem;
+  }
 }
