@@ -48,23 +48,23 @@ ClubSphere is architected around a **layered Hexagonal / Domain-Driven Design (D
 
 ```mermaid
 flowchart TB
-    subgraph Public Internet
-        Client["Browser / Mobile Client\n(React 19 SPA + PWA)"]
+    subgraph Public_Internet ["Public Internet"]
+        Client["Browser / Mobile Client<br/>(React 19 SPA + PWA)"]
     end
 
-    subgraph DMZ / Ingress Tier
-        Nginx["Nginx Reverse Proxy\n(Gzip, SPA Fallback, Security Headers)"]
+    subgraph DMZ_Ingress ["DMZ / Ingress Tier"]
+        Nginx["Nginx Reverse Proxy<br/>(Gzip, SPA Fallback, Security Headers)"]
     end
 
-    subgraph Application Tier
-        API["Express 5 API Gateway\n(Node.js 20 LTS ESM)"]
-        Auth["Better-Auth Engine\n(PostgreSQL Sessions & OAuth)"]
-        Cron["Background Workers\n(Ticket Hold Pruning & Membership Audits)"]
+    subgraph App_Tier ["Application Tier"]
+        API["Express 5 API Gateway<br/>(Node.js 20 LTS ESM)"]
+        Auth["Better-Auth Engine<br/>(PostgreSQL Sessions & OAuth)"]
+        Cron["Background Workers<br/>(Ticket Hold Pruning & Audits)"]
     end
 
-    subgraph Data Tier (Isolated Network)
-        PG[("PostgreSQL 16 Database\n- Row-Level Security (RLS)\n- Double-Entry Trigger Verification\n- Cryptographic Audit Log")]
-        Media[("Named Volume\n- Image Assets & Badges")]
+    subgraph Data_Tier ["Data Tier (Isolated Network)"]
+        PG[("PostgreSQL 16 Database<br/>- Row-Level Security<br/>- Double-Entry Trigger Verification<br/>- Cryptographic Audit Log")]
+        Media[("Named Volume<br/>- Image Assets & Badges")]
     end
 
     Client -->|HTTP/2 HTTPS :80/:443| Nginx
