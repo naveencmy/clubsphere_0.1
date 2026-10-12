@@ -29,8 +29,7 @@ jobs:
       - name: Install Frontend Dependencies (clean)
         working-directory: frontend
         run: |
-          rm -rf node_modules package-lock.json
-          npm cache clean --force
+          rm -rf node_modules package-lock.json ../package-lock.json
           npm install
 
       - name: Verify Code Formatting (Prettier)
@@ -62,10 +61,9 @@ jobs:
       - name: Install Frontend Dependencies (clean)
         working-directory: frontend
         run: |
-          rm -rf node_modules package-lock.json
-          npm cache clean --force
+          rm -rf node_modules package-lock.json ../package-lock.json
           npm install
-          npm install --no-save @rollup/rollup-linux-x64-gnu || true
+          npm install --no-save @rollup/rollup-linux-x64-gnu lightningcss-linux-x64-gnu @tailwindcss/oxide-linux-x64-gnu || true
 
       - name: Compile Production Static Bundle
         working-directory: frontend
