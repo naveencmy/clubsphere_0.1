@@ -30,7 +30,13 @@ jobs:
 
       - name: Install Frontend Dependencies
         working-directory: frontend
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            echo "package-lock.json not found — falling back to npm install"
+            npm install
+          fi
 
       - name: Verify Code Formatting (Prettier)
         working-directory: frontend
@@ -62,7 +68,13 @@ jobs:
 
       - name: Install Dependencies
         working-directory: frontend
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            echo "package-lock.json not found — falling back to npm install"
+            npm install
+          fi
 
       - name: Compile Production Static Bundle
         working-directory: frontend
